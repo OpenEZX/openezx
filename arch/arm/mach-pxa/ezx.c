@@ -17,12 +17,15 @@
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
+#include <linux/spi/spi.h>
+#include <linux/mfd/ezx-pcap.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/pxa2xx_spi.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -600,7 +603,7 @@ static void __init a780_init(void)
 
 	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -639,7 +642,7 @@ static void __init e680_init(void)
 
 	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -677,7 +680,7 @@ static void __init a1200_init(void)
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -714,7 +717,7 @@ static void __init a910_init(void)
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -752,7 +755,7 @@ static void __init e6_init(void)
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -791,7 +794,7 @@ static void __init e2_init(void)
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
