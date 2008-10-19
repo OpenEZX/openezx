@@ -30,6 +30,8 @@
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
+#include <mach/udc.h>
+#include <mach/pxa27x-udc.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
