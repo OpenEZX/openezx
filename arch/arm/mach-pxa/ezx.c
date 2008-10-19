@@ -654,6 +654,14 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* PCAP_TS */
+#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+struct platform_device pcap_ts_device = {
+	.name           = "pcap-ts",
+	.id             = -1,
+};
+#endif
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -688,6 +696,9 @@ static void __init a780_init(void)
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a780_keypad_platform_data);
+#endif
+#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+	platform_device_register(&pcap_ts_device);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -730,6 +741,9 @@ static void __init e680_init(void)
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 #endif
+#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+	platform_device_register(&pcap_ts_device);
+#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -769,6 +783,9 @@ static void __init a1200_init(void)
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
+#endif
+#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+	platform_device_register(&pcap_ts_device);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -906,6 +923,9 @@ static void __init e6_init(void)
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 #warning "Please contribute a keypad map for E6"
 	/* pxa_set_keypad_info(&e6_keypad_platform_data); */
+#endif
+#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+	platform_device_register(&pcap_ts_device);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
