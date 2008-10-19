@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.27
-# Sun Oct 19 13:37:54 2008
+# Sun Oct 19 18:49:07 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -907,6 +907,7 @@ CONFIG_I2C_PXA=y
 # CONFIG_TPS65010 is not set
 # CONFIG_SENSORS_MAX6875 is not set
 # CONFIG_SENSORS_TSL2550 is not set
+CONFIG_EZX_EOC=y
 # CONFIG_I2C_DEBUG_CORE is not set
 # CONFIG_I2C_DEBUG_ALGO is not set
 # CONFIG_I2C_DEBUG_BUS is not set
