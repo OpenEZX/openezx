@@ -183,4 +183,9 @@ config MCU_MPC8349EMITX
 	  also register MCU GPIOs with the generic GPIO API, so you'll able
 	  to use MCU pins as GPIOs.
 
+config EZX_EOC
+	tristate "EZX EOC USB Transceiver"
+	depends on PXA_EZX && I2C
+	default y
+
 endmenu
