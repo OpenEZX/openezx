@@ -10,6 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/kernel_stat.h>
 #include <linux/proc_fs.h>
 #include <linux/mfd/ezx-pcap.h>
@@ -17,15 +18,13 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 
-#include <asm/hardware.h>
 #include <asm/mach-types.h>
 
-#include <asm/arch/ssp.h>
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/regs-ssp.h>
-#include <asm/arch/mfp-pxa27x.h>
-#include <asm/arch/irqs.h>
-#include <asm/mach/irq.h>
+#include <mach/ssp.h>
+#include <mach/pxa-regs.h>
+#include <mach/regs-ssp.h>
+#include <mach/mfp-pxa27x.h>
+#include <mach/irqs.h>
 
 struct pcap_chip {
 	struct spi_device *spi;
