@@ -24,9 +24,6 @@
 #include <linux/input.h>
 #include <linux/mfd/ezx-pcap.h>
 
-#include <asm/arch/hardware.h>
-#include <asm/arch/pxa-regs.h>
-
 struct pcap_ts {
 	struct input_dev *input;
 	struct timer_list timer;
