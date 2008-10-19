@@ -127,7 +127,8 @@ config MFD_WM8350_I2C
 
 config EZX_PCAP
 	bool "PCAP Support"
-	depends on PXA_EZX && SPI_PXA2XX
+	depends on PXA_EZX
+	select SPI_PXA2XX
 	help
 	  This enables the PCAP ASIC present on EZX Phones. This is
 	  needed for MMC, TouchScreen, Sound, USB, etc..
