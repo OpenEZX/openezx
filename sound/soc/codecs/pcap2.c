@@ -15,17 +15,15 @@
 #include <linux/delay.h>
 #include <linux/pm.h>
 #include <linux/platform_device.h>
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/ezx-pcap.h>
-#include <asm/arch/ezx.h>
-#include <asm/arch/hardware.h>
+//#include <mach/pxa-regs.h>
+#include <linux/mfd/ezx-pcap.h>
+//#include <asm/arch/hardware.h>
 
 #include "pcap2.h"
 
@@ -182,7 +180,7 @@ static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_INPUT("A5"), /* Builtin Mic */
 };
 
-static const char *audio_map[][3] = {
+static const struct snd_soc_dapm_route audio_map[] = {
 	{ "A1", NULL, "Output Mixer" },
 	{ "A2", NULL, "Output Mixer" },
 	{ "AR", NULL, "Output Mixer" },
@@ -221,48 +219,47 @@ static const char *audio_map[][3] = {
 
 	{ "PGA_CDC", NULL, "PGA_R" },
 	{ "CDC_ADC", NULL, "PGA_CDC" },
-
-	/* terminator */
-	{NULL, NULL, NULL},
 };
 
 static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
 {
-	int i;
+//	int i;
 
-	for(i = 0; i < ARRAY_SIZE(pcap2_codec_dapm_widgets); i++) {
-		snd_soc_dapm_new_control(codec, &pcap2_codec_dapm_widgets[i]);
-	}
+//	for(i = 0; i < ARRAY_SIZE(pcap2_codec_dapm_widgets); i++) {
+//		snd_soc_dapm_new_control(codec, &pcap2_codec_dapm_widgets[i]);
+//	}
+	snd_soc_dapm_new_controls(codec, pcap2_codec_dapm_widgets,
+				ARRAY_SIZE(pcap2_codec_dapm_widgets));
 
 	/* set up audio path interconnects */
-	for(i = 0; audio_map[i][0] != NULL; i++) {
-		snd_soc_dapm_connect_input(codec, audio_map[i][0],
-			audio_map[i][1], audio_map[i][2]);
-	}
+//	for(i = 0; audio_map[i][0] != NULL; i++) {
+//		snd_soc_dapm_connect_input(codec, audio_map[i][0],
+//			audio_map[i][1], audio_map[i][2]);
+//	}
+	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
 
 	snd_soc_dapm_new_widgets(codec);
 	return 0;
 }
 
-static int pcap2_codec_dapm_event(struct snd_soc_codec *codec, int event)
+static int pcap2_set_bias_level(struct snd_soc_codec *codec,
+	enum snd_soc_bias_level level)
 {
 	unsigned int input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
 
 	input &= ~PCAP2_INPUT_AMP_LOWPWR;
 
-	switch (event) {
-	case SNDRV_CTL_POWER_D0:
-	case SNDRV_CTL_POWER_D1:
-	case SNDRV_CTL_POWER_D2:
-	case SNDRV_CTL_POWER_D3hot: /* Off, with power */
-		dbg("dapm: ON\n");
+	switch (level) {
+
+	case SND_SOC_BIAS_ON:
+	case SND_SOC_BIAS_PREPARE:
+	case SND_SOC_BIAS_STANDBY:
 		break;
-	case SNDRV_CTL_POWER_D3cold: /* Off, without power */
+	case SND_SOC_BIAS_OFF:
 		input |= PCAP2_INPUT_AMP_LOWPWR;
-		dbg("dapm: OFF\n");
 		break;
 	}
-	codec->dapm_state = event;
+	codec->bias_level = level;
 	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 	return 0;
 }
@@ -271,7 +268,7 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 
@@ -335,22 +332,22 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 static int pcap2_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct snd_soc_dapm_widget *w;
 	unsigned int tmp;
 
 	if (codec_dai->id == PCAP2_STEREO_DAI) {
-		snd_soc_dapm_set_endpoint(codec, "ST_DAC", 0);
+		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp &= ~(PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 	}
 	else {
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			snd_soc_dapm_set_endpoint(codec, "CDC_DAC", 0);
+			snd_soc_dapm_disable_pin(codec, "CDC_DAC");
 		else
-			snd_soc_dapm_set_endpoint(codec, "CDC_ADC", 0);
+			snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		list_for_each_entry(w, &codec->dapm_widgets, list) {
 			if ((!strcmp(w->name, "CDC_DAC") || !strcmp(w->name, "CDC_ADC")) && w->connected)
 				goto in_use;
@@ -360,12 +357,12 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream)
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
 	}
 in_use:
-	snd_soc_dapm_sync_endpoints(codec);
+	snd_soc_dapm_sync(codec);
 
 	return 0;
 }
 
-static int pcap2_set_dai_sysclk(struct snd_soc_codec_dai *codec_dai,
+static int pcap2_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		int clk_id, unsigned int freq, int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
@@ -456,7 +453,7 @@ static int pcap2_set_dai_sysclk(struct snd_soc_codec_dai *codec_dai,
 	return 0;
 }
 
-static int pcap2_set_dai_fmt(struct snd_soc_codec_dai *codec_dai,
+static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		unsigned int fmt)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
@@ -563,29 +560,29 @@ static int pcap2_prepare(struct snd_pcm_substream *substream)
 {
 
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 	/* FIXME enable clock only if codec is master */
 	if (codec_dai->id == PCAP2_STEREO_DAI) {
-		snd_soc_dapm_set_endpoint(codec, "ST_DAC", 1);
-		snd_soc_dapm_set_endpoint(codec, "CDC_DAC", 0);
-		snd_soc_dapm_set_endpoint(codec, "CDC_ADC", 0);
+		snd_soc_dapm_enable_pin(codec, "ST_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp |= (PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 	}
 	else {
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			snd_soc_dapm_set_endpoint(codec, "CDC_DAC", 1);
+			snd_soc_dapm_enable_pin(codec, "CDC_DAC");
 		else
-			snd_soc_dapm_set_endpoint(codec, "CDC_ADC", 1);
-		snd_soc_dapm_set_endpoint(codec, "ST_DAC", 0);
+			snd_soc_dapm_enable_pin(codec, "CDC_ADC");
+		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 		tmp |= (PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
 	}
-	snd_soc_dapm_sync_endpoints(codec);
+	snd_soc_dapm_sync(codec);
 	mdelay(1);
 #ifdef PCAP2_DEBUG
 	dump_registers();
@@ -596,7 +593,7 @@ static int pcap2_prepare(struct snd_pcm_substream *substream)
 /*
  * Define codec DAI.
  */
-struct snd_soc_codec_dai pcap2_dai[] = {
+struct snd_soc_dai pcap2_dai[] = {
 {
 	.name = "PCAP2 MONO",
 	.id = 0,
@@ -689,7 +686,7 @@ static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
 	struct snd_soc_codec *codec = socdev->codec;
 
 	dbg("pcap2_codec_suspend");
-	pcap2_codec_dapm_event(codec, SNDRV_CTL_POWER_D3cold);
+	pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
 
@@ -699,8 +696,8 @@ static int pcap2_codec_resume(struct platform_device *pdev)
 	struct snd_soc_codec *codec = socdev->codec;
 
 	dbg("pcap2_codec_resume");
-	pcap2_codec_dapm_event(codec, SNDRV_CTL_POWER_D3hot);
-	pcap2_codec_dapm_event(codec, codec->suspend_dapm_state);
+	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
+	pcap2_set_bias_level(codec, codec->suspend_bias_level);
 	return 0;
 }
 
@@ -718,7 +715,7 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 	codec->owner = THIS_MODULE;
 	codec->read = pcap2_codec_read;
 	codec->write = pcap2_codec_write;
-	codec->dapm_event = pcap2_codec_dapm_event;
+	codec->set_bias_level = pcap2_set_bias_level;
 	codec->dai = pcap2_dai;
 	codec->num_dai = ARRAY_SIZE(pcap2_dai);
 
@@ -728,8 +725,7 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 		return ret;
 	}
 	/* power on device */
-	pcap2_codec_dapm_event(codec, SNDRV_CTL_POWER_D3hot);
-	/* set the update bits */
+	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
 	pcap2_codec_add_controls(codec);
 	pcap2_codec_add_widgets(codec);
@@ -772,7 +768,7 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->codec;
 	if (codec->control_data)
-		pcap2_codec_dapm_event(codec, SNDRV_CTL_POWER_D3cold);
+		pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	snd_soc_free_pcms(socdev);
 	snd_soc_dapm_free(socdev);
 
