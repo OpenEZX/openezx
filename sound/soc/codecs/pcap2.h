@@ -75,7 +75,8 @@
 #define PCAP2_OUTPUT_AMP_CDC_SW		0x100
 #define PCAP2_OUTPUT_AMP_ST_DAC_SW	0x200
 
-extern struct snd_soc_codec_dai pcap2_dai[];
+extern struct snd_soc_dai pcap2_dai[];
 extern struct snd_soc_codec_device soc_codec_dev_pcap2;
+
 
 #endif
