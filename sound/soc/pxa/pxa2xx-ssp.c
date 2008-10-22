@@ -28,6 +28,7 @@
 #include <sound/initval.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+#include <sound/pxa2xx-lib.h>
 
 #include <mach/hardware.h>
 #include <mach/pxa-regs.h>
@@ -58,7 +59,7 @@ static struct ssp_state ssp_state[3];
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_mono_out = {
 	.name			= "SSP1 PCM Mono out",
 	.dev_addr		= PXA2xx_SSP1_BASE + SSDR,
-	.drcmr			= &DRCMRTXSSDR,
+	.drcmr			= &DRCMR(14),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -66,7 +67,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_mono_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_mono_in = {
 	.name			= "SSP1 PCM Mono in",
 	.dev_addr		= PXA2xx_SSP1_BASE + SSDR,
-	.drcmr			= &DRCMRRXSSDR,
+	.drcmr			= &DRCMR(13),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -74,7 +75,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_mono_in = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_stereo_out = {
 	.name			= "SSP1 PCM Stereo out",
 	.dev_addr		= PXA2xx_SSP1_BASE + SSDR,
-	.drcmr			= &DRCMRTXSSDR,
+	.drcmr			= &DRCMR(14),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -82,7 +83,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_stereo_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_stereo_in = {
 	.name			= "SSP1 PCM Stereo in",
 	.dev_addr		= PXA2xx_SSP1_BASE + SSDR,
-	.drcmr			= &DRCMRRXSSDR,
+	.drcmr			= &DRCMR(13),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -90,7 +91,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp1_pcm_stereo_in = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_mono_out = {
 	.name			= "SSP2 PCM Mono out",
 	.dev_addr		= PXA27x_SSP2_BASE + SSDR,
-	.drcmr			= &DRCMRTXSS2DR,
+	.drcmr			= &DRCMR(16),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -98,7 +99,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_mono_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_mono_in = {
 	.name			= "SSP2 PCM Mono in",
 	.dev_addr		= PXA27x_SSP2_BASE + SSDR,
-	.drcmr			= &DRCMRRXSS2DR,
+	.drcmr			= &DRCMR(15),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -106,7 +107,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_mono_in = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_stereo_out = {
 	.name			= "SSP2 PCM Stereo out",
 	.dev_addr		= PXA27x_SSP2_BASE + SSDR,
-	.drcmr			= &DRCMRTXSS2DR,
+	.drcmr			= &DRCMR(16),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -114,7 +115,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_stereo_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_stereo_in = {
 	.name			= "SSP2 PCM Stereo in",
 	.dev_addr		= PXA27x_SSP2_BASE + SSDR,
-	.drcmr			= &DRCMRRXSS2DR,
+	.drcmr			= &DRCMR(15),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -122,7 +123,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp2_pcm_stereo_in = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_mono_out = {
 	.name			= "SSP3 PCM Mono out",
 	.dev_addr		= PXA27x_SSP3_BASE + SSDR,
-	.drcmr			= &DRCMRTXSS3DR,
+	.drcmr			= &DRCMR(67),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -130,7 +131,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_mono_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_mono_in = {
 	.name			= "SSP3 PCM Mono in",
 	.dev_addr		= PXA27x_SSP3_BASE + SSDR,
-	.drcmr			= &DRCMRRXSS3DR,
+	.drcmr			= &DRCMR(66),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH2,
 };
@@ -138,7 +139,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_mono_in = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_stereo_out = {
 	.name			= "SSP3 PCM Stereo out",
 	.dev_addr		= PXA27x_SSP3_BASE + SSDR,
-	.drcmr			= &DRCMRTXSS3DR,
+	.drcmr			= &DRCMR(67),
 	.dcmd			= DCMD_INCSRCADDR | DCMD_FLOWTRG |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -146,7 +147,7 @@ static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_stereo_out = {
 static struct pxa2xx_pcm_dma_params pxa2xx_ssp3_pcm_stereo_in = {
 	.name			= "SSP3 PCM Stereo in",
 	.dev_addr		= PXA27x_SSP3_BASE + SSDR,
-	.drcmr			= &DRCMRRXSS3DR,
+	.drcmr			= &DRCMR(66),
 	.dcmd			= DCMD_INCTRGADDR | DCMD_FLOWSRC |
 				  DCMD_BURST16 | DCMD_WIDTH4,
 };
@@ -163,7 +164,7 @@ static struct pxa2xx_pcm_dma_params *ssp_dma_params[3][4] = {
 static int pxa2xx_ssp_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int ret = 0;
 
 	if (!rtd->dai->cpu_dai->active) {
@@ -179,7 +180,7 @@ static int pxa2xx_ssp_startup(struct snd_pcm_substream *substream)
 static void pxa2xx_ssp_shutdown(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 
 	if (!cpu_dai->active) {
 		ssp_disable(&ssp[cpu_dai->id]);
@@ -190,7 +191,7 @@ static void pxa2xx_ssp_shutdown(struct snd_pcm_substream *substream)
 #ifdef CONFIG_PM
 
 static int pxa2xx_ssp_suspend(struct platform_device *pdev,
-	struct snd_soc_cpu_dai *dai)
+	struct snd_soc_dai *dai)
 {
 	if (!dai->active)
 		return 0;
@@ -201,7 +202,7 @@ static int pxa2xx_ssp_suspend(struct platform_device *pdev,
 }
 
 static int pxa2xx_ssp_resume(struct platform_device *pdev,
-	struct snd_soc_cpu_dai *dai)
+	struct snd_soc_dai *dai)
 {
 	if (!dai->active)
 		return 0;
@@ -233,7 +234,7 @@ void ssp_set_scr(struct ssp_dev *dev, u32 div)
 /*
  * Set the SSP ports SYSCLK.
  */
-static int pxa2xx_ssp_set_dai_sysclk(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
 	int clk_id, unsigned int freq, int dir)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -283,7 +284,7 @@ static int pxa2xx_ssp_set_dai_sysclk(struct snd_soc_cpu_dai *cpu_dai,
 /*
  * Set the SSP clock dividers.
  */
-static int pxa2xx_ssp_set_dai_clkdiv(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_clkdiv(struct snd_soc_dai *cpu_dai,
 	int div_id, int div)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -313,7 +314,7 @@ static int pxa2xx_ssp_set_dai_clkdiv(struct snd_soc_cpu_dai *cpu_dai,
 /*
  * Configure the PLL frequency pxa27x and (afaik - pxa320 only)
  */
-static int pxa2xx_ssp_set_dai_pll(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_pll(struct snd_soc_dai *cpu_dai,
 	int pll_id, unsigned int freq_in, unsigned int freq_out)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -346,7 +347,7 @@ static int pxa2xx_ssp_set_dai_pll(struct snd_soc_cpu_dai *cpu_dai,
 /*
  * Set the active slots in TDM/Network mode
  */
-static int pxa2xx_ssp_set_dai_tdm_slot(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_tdm_slot(struct snd_soc_dai *cpu_dai,
 	unsigned int mask, int slots)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -367,7 +368,7 @@ static int pxa2xx_ssp_set_dai_tdm_slot(struct snd_soc_cpu_dai *cpu_dai,
 /*
  * Tristate the SSP DAI lines
  */
-static int pxa2xx_ssp_set_dai_tristate(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_tristate(struct snd_soc_dai *cpu_dai,
 	int tristate)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -388,7 +389,7 @@ static int pxa2xx_ssp_set_dai_tristate(struct snd_soc_cpu_dai *cpu_dai,
  * The SSP Port must be inactive before calling this function as the
  * physical interface format is changed.
  */
-static int pxa2xx_ssp_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
+static int pxa2xx_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		unsigned int fmt)
 {
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
@@ -405,7 +406,6 @@ static int pxa2xx_ssp_set_dai_fmt(struct snd_soc_cpu_dai *cpu_dai,
 			SSCR1_TRAIL | SSCR1_RWOT,
 			mmio_base + SSCR1);
 
-master:
 	val = __raw_readl(mmio_base + SSCR1);
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:
@@ -467,7 +467,7 @@ static int pxa2xx_ssp_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int dma = 0, chn = params_channels(params);
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
 	u32 sscr0;
@@ -526,7 +526,7 @@ ret:
 static int pxa2xx_ssp_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int ret = 0;
 	void __iomem *mmio_base = ssp[cpu_dai->id].ssp->mmio_base;
 	int val;
@@ -594,7 +594,7 @@ static int pxa2xx_ssp_trigger(struct snd_pcm_substream *substream, int cmd)
 #define PXA2XX_SSP_FORMATS (SNDRV_PCM_FMTBIT_S16_LE |\
 	SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 
-struct snd_soc_cpu_dai pxa_ssp_dai[] = {
+struct snd_soc_dai pxa_ssp_dai[] = {
 	{	.name = "pxa2xx-ssp1",
 		.id = 0,
 		.type = SND_SOC_DAI_PCM,
