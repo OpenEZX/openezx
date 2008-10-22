@@ -15,19 +15,20 @@
 #include <linux/timer.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 
 #include <asm/mach-types.h>
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/regs-ssp.h>
-#include <asm/arch/hardware.h>
-#include <asm/arch/gpio.h>
+#include <mach/hardware.h>
+#include <mach/pxa-regs.h>
+#include <mach/pxa2xx-regs.h>
+#include <mach/regs-ssp.h>
+//#include <asm/arch/hardware.h>
+//#include <asm/arch/gpio.h>
 
-#include <asm/arch/ezx-pcap.h>
+#include <linux/mfd/ezx-pcap.h>
 
 #include "../codecs/pcap2.h"
 #include "pxa2xx-pcm.h"
@@ -39,19 +40,24 @@ static struct snd_soc_codec *control_codec;
 
 static void ezx_ext_control(struct snd_soc_codec *codec)
 {
-	if (ezx_pcap_read_bit(pbit(PCAP_REG_PSTAT, PCAP_IRQ_A1)))
-		snd_soc_dapm_set_endpoint(codec, "Headset", 1);
-	else
-		snd_soc_dapm_set_endpoint(codec, "Headset", 0);
-	if (ezx_pcap_read_bit(pbit(PCAP_REG_PSTAT, PCAP_IRQ_MB2)))
-		snd_soc_dapm_set_endpoint(codec, "External Mic", 1);
-	else
-		snd_soc_dapm_set_endpoint(codec, "External Mic", 0);
+	u32 tmp;
 
-	snd_soc_dapm_sync_endpoints(codec);
+	ezx_pcap_read(PCAP_REG_PSTAT, &tmp);
+
+	if (tmp & PCAP_IRQ_A1)
+		snd_soc_dapm_enable_pin(codec, "Headset");
+	else
+		snd_soc_dapm_disable_pin(codec, "Headset");
+
+	if (tmp & PCAP_IRQ_MB2)
+		snd_soc_dapm_enable_pin(codec, "External Mic");
+	else
+		snd_soc_dapm_disable_pin(codec, "External Mic");
+
+	snd_soc_dapm_sync(codec);
 }
 
-static irqreturn_t jack_irq(int irq, void *data)
+static irqreturn_t jack_irq(struct work_struct *unused)
 {
 	ezx_ext_control(control_codec);
 	return IRQ_HANDLED;
@@ -86,8 +92,8 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int ret;
 
 	/* set codec DAI configuration */
@@ -152,8 +158,8 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec_dai *codec_dai = rtd->dai->codec_dai;
-//	struct snd_soc_cpu_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+//	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int ret = 0;
 	/* set codec DAI configuration */
 	ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
@@ -180,7 +186,7 @@ static const struct snd_soc_dapm_widget ezx_dapm_widgets[] = {
 };
 
 /* machine audio map (connections to the codec pins) */
-static const char *audio_map[][3] = {
+static const struct snd_soc_dapm_route audio_map[] = {
 	{ "Headset", NULL, "AR" },
 	{ "Headset", NULL, "AL" },
 	{ "Earpiece", NULL, "A1" },
@@ -213,16 +219,14 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 		snd_soc_dapm_new_control(codec, &ezx_dapm_widgets[i]);
 	}
 	/* Set up ezx specific audio path interconnects */
-	for(i = 0; audio_map[i][0] != NULL; i++) {
-		snd_soc_dapm_connect_input(codec, audio_map[i][0], audio_map[i][1], audio_map[i][2]);
-	}
+	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
 
 	/* synchronise subsystem */
-	snd_soc_dapm_sync_endpoints(codec);
+	snd_soc_dapm_sync(codec);
 	return 0;
 }
 
-static struct snd_soc_cpu_dai bp_dai =
+static struct snd_soc_dai bp_dai =
 {
 	.name = "Baseband",
 	.id = 0,
@@ -309,33 +313,31 @@ static int __init ezx_init(void)
 		platform_device_put(ezx_snd_device);
 
 	/* configure gpio for ssp3 */
-	pxa_gpio_mode(GPIO83_SFRM3_MD);	/* SFRM */
-	pxa_gpio_mode(GPIO81_STXD3_MD);	/* TXD  */
-	pxa_gpio_mode(GPIO52_SCLK3_MD);	/* SCLK */
-	pxa_gpio_mode(GPIO89_SRXD3_MD);	/* RXD  */
+//	pxa_gpio_mode(GPIO83_SFRM3_MD);	/* SFRM */
+//	pxa_gpio_mode(GPIO81_STXD3_MD);	/* TXD  */
+//	pxa_gpio_mode(GPIO52_SCLK3_MD);	/* SCLK */
+//	pxa_gpio_mode(GPIO89_SRXD3_MD);	/* RXD  */
 
 	/* configure gpio for ssp2 */
-	pxa_gpio_mode(37 | GPIO_IN);	/* SFRM */
-	pxa_gpio_mode(38 | GPIO_IN);	/* TXD  */
-	pxa_gpio_mode(22 | GPIO_IN);	/* SCLK */
-	pxa_gpio_mode(88 | GPIO_IN);	/* RXD  */
+//	pxa_gpio_mode(37 | GPIO_IN);	/* SFRM */
+//	pxa_gpio_mode(38 | GPIO_IN);	/* TXD  */
+//	pxa_gpio_mode(22 | GPIO_IN);	/* SCLK */
+//	pxa_gpio_mode(88 | GPIO_IN);	/* RXD  */
 
-#ifdef CONFIG_PXA_EZX_A780
+#if 0 //CONFIG_PXA_EZX_A780
 	pxa_gpio_mode(GPIO_HW_ATTENUATE_A780 | GPIO_OUT);
 	gpio_set_value(GPIO_HW_ATTENUATE_A780, 1);
 #endif
 
-	/* request jack irq */
-	request_irq(EZX_IRQ_HEADJACK, &jack_irq, IRQF_DISABLED, "headphone jack", NULL);
-	request_irq(EZX_IRQ_MIC, &jack_irq, IRQF_DISABLED, "mic jack", NULL);
+	/* request jack event */
+	ezx_pcap_register_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1, jack_irq, "HP/MIC");
 
 	return ret;
 }
 
 static void __exit ezx_exit(void)
 {
-	free_irq(EZX_IRQ_HEADJACK, NULL);
-	free_irq(EZX_IRQ_MIC, NULL);
+	ezx_pcap_unregister_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1);
 	platform_device_unregister(ezx_snd_device);
 }
 
