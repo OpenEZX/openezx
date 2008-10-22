@@ -29,11 +29,11 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
-#include <asm/hardware.h>
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/regs-ssp.h>
-#include <asm/arch/audio.h>
-#include <asm/arch/ssp.h>
+#include <mach/hardware.h>
+#include <mach/pxa-regs.h>
+#include <mach/regs-ssp.h>
+#include <mach/audio.h>
+#include <mach/ssp.h>
 
 #include "pxa2xx-pcm.h"
 #include "pxa2xx-ssp.h"
