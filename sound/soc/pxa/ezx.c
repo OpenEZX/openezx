@@ -194,8 +194,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 
 	{ "Built-in Mic", NULL, "A5" },
 	{ "External Mic", NULL, "A3" },
-
-	{NULL, NULL, NULL},
 };
 
 /*
