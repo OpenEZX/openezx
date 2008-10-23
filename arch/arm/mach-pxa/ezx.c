@@ -611,7 +611,7 @@ static unsigned int e2_key_map[] = {
 	KEY(1, 2, KEY_RESERVED),
 	KEY(1, 3, KEY_PAGEUP),
 	KEY(1, 4, KEY_KPASTERISK),
-	KEY(1, 5, KEY_F3), /* Right SoftKey */
+	KEY(1, 5, KEY_F2), /* Right SoftKey */
 
 	KEY(2, 0, KEY_KP7),
 	KEY(2, 1, KEY_ENTER),
