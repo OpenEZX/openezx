@@ -521,6 +521,54 @@ static struct pxa27x_keypad_platform_data a910_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_A910 */
 
+#ifdef CONFIG_MACH_EZX_E2
+static unsigned int e2_key_map[] = {
+	KEY(0, 0, KEY_KP6),
+	KEY(0, 1, KEY_RIGHT),
+	KEY(0, 2, KEY_KP9),
+	KEY(0, 3, KEY_SKIPFOR),
+	KEY(0, 4, KEY_KP5),
+	KEY(0, 5, KEY_F1), /* Left SoftKey */
+
+	KEY(1, 0, KEY_KP8),
+	KEY(1, 1, KEY_DOWN),
+	KEY(1, 2, KEY_RESERVED),
+	KEY(1, 3, KEY_PAGEUP),
+	KEY(1, 4, KEY_KPASTERISK),
+	KEY(1, 5, KEY_F3), /* Right SoftKey */
+
+	KEY(2, 0, KEY_KP7),
+	KEY(2, 1, KEY_ENTER),
+	KEY(2, 2, KEY_RECORD),
+	KEY(2, 3, KEY_PAGEDOWN),
+	KEY(2, 4, KEY_CANCEL),
+	KEY(2, 5, KEY_KP0),
+
+	KEY(3, 0, KEY_KP2),
+	KEY(3, 1, KEY_UP),
+	KEY(3, 2, KEY_PHONE),
+	KEY(3, 3, KEY_PLAY),
+	KEY(3, 4, KEY_KP1),
+	KEY(3, 5, KEY_F3), /* Music SoftKey */
+
+	KEY(4, 0, KEY_KP4),
+	KEY(4, 1, KEY_LEFT),
+	KEY(4, 2, KEY_KPDOT),
+	KEY(4, 3, KEY_SKIPBACK),
+	KEY(4, 4, KEY_KP3),
+	KEY(4, 5, KEY_RESERVED),
+};
+
+static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
+	.matrix_key_rows = 5,
+	.matrix_key_cols = 6,
+	.matrix_key_map = e2_key_map,
+	.matrix_key_map_size = ARRAY_SIZE(e2_key_map),
+
+	.debounce_interval = 30,
+};
+#endif /* CONFIG_MACH_EZX_E2 */
+
 #endif /* CONFIG_KEYBOARD_PXA27x */
 
 /* PCAP */
@@ -800,8 +848,7 @@ static void __init e2_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
-#warning "Please contribute a keypad map for E2"
-	/* pxa_set_keypad_info(&e2_keypad_platform_data); */
+	pxa_set_keypad_info(&e2_keypad_platform_data);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
