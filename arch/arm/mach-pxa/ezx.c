@@ -332,9 +332,21 @@ static unsigned long e2_pin_config[] __initdata = {
 
 #ifdef CONFIG_MACH_EZX_E6
 static unsigned long e6_pin_config[] __initdata = {
-
-};
+	/* keypad */
+	GPIO100_KP_MKIN_0 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO101_KP_MKIN_1 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO102_KP_MKIN_2 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO97_KP_MKIN_3 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO98_KP_MKIN_4 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO103_KP_MKOUT_0,
+	GPIO104_KP_MKOUT_1,
+	GPIO105_KP_MKOUT_2,
+	GPIO106_KP_MKOUT_3,
+	GPIO107_KP_MKOUT_4,
+	GPIO108_KP_MKOUT_5,
+ };
 #endif
+
 
 /* KEYPAD */
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -472,6 +484,55 @@ static struct pxa27x_keypad_platform_data a1200_keypad_platform_data = {
 	.debounce_interval = 30,
 };
 #endif /* CONFIG_MACH_EZX_A1200 */
+
+
+#ifdef CONFIG_MACH_EZX_E6
+static unsigned int e6_key_map[] = {
+	KEY(0, 0, KEY_RESERVED),
+	KEY(0, 1, KEY_RIGHT),
+	KEY(0, 2, KEY_VOLUMEDOWN),
+	KEY(0, 3, KEY_RESERVED),
+	KEY(0, 4, KEY_RESERVED),
+	KEY(0, 5, KEY_NEXT),
+
+	KEY(1, 0, KEY_RESERVED),
+	KEY(1, 1, KEY_DOWN),
+	KEY(1, 2, KEY_PROG1),
+	KEY(1, 3, KEY_RESERVED),
+	KEY(1, 4, KEY_RESERVED),
+	KEY(1, 5, KEY_RESERVED),
+
+	KEY(2, 0, KEY_RESERVED),
+	KEY(2, 1, KEY_ENTER),
+	KEY(2, 2, KEY_CAMERA),
+	KEY(2, 3, KEY_RESERVED),
+	KEY(2, 4, KEY_RESERVED),
+	KEY(2, 5, KEY_WWW),
+
+	KEY(3, 0, KEY_RESERVED),
+	KEY(3, 1, KEY_UP),
+	KEY(3, 2, KEY_PHONE),
+	KEY(3, 3, KEY_RESERVED),
+	KEY(3, 4, KEY_RESERVED),
+	KEY(3, 5, KEY_PLAYPAUSE),
+
+	KEY(4, 0, KEY_RESERVED),
+	KEY(4, 1, KEY_LEFT),
+	KEY(4, 2, KEY_VOLUMEUP),
+	KEY(4, 3, KEY_RESERVED),
+	KEY(4, 4, KEY_RESERVED),
+	KEY(4, 5, KEY_PREVIOUS),
+};
+
+static struct pxa27x_keypad_platform_data e6_keypad_platform_data = {
+	.matrix_key_rows = 5,
+	.matrix_key_cols = 6,
+	.matrix_key_map = e6_key_map,
+	.matrix_key_map_size = ARRAY_SIZE(e6_key_map),
+
+	.debounce_interval = 30,
+};
+#endif /* CONFIG_MACH_EZX_E6 */
 
 #ifdef CONFIG_MACH_EZX_A910
 static unsigned int a910_key_map[] = {
@@ -809,8 +870,7 @@ static void __init e6_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
-#warning "Please contribute a keypad map for E6"
-	/* pxa_set_keypad_info(&e6_keypad_platform_data); */
+	pxa_set_keypad_info(&e6_keypad_platform_data);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
