@@ -30,6 +30,8 @@
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
+#include <mach/udc.h>
+#include <mach/pxa27x-udc.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -656,6 +658,12 @@ static void ezx_pcap_init(void)
 
 	/*  set core voltage */
 	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+
+	/* FIXME: EMU driver */
+	ezx_pcap_write(PCAP_REG_BUSCTRL,
+			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	gpio_direction_output(120, 0);
+	gpio_direction_output(119, 0);
 }
 
 static struct pcap_platform_data ezx_pcap_platform_data = {
@@ -710,6 +718,28 @@ struct platform_device pcap_ts_device = {
 };
 #endif
 
+/* UDC */
+static void ezx_udc_command(int cmd)
+{
+	unsigned int tmp;
+	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+	switch (cmd) {
+	case PXA2XX_UDC_CMD_DISCONNECT:
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp &= ~PCAP_BUSCTRL_USB_PU;
+		break;
+	case PXA2XX_UDC_CMD_CONNECT:
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp |= PCAP_BUSCTRL_USB_PU;
+		break;
+	}
+	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+}
+
+static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
+	.udc_command = ezx_udc_command,
+};
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -739,6 +769,9 @@ static void __init a780_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -784,6 +817,9 @@ static void __init e680_init(void)
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -826,6 +862,9 @@ static void __init a1200_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -926,6 +965,9 @@ static void __init a910_init(void)
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -965,6 +1007,9 @@ static void __init e6_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1009,6 +1054,9 @@ static void __init e2_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
