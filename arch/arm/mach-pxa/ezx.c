@@ -17,12 +17,16 @@
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
+#include <linux/gpio.h>
+#include <linux/spi/spi.h>
+#include <linux/mfd/ezx-pcap.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/pxa2xx_spi.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -567,6 +571,61 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 
 #endif /* CONFIG_KEYBOARD_PXA27x */
 
+/* PCAP */
+static void ezx_pcap_init(void)
+{
+	/* set SW1 sleep to keep SW1 1.3v in sync mode */
+	/*  SW1 active in sync mode */
+	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
+
+	/*  set core voltage */
+	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+}
+
+static struct pcap_platform_data ezx_pcap_platform_data = {
+	.cs     = 24,
+	.irq    = IRQ_GPIO1,
+	.config = 0,
+	.init   = ezx_pcap_init,
+};
+
+static void pcap_cs_control(u32 command)
+{
+	if (command & PXA2XX_CS_ASSERT) {
+		gpio_set_value(ezx_pcap_platform_data.cs,
+		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1);
+	} else {
+		gpio_set_value(ezx_pcap_platform_data.cs,
+		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0);
+	}
+}
+
+static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
+	.tx_threshold = 1,
+	.rx_threshold = 1,
+	.dma_burst_size = 0,
+	.timeout = 100,
+	.cs_control = pcap_cs_control,
+};
+
+static struct pxa2xx_spi_master ezx_spi_masterinfo = {
+	.clock_enable = CKEN_SSP1,
+	.num_chipselect = 1,
+	.enable_dma = 1,
+};
+
+static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
+	{
+		.modalias = "ezx-pcap",
+		.bus_num = 1,
+		.chip_select = 0,
+		.max_speed_hz = 13000000,
+		.platform_data = &ezx_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode = SPI_MODE_0,
+	},
+};
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -590,6 +649,10 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
+
+	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -626,6 +689,10 @@ static void __init e680_init(void)
 
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
+	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -661,6 +728,9 @@ static void __init a1200_init(void)
 
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -694,6 +764,9 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
+
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -730,6 +803,9 @@ static void __init e6_init(void)
 
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -765,6 +841,9 @@ static void __init e2_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
 
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
+
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
