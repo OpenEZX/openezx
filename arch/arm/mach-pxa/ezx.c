@@ -522,7 +522,7 @@ static unsigned int e2_key_map[] = {
 	KEY(0, 0, KEY_KP6),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_KP9),
-	KEY(0, 3, KEY_SKIPFOR),
+	KEY(0, 3, KEY_FORWARD),
 	KEY(0, 4, KEY_KP5),
 	KEY(0, 5, KEY_F1), /* Left SoftKey */
 
@@ -550,7 +550,7 @@ static unsigned int e2_key_map[] = {
 	KEY(4, 0, KEY_KP4),
 	KEY(4, 1, KEY_LEFT),
 	KEY(4, 2, KEY_KPDOT),
-	KEY(4, 3, KEY_SKIPBACK),
+	KEY(4, 3, KEY_BACK),
 	KEY(4, 4, KEY_KP3),
 	KEY(4, 5, KEY_RESERVED),
 };
