@@ -45,15 +45,12 @@ static int ezx_pcap_putget(u32 *data)
 	struct spi_transfer t;
 	struct spi_message m;
 
+	memset(&t, 0, sizeof t);
 	spi_message_init(&m);
 	t.len = 4;
 	t.tx_buf = (u8 *)data;
 	t.rx_buf = (u8 *)data;
 	t.bits_per_word = 32;
-	t.delay_usecs = 0;
-	t.cs_change = 0;
-	/* enforce 13mhz, pxa2xx_spi dont honor .max_speed_hz */
-	t.speed_hz = 13000000;
 	spi_message_add_tail(&t, &m);
 	return spi_sync(pcap.spi, &m);
 }
