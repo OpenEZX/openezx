@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.28-rc1
-# Fri Oct 24 03:31:58 2008
+# Linux kernel version: 2.6.28-rc2
+# Mon Oct 27 16:28:12 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -990,6 +990,7 @@ CONFIG_SSB_POSSIBLE=y
 # CONFIG_MFD_T7L66XB is not set
 # CONFIG_MFD_TC6387XB is not set
 # CONFIG_MFD_TC6393XB is not set
+# CONFIG_PMIC_DA903X is not set
 # CONFIG_MFD_WM8400 is not set
 # CONFIG_MFD_WM8350_I2C is not set
 CONFIG_EZX_PCAP=y
@@ -1137,7 +1138,7 @@ CONFIG_SND_USB=y
 # CONFIG_SND_USB_CAIAQ is not set
 CONFIG_SND_SOC=y
 CONFIG_SND_PXA2XX_SOC=y
-CONFIG_SND_PXA2XX_SOC_SSP=y
+CONFIG_SND_PXA_SOC_SSP=y
 CONFIG_SND_PXA2XX_SOC_EZX=y
 # CONFIG_SND_SOC_ALL_CODECS is not set
 CONFIG_SND_SOC_PCAP2=y
