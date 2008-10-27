@@ -25,8 +25,6 @@
 #include <mach/pxa-regs.h>
 #include <mach/pxa2xx-regs.h>
 #include <mach/regs-ssp.h>
-//#include <asm/arch/hardware.h>
-//#include <asm/arch/gpio.h>
 
 #include <linux/mfd/ezx-pcap.h>
 
@@ -159,7 +157,6 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-//	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
 	int ret = 0;
 	/* set codec DAI configuration */
 	ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
@@ -202,15 +199,7 @@ static const struct snd_soc_dapm_route audio_map[] = {
 static int ezx_machine_init(struct snd_soc_codec *codec)
 {
 	int i;
-	/* mark unused codec pins as NC */
-//	snd_soc_dapm_set_endpoint(codec, "FIXME", 0);
 	control_codec = codec;
-
-        /* Add ezx specific controls */
-//	for (i = 0; i < ARRAY_SIZE(ezx_controls); i++) {
-//		if ((err = snd_ctl_add(codec->card, snd_soc_cnew(&ezx_controls[i], codec, NULL))) < 0)
-//			return err;
-//	}
 
 	/* Add ezx specific widgets */
 	for(i = 0; i < ARRAY_SIZE(ezx_dapm_widgets); i++) {
@@ -309,18 +298,6 @@ static int __init ezx_init(void)
 
 	if (ret)
 		platform_device_put(ezx_snd_device);
-
-	/* configure gpio for ssp3 */
-//	pxa_gpio_mode(GPIO83_SFRM3_MD);	/* SFRM */
-//	pxa_gpio_mode(GPIO81_STXD3_MD);	/* TXD  */
-//	pxa_gpio_mode(GPIO52_SCLK3_MD);	/* SCLK */
-//	pxa_gpio_mode(GPIO89_SRXD3_MD);	/* RXD  */
-
-	/* configure gpio for ssp2 */
-//	pxa_gpio_mode(37 | GPIO_IN);	/* SFRM */
-//	pxa_gpio_mode(38 | GPIO_IN);	/* TXD  */
-//	pxa_gpio_mode(22 | GPIO_IN);	/* SCLK */
-//	pxa_gpio_mode(88 | GPIO_IN);	/* RXD  */
 
 #if 0 //CONFIG_PXA_EZX_A780
 	pxa_gpio_mode(GPIO_HW_ATTENUATE_A780 | GPIO_OUT);
