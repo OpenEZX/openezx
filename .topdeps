@@ -1,1 +1,6 @@
-ezx/mach/pcap_ts
+ezx/mach/udc
+ezx/pcap
+ezx/pcap_ts
+ezx/asoc
+ezx/eoc
+ezx/defconfig
