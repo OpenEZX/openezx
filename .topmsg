@@ -1,6 +1,12 @@
 From: Antonio Ospite <ao2@openezx.org>
 Subject: [PATCH] ezx/mt9m111-fix
 
-<patch description>
+Use 16 bit depth for YUYV so the pxa-camera image buffer has the correct size,
+see the formula:
+
+	*size = icd->width * icd->height *
+		((icd->current_fmt->depth + 7) >> 3);
+
+in drivers/media/video/pxa_camera.c: pxa_videobuf_setup()
 
 Signed-off-by: Antonio Ospite <ao2@openezx.org>
