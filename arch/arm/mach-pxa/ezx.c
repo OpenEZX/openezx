@@ -23,6 +23,8 @@
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
 
+#include <media/soc_camera.h>
+
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
@@ -32,6 +34,7 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
+#include <mach/camera.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -312,8 +315,8 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO48_CIF_DD_5,
 	GPIO93_CIF_DD_6,
 	GPIO12_CIF_DD_7,
-	GPIO50_GPIO,				/* CAM_EN */
-	GPIO28_GPIO,				/* CAM_RST */
+	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
+	GPIO28_GPIO | MFP_DIR_OUT,		/* CAM_RST */
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
@@ -954,8 +957,52 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+static int a910_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO28_GPIO is CAM_RST: active high
+	 */
+	gpio_set_value(GPIO50_GPIO, 0);
+	gpio_set_value(GPIO28_GPIO, 1);
+
+	return 0;
+}
+
+static int a910_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(GPIO50_GPIO, on ? 0 : 1);
+	return 0;
+}
+
+static int a910_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(GPIO28_GPIO, 0);
+	msleep(10);
+	gpio_set_value(GPIO28_GPIO, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a910_pxacamera_platform_data = {
+	.init	= a910_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a910_iclink = {
+	.bus_id	= 0,
+	.power = a910_pxacamera_power,
+	.reset = a910_pxacamera_reset,
+};
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a910_iclink,
+	},
 };
 
 /* A910 SPI/MMC */
@@ -1035,6 +1082,9 @@ static void __init a910_init(void)
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
+#endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a910_pxacamera_platform_data);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
