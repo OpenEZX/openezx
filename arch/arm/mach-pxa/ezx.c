@@ -963,23 +963,23 @@ static int a910_pxacamera_init(struct device *dev)
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(GPIO50_GPIO, 0);
-	gpio_set_value(GPIO28_GPIO, 1);
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO28, 1);
 
 	return 0;
 }
 
 static int a910_pxacamera_power(struct device *dev, int on)
 {
-	gpio_set_value(GPIO50_GPIO, on ? 0 : 1);
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 	return 0;
 }
 
 static int a910_pxacamera_reset(struct device *dev)
 {
-	gpio_set_value(GPIO28_GPIO, 0);
+	gpio_set_value(MFP_PIN_GPIO28, 0);
 	msleep(10);
-	gpio_set_value(GPIO28_GPIO, 1);
+	gpio_set_value(MFP_PIN_GPIO28, 1);
 
 	return 0;
 }
