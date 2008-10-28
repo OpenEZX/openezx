@@ -94,6 +94,10 @@ static struct platform_device *devices[] __initdata = {
 };
 
 static unsigned long ezx_pin_config[] __initdata = {
+	/* I2C */
+	GPIO117_I2C_SCL,
+	GPIO118_I2C_SDA,
+
 	/* PWM backlight */
 	GPIO16_PWM0_OUT,
 
@@ -649,8 +653,6 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
-
-	pxa_set_i2c_info(NULL);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
