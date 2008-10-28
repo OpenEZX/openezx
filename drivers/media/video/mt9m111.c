@@ -864,6 +864,9 @@ static int mt9m111_video_probe(struct soc_camera_device *icd)
 	mt9m111->swap_rgb_even_odd = 1;
 	mt9m111->swap_rgb_red_blue = 1;
 
+	mt9m111->swap_yuv_y_chromas = 1;
+	mt9m111->swap_yuv_cb_cr = 0;
+
 	return 0;
 eisis:
 ei2c:
