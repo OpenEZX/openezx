@@ -261,8 +261,8 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO94_CIF_DD_5,
 	GPIO17_CIF_DD_6,
 	GPIO108_CIF_DD_7,
-	GPIO50_GPIO,				/* CAM_EN */
-	GPIO19_GPIO,				/* CAM_RST */
+	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
+	GPIO19_GPIO | MFP_DIR_OUT,		/* CAM_RST */
 
 	/* EMU */
 	GPIO120_GPIO,				/* EMU_MUX1 */
@@ -306,8 +306,8 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO48_CIF_DD_5,
 	GPIO93_CIF_DD_6,
 	GPIO12_CIF_DD_7,
-	GPIO50_GPIO,				/* CAM_EN */
-	GPIO28_GPIO,				/* CAM_RST */
+	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
+	GPIO28_GPIO | MFP_DIR_OUT,		/* CAM_RST */
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
