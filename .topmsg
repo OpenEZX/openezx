@@ -1,6 +1,7 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/gpio
+Subject: [PATCH] EZX: gpio configuration
 
-<patch description>
+Separates the machines _init() functions and adds platform(s) and machines
+gpio configurations.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
