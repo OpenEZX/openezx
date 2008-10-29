@@ -492,7 +492,6 @@ static struct pxa27x_keypad_platform_data a1200_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_A1200 */
 
-
 #ifdef CONFIG_MACH_EZX_E6
 static unsigned int e6_key_map[] = {
 	KEY(0, 0, KEY_RESERVED),
