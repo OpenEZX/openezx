@@ -402,7 +402,18 @@ static unsigned long a910_pin_config[] __initdata = {
 
 #ifdef CONFIG_MACH_EZX_E2
 static unsigned long e2_pin_config[] __initdata = {
-
+	/* keypad */
+	GPIO100_KP_MKIN_0 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO101_KP_MKIN_1 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO102_KP_MKIN_2 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO97_KP_MKIN_3 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO98_KP_MKIN_4 | WAKEUP_ON_LEVEL_HIGH,
+	GPIO103_KP_MKOUT_0,
+	GPIO104_KP_MKOUT_1,
+	GPIO105_KP_MKOUT_2,
+	GPIO106_KP_MKOUT_3,
+	GPIO107_KP_MKOUT_4,
+	GPIO108_KP_MKOUT_5,
 };
 #endif
 
@@ -420,7 +431,7 @@ static unsigned long e6_pin_config[] __initdata = {
 	GPIO106_KP_MKOUT_3,
 	GPIO107_KP_MKOUT_4,
 	GPIO108_KP_MKOUT_5,
- };
+};
 #endif
 
 
@@ -560,7 +571,6 @@ static struct pxa27x_keypad_platform_data a1200_keypad_platform_data = {
 	.debounce_interval = 30,
 };
 #endif /* CONFIG_MACH_EZX_A1200 */
-
 
 #ifdef CONFIG_MACH_EZX_E6
 static unsigned int e6_key_map[] = {
