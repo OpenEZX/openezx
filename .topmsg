@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/keypad
+Subject: [PATCH] EZX: Keypad
 
-<patch description>
+Adds keypad configuration for all phones
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
