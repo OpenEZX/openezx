@@ -1,2 +1,6 @@
-ezx/mach/udc
-ezx/mt9m111-fix
+ezx/mach/camera
+ezx/pcap
+ezx/pcap_ts
+ezx/asoc
+ezx/eoc
+ezx/defconfig
