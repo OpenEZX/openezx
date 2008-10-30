@@ -30,7 +30,7 @@
 
 #include "../codecs/pcap2.h"
 #include "pxa2xx-pcm.h"
-#include "pxa2xx-ssp.h"
+#include "pxa-ssp.h"
 
 #define GPIO_HW_ATTENUATE_A780  96
 
@@ -97,7 +97,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	/* set codec DAI configuration */
 	if (codec_dai->id == PCAP2_STEREO_DAI)
 		ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
-			SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_CBM_CFM);
+			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
 	else
 		ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
 			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
@@ -113,24 +113,27 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	if(ret < 0)
 		return ret;
 
+	/* setup TDM slots */
+	ret = cpu_dai->dai_ops.set_tdm_slot(cpu_dai, 1, 2);
+
 	/* set cpu DAI configuration */
-	if (codec_dai->id == PCAP2_STEREO_DAI)
-		ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_MSB |
-				SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
-	else
-		ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_B |
-				SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
-	if (ret < 0)
+	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
+	if (ret < 0) {
+		printk("WM: cpu_dai->set_fmt failed!!\n");
 		return ret;
+	}
 
 	ret = cpu_dai->dai_ops.set_tristate(cpu_dai, 0);
 	if (ret < 0)
 		return ret;
 
-	ret = cpu_dai->dai_ops.set_sysclk(cpu_dai,PXA2XX_SSP_CLK_EXT,
+	ret = cpu_dai->dai_ops.set_sysclk(cpu_dai,PXA_SSP_CLK_PLL,
 						0, SND_SOC_CLOCK_IN);
-	if (ret < 0)
+	if (ret < 0) {
+		printk("WM: cpu_dai->set_sysclk failed!!\n");
 		return ret;
+	}
 
 	return 0;
 }
@@ -243,25 +246,25 @@ static struct snd_soc_dai_link ezx_dai[] = {
 {
 	.name = "PCAP2 STEREO",
 	.stream_name = "stereo playback",
-	.cpu_dai = &pxa_ssp_dai[PXA2XX_DAI_SSP3],
+	.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
 	.codec_dai = &pcap2_dai[PCAP2_STEREO_DAI],
 	.init = ezx_machine_init,
 	.ops = &ezx_ops,
 },
-{
-	.name = "PCAP2 MONO",
-	.stream_name = "mono playback",
-	.cpu_dai = &pxa_ssp_dai[PXA2XX_DAI_SSP3],
-	.codec_dai = &pcap2_dai[PCAP2_MONO_DAI],
+//{
+//	.name = "PCAP2 MONO",
+//	.stream_name = "mono playback",
+//	.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
+//	.codec_dai = &pcap2_dai[PCAP2_MONO_DAI],
 //	.init = ezx_machine_init, /* the stereo call already registered our controls */
-	.ops = &ezx_ops,
-},
-{
-	.name = "PCAP2 BP",
-	.stream_name = "BP Audio",
-	.cpu_dai = &bp_dai,
-	.codec_dai = &pcap2_dai[PCAP2_BP_DAI],
-},
+//	.ops = &ezx_ops,
+//},
+//{
+//	.name = "PCAP2 BP",
+//	.stream_name = "BP Audio",
+//	.cpu_dai = &bp_dai,
+//	.codec_dai = &pcap2_dai[PCAP2_BP_DAI],
+//},
 };
 
 /* template audio machine driver */
@@ -287,6 +290,8 @@ static struct platform_device *ezx_snd_device;
 static int __init ezx_init(void)
 {
 	int ret;
+
+	printk("WM: ezx_init entered\n");
 
 	ezx_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!ezx_snd_device)
