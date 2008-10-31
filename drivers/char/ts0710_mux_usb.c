@@ -35,9 +35,7 @@
 #include <linux/list.h>
 #include <linux/errno.h>
 #include <asm/uaccess.h>
-#include <asm/hardware.h>
-#include <asm/arch/hardware.h>
-#include <asm/arch-pxa/pxa-regs.h>
+#include <mach/pxa-regs.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
@@ -352,10 +350,10 @@ static void suspend_timeout(unsigned long data)
 		bvd_dbg("suspend_timeout: add the suspend timer again");
 	} else {
 		unlink_urbs(&bvd_ipc->readurb_mux);
-		UHCRHPS3 = 0x4;
-		mdelay(40);
-		bvd_dbg("suspend_timeout: send SUSPEND signal! UHCRHPS3=0x%x",
-			UHCRHPS3);
+//		UHCRHPS3 = 0x4;
+//		mdelay(40);
+//		bvd_dbg("suspend_timeout: send SUSPEND signal! UHCRHPS3=0x%x",
+//			UHCRHPS3);
 	}
 }
 
@@ -403,14 +401,14 @@ static void ipcusb_xmit_data(void)
 		bvd_ipc->writeurb_mux.transfer_buffer_length = buf_num;
 		bvd_dbg("ipcusb_xmit_data: copy data to write urb finished! ");
 
-		if ((UHCRHPS3 & 0x4) == 0x4) {
+		/* if ((UHCRHPS3 & 0x4) == 0x4) */{
 			static int ret;
 			int time = 0;
 
 
 			/* Resume BP */
-			UHCRHPS3 = 0x8;
-			mdelay(40);
+//			UHCRHPS3 = 0x8;
+//			mdelay(40);
 			bvd_dbg("ipcusb_xmit_data: Send RESUME signal! UHCRHPS3=0x%x",
 				 UHCRHPS3);
 			/*send IN token*/
@@ -443,12 +441,12 @@ static void usbipc_bh_func(unsigned long param)
 
 static void usbipc_bh_bp_func(unsigned long param)
 {
-	if ((UHCRHPS3 & 0x4) == 0x4) {
-		UHCRHPS3 = 0x8;
-		mdelay(40);
-		bvd_dbg("ipcusb_softint_send_readurb: Send RESUME signal! "
-			"UHCRHPS3=0x%x", UHCRHPS3);
-	}
+//	if ((UHCRHPS3 & 0x4) == 0x4) {
+//		UHCRHPS3 = 0x8;
+//		mdelay(40);
+//		bvd_dbg("ipcusb_softint_send_readurb: Send RESUME signal! "
+//			"UHCRHPS3=0x%x", UHCRHPS3);
+//	}
 	if (bvd_ipc->ipc_flag == IPC_USB_PROBE_READY) {
 		//get_halted_bit();
 
@@ -718,7 +716,7 @@ static void usb_ipc_disconnect(struct usb_interface *intf)
 	printk("usb_ipc_disconnect. bvd_ipc_disconnect address: %p\n", bvd_ipc_disconnect);
 
 	//FIXME: Memory leak?
-	if ((UHCRHPS3 & 0x4) == 0)
+//	if ((UHCRHPS3 & 0x4) == 0)
 	//	usb_unlink_urb(&bvd_ipc_disconnect->readurb_mux);
 
 	//usb_unlink_urb(&bvd_ipc_disconnect->writeurb_mux);

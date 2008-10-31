@@ -15,42 +15,13 @@
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/irq.h>
 
-#include <asm/mach/irq.h>
-#include <asm/arch/hardware.h>
-#include <asm/arch/pxa-regs.h>
-#include <asm/arch/pxa27x-udc.h>
-#include <asm/arch/mfp-pxa27x.h>
+#include <mach/pxa-regs.h>
+#include <mach/pxa27x-udc.h>
+#include <mach/mfp-pxa27x.h>
 #include <linux/gpio.h>
-#include "ezx-bp.h"
-#include <asm/arch/ohci.h>
-
-
-bp_single_t gen2_bp_single={
-	.bp_rdy=0,
-	.ap_rdy=96,	
-	.bp_wdi=3,
-	.bp_reset=116,
-	.bp_flash=41,
-	.bp_mcu_int_sw=57,
-	.last_step=3,
-	.cur_step=3,
-};
-
-
-#define GPIO_IN			0x000
-#define GPIO_OUT		0x080
-#define GPIO_ALT_FN_1_IN	0x100
-#define GPIO_ALT_FN_1_OUT	0x180
-#define GPIO_ALT_FN_2_IN	0x200
-#define GPIO_ALT_FN_2_OUT	0x280
-#define GPIO_ALT_FN_3_IN	0x300
-#define GPIO_ALT_FN_3_OUT	0x380
-#define GPIO_MD_MASK_NR		0x07f
-#define GPIO_MD_MASK_DIR	0x080
-#define GPIO_MD_MASK_FN		0x300
-#define GPIO_DFLT_LOW		0x400
-#define GPIO_DFLT_HIGH		0x800
+#include <mach/ohci.h>
 
 
 #define BP_RDY_TIMEOUT		0x000c0000
@@ -62,8 +33,6 @@ bp_single_t gen2_bp_single={
 #endif
 
 extern void usb_send_readurb(void);
-
-static bp_single_t *bp=0;
 
 /* check power down condition */
 static inline void check_power_off(void)
@@ -98,8 +67,8 @@ static void handshake(void)
 		int timeout = BP_RDY_TIMEOUT;
 
 		/* config MCU_INT_SW, BP_RDY as input */
-		pxa_gpio_mode(bp->bp_mcu_int_sw | GPIO_IN);
-		pxa_gpio_mode(bp->bp_rdy | GPIO_IN);
+		gpio_direction_input(bp->bp_mcu_int_sw);
+		gpio_direction_input(bp->bp_rdy);
 
 		while (timeout--) {
 			if (gpio_get_value(bp->bp_mcu_int_sw) == 0
@@ -117,8 +86,8 @@ static void handshake(void)
 	if (bp->cur_step == 2) {
 		if (gpio_get_value(bp->bp_rdy) == 0) {
 			/* config MCU_INT_SW as output */
-			pxa_gpio_mode(bp->bp_mcu_int_sw | GPIO_OUT);
-			gpio_set_value(bp->bp_mcu_int_sw, 0);
+			gpio_direction_output(bp->bp_mcu_int_sw, 0);
+//			gpio_set_value(bp->bp_mcu_int_sw, 0);
 
 			bp->cur_step++;
 			DEBUGP("ezx-bp: handshake step 2\n");
@@ -131,8 +100,8 @@ static void handshake(void)
 			bp->cur_step++;
 			DEBUGP("ezx-bp: handshake step 3 %d\n",jiffies);
 			
-			pxa_gpio_mode(bp->ap_rdy | GPIO_OUT);
-			gpio_set_value(bp->ap_rdy, 1);
+			gpio_direction_output(bp->ap_rdy, 1);
+//			gpio_set_value(bp->ap_rdy, 1);
 		}
 	}
 }
@@ -163,17 +132,17 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	
 	bp = pdev->dev.platform_data;
 
-	set_irq_type(IRQ_GPIO(bp->bp_wdi), IRQT_FALLING);
-	request_irq(IRQ_GPIO(bp->bp_wdi), bp_wdi_handler, IRQF_DISABLED,
+	set_irq_type(gpio_to_irq(bp->bp_wdi), IRQ_TYPE_EDGE_FALLING);
+	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler, IRQF_DISABLED,
 		    "bp wdi", bp);
 
-	set_irq_type(IRQ_GPIO(bp->bp_rdy), IRQT_BOTHEDGE);
-	request_irq(IRQ_GPIO(bp->bp_rdy), bp_rdy_handler, IRQF_DISABLED,
+	set_irq_type(gpio_to_irq(bp->bp_rdy), IRQ_TYPE_EDGE_BOTH);
+	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler, IRQF_DISABLED,
 			"bp rdy", bp);
 
 	/* turn on BP */
-	pxa_gpio_mode(bp->bp_reset|GPIO_OUT);
-	gpio_set_value(gen2_bp_single.bp_reset, 1);
+	gpio_direction_output(bp->bp_reset, 1);
+//	gpio_set_value(gen2_bp_single.bp_reset, 1);
 
 	handshake();
 
@@ -184,8 +153,8 @@ static int ezxbp_remove(struct platform_device *dev)
 {
 	return 0;
 
-	free_irq(IRQ_GPIO(bp->bp_wdi), bp);
-	free_irq(IRQ_GPIO(bp->bp_rdy), bp);
+	free_irq(gpio_to_irq(bp->bp_wdi), bp);
+	free_irq(gpio_to_irq(bp->bp_rdy), bp);
 
 	return 0;
 }
