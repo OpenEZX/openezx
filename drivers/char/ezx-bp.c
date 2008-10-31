@@ -151,7 +151,7 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	}
 
 	/* turn on BP */
-	gpio_direction_output(bp->bp_reset, 1);
+//	gpio_direction_output(bp->bp_reset, 1);
 
 	step = bp->first_step;
 
