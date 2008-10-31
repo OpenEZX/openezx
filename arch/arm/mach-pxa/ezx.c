@@ -35,7 +35,7 @@
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
-
+#include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
 #include <mach/pxa2xx-regs.h>
@@ -814,6 +814,46 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 	.udc_command = ezx_udc_command,
 };
 
+/* BP */
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 57,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 115,
+	.first_step = 2,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -855,6 +895,8 @@ static void __init a780_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+
+	platform_device_register(&gen1_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -904,6 +946,8 @@ static void __init e680_init(void)
 	platform_device_register(&pcap_ts_device);
 #endif
 
+	platform_device_register(&gen1_bp_device);
+
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
 
@@ -950,6 +994,8 @@ static void __init a1200_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1098,6 +1144,8 @@ static void __init a910_init(void)
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 #endif
 
+	platform_device_register(&gen2_bp_device);
+
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
 
@@ -1145,6 +1193,8 @@ static void __init e6_init(void)
 	platform_device_register(&pcap_ts_device);
 #endif
 
+	platform_device_register(&gen2_bp_device);
+
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
 
@@ -1188,6 +1238,8 @@ static void __init e2_init(void)
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
