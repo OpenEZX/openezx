@@ -100,7 +100,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 
 	/* Turn on clock output on CLK_PIO */
 	OSCC |= 0x8;
-printk("WM: OSCC = %08x\n", OSCC);
+
 	/* set clock source */
 	ret = codec_dai->dai_ops.set_sysclk(codec_dai, PCAP2_CLK_AP,
 					13000000, SND_SOC_CLOCK_IN);
@@ -113,10 +113,8 @@ printk("WM: OSCC = %08x\n", OSCC);
 	/* set cpu DAI configuration */
 	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_B |
 			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
-	if (ret < 0) {
-		printk("WM: cpu_dai->set_fmt failed!!\n");
+	if (ret < 0)
 		return ret;
-	}
 
 	ret = cpu_dai->dai_ops.set_tristate(cpu_dai, 0);
 	if (ret < 0)
@@ -124,10 +122,8 @@ printk("WM: OSCC = %08x\n", OSCC);
 
 	ret = cpu_dai->dai_ops.set_sysclk(cpu_dai,PXA_SSP_CLK_PLL,
 						0, SND_SOC_CLOCK_IN);
-	if (ret < 0) {
-		printk("WM: cpu_dai->set_sysclk failed!!\n");
+	if (ret < 0)
 		return ret;
-	}
 
 	return 0;
 }
@@ -284,8 +280,6 @@ static struct platform_device *ezx_snd_device;
 static int __init ezx_init(void)
 {
 	int ret;
-
-	printk("WM: ezx_init entered\n");
 
 	ezx_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!ezx_snd_device)
