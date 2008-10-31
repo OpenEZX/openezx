@@ -839,7 +839,7 @@ static struct pxaohci_platform_data ezx_ohci_platform_data = {
 /* BP */
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
-	.bp_reset = -1,
+	.bp_reset = 82,
 	.bp_wdi = 13,
 	.bp_wdi2 = 3,
 	.bp_rdy = 0,
