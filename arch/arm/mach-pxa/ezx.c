@@ -817,9 +817,15 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 /* OHCI Controller */
 static int ezx_ohci_init(struct device *dev)
 {
-	UP3OCR = 0x00000002;
+	void __iomem *iobase;
 
-//	UHCHR = UHCHR & ~(UHCHR_SSEP2 | UHCHR_SSEP3 | UHCHR_SSE);
+	iobase = ioremap(0x40600000,0x1000);
+	__raw_writel(0x00000002, iobase+0x24);
+	iounmap(iobase);
+
+	iobase = ioremap(0x4C000000,0x1000);
+	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)));
+	iounmap(iobase);
 
 	return 0;
 }
@@ -832,7 +838,7 @@ static struct pxaohci_platform_data ezx_ohci_platform_data = {
 /* BP */
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
-	.bp_reset = 82,
+	.bp_reset = -1,
 	.bp_wdi = 13,
 	.bp_wdi2 = 3,
 	.bp_rdy = 0,
