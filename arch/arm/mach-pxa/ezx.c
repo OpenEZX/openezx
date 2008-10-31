@@ -246,7 +246,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO57_GPIO,				/* AP_RDY */
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
-	GPIO82_GPIO,				/* RESET */
+	/*GPIO82_GPIO,*/			/* RESET */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
