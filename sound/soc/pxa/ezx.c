@@ -32,8 +32,6 @@
 #include "pxa2xx-pcm.h"
 #include "pxa-ssp.h"
 
-#define GPIO_HW_ATTENUATE_A780  96
-
 static struct snd_soc_codec *control_codec;
 
 static void ezx_ext_control(struct snd_soc_codec *codec)
@@ -95,18 +93,14 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	int ret;
 
 	/* set codec DAI configuration */
-	if (codec_dai->id == PCAP2_STEREO_DAI)
-		ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
-			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
-	else
-		ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
-			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
+	ret = codec_dai->dai_ops.set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
+			SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_CBM_CFM);
 	if(ret < 0)
 		return ret;
 
 	/* Turn on clock output on CLK_PIO */
 	OSCC |= 0x8;
-
+printk("WM: OSCC = %08x\n", OSCC);
 	/* set clock source */
 	ret = codec_dai->dai_ops.set_sysclk(codec_dai, PCAP2_CLK_AP,
 					13000000, SND_SOC_CLOCK_IN);
@@ -114,10 +108,10 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 
 	/* setup TDM slots */
-	ret = cpu_dai->dai_ops.set_tdm_slot(cpu_dai, 1, 2);
+	ret = cpu_dai->dai_ops.set_tdm_slot(cpu_dai, 1, 1);
 
 	/* set cpu DAI configuration */
-	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+	ret = cpu_dai->dai_ops.set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_B |
 			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0) {
 		printk("WM: cpu_dai->set_fmt failed!!\n");
@@ -304,9 +298,9 @@ static int __init ezx_init(void)
 	if (ret)
 		platform_device_put(ezx_snd_device);
 
-#if 0 //CONFIG_PXA_EZX_A780
-	pxa_gpio_mode(GPIO_HW_ATTENUATE_A780 | GPIO_OUT);
-	gpio_set_value(GPIO_HW_ATTENUATE_A780, 1);
+#ifdef CONFIG_PXA_EZX_A780
+	if (machine_is_ezx_a780())
+		gpio_direction_output(96, 1);
 #endif
 
 	/* request jack event */
