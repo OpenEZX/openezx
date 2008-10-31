@@ -150,6 +150,9 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 
 	step = bp->first_step;
 
+	if (bp->bp_reset >= 0)
+		gpio_direction_output(bp->bp_reset, 1);
+
 	handshake();
 
 	return 0;
