@@ -223,21 +223,9 @@ static const struct snd_soc_dapm_route audio_map[] = {
 
 static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
 {
-//	int i;
-
-//	for(i = 0; i < ARRAY_SIZE(pcap2_codec_dapm_widgets); i++) {
-//		snd_soc_dapm_new_control(codec, &pcap2_codec_dapm_widgets[i]);
-//	}
 	snd_soc_dapm_new_controls(codec, pcap2_codec_dapm_widgets,
 				ARRAY_SIZE(pcap2_codec_dapm_widgets));
-
-	/* set up audio path interconnects */
-//	for(i = 0; audio_map[i][0] != NULL; i++) {
-//		snd_soc_dapm_connect_input(codec, audio_map[i][0],
-//			audio_map[i][1], audio_map[i][2]);
-//	}
 	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
-
 	snd_soc_dapm_new_widgets(codec);
 	return 0;
 }
@@ -388,28 +376,10 @@ static int pcap2_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		switch (freq) {
 		case 13000000:
 			break;
-/*		case 15M36:
-			tmp |= PCAP2_ST_DAC_CLK_15M36;
-			break;
-		case 16M8:
-			tmp |= PCAP2_ST_DAC_CLK_16M8;
-			break;
-		case 19M44:
-			tmp |= PCAP2_ST_DAC_CLK_19M44;
-			break;
-*/		case 26000000:
+		case 26000000:
 			tmp |= PCAP2_ST_DAC_CLK_26M;
 			break;
-/*		case EXT_MCLK:
-			tmp |= PCAP2_ST_DAC_CLK_MCLK;
-			break;
-		case FSYNC:
-			tmp |= PCAP2_ST_DAC_CLK_FSYNC;
-			break;
-		case BITCLK:
-			tmp |= PCAP2_ST_DAC_CLK_BITCLK;
-			break;
-*/		default:
+		default:
 			return -EINVAL;
 		}
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
@@ -433,16 +403,7 @@ static int pcap2_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		switch (freq) {
 		case 13000000:
 			break;
-/*		case 15M36:
-			tmp |= PCAP2_CODEC_CLK_15M36;
-			break;
-		case 16M8:
-			tmp |= PCAP2_CODEC_CLK_16M8;
-			break;
-		case 19M44:
-			tmp |= PCAP2_CODEC_CLK_19M44;
-			break;
-*/		case 26000000:
+		case 26000000:
 			tmp |= PCAP2_CODEC_CLK_26M;
 			break;
 		default:
