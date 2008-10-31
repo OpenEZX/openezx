@@ -22,7 +22,7 @@
 #include <mach/mfp-pxa27x.h>
 #include <linux/gpio.h>
 #include <mach/ohci.h>
-
+#include <mach/ezx-bp.h>
 
 #define BP_RDY_TIMEOUT		0x000c0000
 
@@ -33,6 +33,9 @@
 #endif
 
 extern void usb_send_readurb(void);
+
+static struct ezxbp_config *bp;
+static int step;
 
 /* check power down condition */
 static inline void check_power_off(void)
@@ -55,7 +58,7 @@ static inline void check_power_off(void)
 
 inline int bp_handshake_passed(void)
 {
-	return (bp->cur_step > bp->last_step);
+	return (step > 4);
 }
 EXPORT_SYMBOL_GPL(bp_handshake_passed);
 
@@ -63,17 +66,17 @@ static void handshake(void)
 {
 	/* step 1: check MCU_INT_SW or BP_RDY is low (now it is checked in apboot) */
 	DEBUGP("bp handshake entered!\n");
-	if (bp->cur_step == 1) {
+	if (step == 1) {
 		int timeout = BP_RDY_TIMEOUT;
 
 		/* config MCU_INT_SW, BP_RDY as input */
-		gpio_direction_input(bp->bp_mcu_int_sw);
+		gpio_direction_input(bp->ap_rdy);
 		gpio_direction_input(bp->bp_rdy);
 
 		while (timeout--) {
-			if (gpio_get_value(bp->bp_mcu_int_sw) == 0
+			if (gpio_get_value(bp->ap_rdy) == 0
 			    || gpio_get_value(bp->bp_rdy) == 0) {
-				bp->cur_step++;
+				step++;
 				break;
 			}
 
@@ -83,23 +86,21 @@ static void handshake(void)
 	}
 
 	/* step 2: wait BP_RDY is low */
-	if (bp->cur_step == 2) {
+	if (step == 2) {
 		if (gpio_get_value(bp->bp_rdy) == 0) {
 			/* config MCU_INT_SW as output */
-			gpio_direction_output(bp->bp_mcu_int_sw, 0);
-//			gpio_set_value(bp->bp_mcu_int_sw, 0);
+			gpio_direction_output(bp->ap_rdy, 0);
+//			gpio_set_value(bp->ap_rdy, 0);
 
-			bp->cur_step++;
+			step++;
 			DEBUGP("ezx-bp: handshake step 2\n");
 		}
 	}
 
 	/* step 3: wait BP_RDY is high */
-	else if (bp->cur_step == 3) {
+	else if (step == 3) {
 		if (gpio_get_value(bp->bp_rdy)) {
-			bp->cur_step++;
-			DEBUGP("ezx-bp: handshake step 3 %d\n",jiffies);
-			
+			step++;
 			gpio_direction_output(bp->ap_rdy, 1);
 //			gpio_set_value(bp->ap_rdy, 1);
 		}
@@ -108,7 +109,6 @@ static void handshake(void)
 
 irqreturn_t bp_wdi_handler(int irq, void *dev_id)
 {
-	DEBUGP("BP Lowered WDI line. This is not good :( %d\n",jiffies);
 	return IRQ_HANDLED;
 }
 
@@ -128,8 +128,6 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 
 static int __init ezxbp_probe(struct platform_device *pdev)
 {
-	int ret;
-	
 	bp = pdev->dev.platform_data;
 
 	set_irq_type(gpio_to_irq(bp->bp_wdi), IRQ_TYPE_EDGE_FALLING);
@@ -143,6 +141,8 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	/* turn on BP */
 	gpio_direction_output(bp->bp_reset, 1);
 //	gpio_set_value(gen2_bp_single.bp_reset, 1);
+
+	step = bp->first_step;
 
 	handshake();
 
@@ -172,6 +172,7 @@ static int ezxbp_resume(struct platform_device *dev)
 /*	gpio_set_value(bp->bp_mcu_int_sw, 1); */
 	return 0;
 }
+
 static struct platform_driver ezxbp_driver = {
 	.probe		= ezxbp_probe,
 	.remove		= ezxbp_remove,
@@ -184,42 +185,8 @@ static struct platform_driver ezxbp_driver = {
 	},
 };
 
-
-
-static struct platform_device ezxbp_device = {
-	.name		= "ezx-bp",
-	.dev		= {
-		.platform_data	= &gen2_bp_single,
-	},
-	.id		= -1,
-};
-
-static struct platform_device *devices[] __initdata = {
-	&ezxbp_device,
-};
-
-/* OHCI Controller */
-static int ezx_ohci_init(struct device *dev)
-{
-
-	UP3OCR = 0x00000002;
-
-	UHCHR = UHCHR & ~(UHCHR_SSEP2 | UHCHR_SSEP3 | UHCHR_SSE);
-
-	return 0;
-}
-
-static struct pxaohci_platform_data ezx_ohci_platform_data = {
-	.port_mode	= PMM_NPS_MODE,
-	.init		= ezx_ohci_init,
-};
-
-
-
 int __init ezxbp_init(void)
 {
-	pxa_set_ohci_info(&ezx_ohci_platform_data);
-	platform_add_devices(devices, 1);
 	return platform_driver_register(&ezxbp_driver);
 }
 
@@ -228,7 +195,7 @@ void ezxbp_fini(void)
 	return platform_driver_unregister(&ezxbp_driver);
 }
 
-subsys_initcall(ezxbp_init);
+module_init(ezxbp_init);
 module_exit(ezxbp_fini);
 
 MODULE_DESCRIPTION("Motorola BP Control driver");
