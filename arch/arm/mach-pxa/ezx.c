@@ -41,6 +41,7 @@
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/io.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -824,7 +825,7 @@ static int ezx_ohci_init(struct device *dev)
 	iounmap(iobase);
 
 	iobase = ioremap(0x4C000000,0x1000);
-	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)));
+	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)), iobase+0x64);
 	iounmap(iobase);
 
 	return 0;
