@@ -63,14 +63,10 @@ EXPORT_SYMBOL_GPL(bp_handshake_passed);
 
 static void handshake(void)
 {
-	/* step 1: check MCU_INT_SW or BP_RDY is low (now it is checked in apboot) */
 	DEBUGP("bp handshake entered!\n");
+	/* step 1: check MCU_INT_SW or BP_RDY is low (now it is checked in apboot) */
 	if (step == 1) {
 		int timeout = BP_RDY_TIMEOUT;
-
-		/* config MCU_INT_SW, BP_RDY as input */
-		gpio_direction_input(bp->ap_rdy);
-		gpio_direction_input(bp->bp_rdy);
 
 		while (timeout--) {
 			if (gpio_get_value(bp->ap_rdy) == 0
@@ -101,7 +97,7 @@ static void handshake(void)
 		if (gpio_get_value(bp->bp_rdy)) {
 			step++;
 			gpio_direction_output(bp->ap_rdy, 1);
-//			gpio_set_value(bp->ap_rdy, 1);
+			DEBUGP(ezx-bp: handshake done!\n");
 		}
 	}
 }
@@ -155,8 +151,7 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	}
 
 	/* turn on BP */
-	gpio_direction_output(bp->bp_reset, 1);
-//	gpio_set_value(gen2_bp_single.bp_reset, 1);
+//	gpio_direction_output(bp->bp_reset, 1);
 
 	step = bp->first_step;
 
