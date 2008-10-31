@@ -85,8 +85,6 @@ static void handshake(void)
 		if (gpio_get_value(bp->bp_rdy) == 0) {
 			/* config MCU_INT_SW as output */
 			gpio_direction_output(bp->ap_rdy, 0);
-//			gpio_set_value(bp->ap_rdy, 0);
-
 			step++;
 			DEBUGP("ezx-bp: handshake step 2\n");
 		}
@@ -150,9 +148,6 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 				IRQF_DISABLED, "bp wdi2", bp);
 	}
 
-	/* turn on BP */
-//	gpio_direction_output(bp->bp_reset, 1);
-
 	step = bp->first_step;
 
 	handshake();
@@ -175,14 +170,14 @@ static int ezxbp_remove(struct platform_device *dev)
 static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
 {
 	DEBUGP("bp suspend!\n");
-/*	gpio_set_value(bp->bp_mcu_int_sw, 0); */
+	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
 static int ezxbp_resume(struct platform_device *dev)
 {
 	DEBUGP("bp resume!\n");
-/*	gpio_set_value(bp->bp_mcu_int_sw, 1); */
+	gpio_set_value(bp->ap_rdy, 1);
 	return 0;
 }
 
