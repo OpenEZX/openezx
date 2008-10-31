@@ -3,4 +3,5 @@ ezx/pcap
 ezx/pcap_ts
 ezx/asoc
 ezx/eoc
+ezx/bp
 ezx/defconfig
