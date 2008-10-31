@@ -129,18 +129,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO112_MMC_CMD,
 	GPIO11_GPIO,				/* mmc detect */
 
-	/* sound */
-	GPIO52_SSP3_SCLK,
-	GPIO83_SSP3_SFRM,
-	GPIO81_SSP3_TXD,
-	GPIO82_SSP3_RXD,
-
-	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
-
 	/* usb to external transceiver */
 	GPIO34_USB_P2_2,
 	GPIO35_USB_P2_1,
@@ -173,7 +161,19 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO57_GPIO,				/* AP_RDY */
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
-	/*GPIO82_GPIO,*/			/* RESET */
+	GPIO82_GPIO,			/* RESET */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO89_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO14_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -219,6 +219,18 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO116_GPIO,				/* RESET */
 	GPIO41_GPIO,				/* BP_FLASH */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO82_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO14_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
