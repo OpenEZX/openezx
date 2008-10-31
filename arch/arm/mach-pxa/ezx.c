@@ -814,6 +814,21 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 	.udc_command = ezx_udc_command,
 };
 
+/* OHCI Controller */
+static int ezx_ohci_init(struct device *dev)
+{
+	UP3OCR = 0x00000002;
+
+//	UHCHR = UHCHR & ~(UHCHR_SSEP2 | UHCHR_SSEP3 | UHCHR_SSE);
+
+	return 0;
+}
+
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_NPS_MODE,
+	.init		= ezx_ohci_init,
+};
+
 /* BP */
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
@@ -882,6 +897,8 @@ static void __init a780_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -932,6 +949,8 @@ static void __init e680_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -980,6 +999,8 @@ static void __init a1200_init(void)
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
@@ -1132,6 +1153,8 @@ static void __init a910_init(void)
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1178,6 +1201,8 @@ static void __init e6_init(void)
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
@@ -1227,6 +1252,8 @@ static void __init e2_init(void)
 
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
