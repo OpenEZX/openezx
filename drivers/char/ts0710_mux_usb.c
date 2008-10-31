@@ -824,6 +824,7 @@ static void __exit usb_ipc_exit(void)
 
 	kfree(bvd_ipc->xmit.buf);
 	kfree(bvd_ipc);
+	iounmap(__iobase);
 	usb_deregister(&usb_ipc_driver);
 
 	info("USB Host(Bulverde) IPC driver deregistered.");
