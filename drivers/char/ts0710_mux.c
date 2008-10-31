@@ -1908,14 +1908,14 @@ int ts0710_recv_data(ts0710_con * ts0710, char *data, int len)
 					t = jiffies;
 #endif
 
-					(tty->ldisc.receive_buf) (tty,
+					(tty->ldisc.ops->receive_buf) (tty,
 								  uih_data_start,
 								  NULL,
 								  uih_len);
 
 #ifdef TS0710DEBUG
 					TS0710_DEBUG
-					    ("tty->ldisc.receive_buf take ticks: %lu",
+					    ("tty->ldisc.ops->receive_buf take ticks: %lu",
 					     (jiffies - t));
 #endif
 
@@ -2936,8 +2936,8 @@ static void mux_flush_buffer(struct tty_struct *tty)
 	wake_up_interruptible(&tty->poll_wait);
 #endif
 	if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP)) &&
-	    tty->ldisc.write_wakeup) {
-		(tty->ldisc.write_wakeup) (tty);
+	    tty->ldisc.ops->write_wakeup) {
+		(tty->ldisc.ops->write_wakeup) (tty);
 	}
 
 /*
@@ -3505,7 +3505,7 @@ static void post_recv_worker(struct work_struct *work)
 				     tty_idx);
 				TS0710_DEBUGHEX(recv_info->data,
 						recv_info->length);
-				(tty->ldisc.receive_buf) (tty, recv_info->data,
+				(tty->ldisc.ops->receive_buf) (tty, recv_info->data,
 							  NULL,
 							  recv_info->length);
 				recv_info->total -= recv_info->length;
@@ -3527,7 +3527,7 @@ static void post_recv_worker(struct work_struct *work)
 					     tty_idx);
 					TS0710_DEBUGHEX(recv_packet->data,
 							recv_packet->length);
-					(tty->ldisc.receive_buf) (tty,
+					(tty->ldisc.ops->receive_buf) (tty,
 								  recv_packet->
 								  data, NULL,
 								  recv_packet->
@@ -3713,8 +3713,8 @@ static void send_worker(struct work_struct *work)
 		}
 
 		if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP))
-		    && tty->ldisc.write_wakeup) {
-			(tty->ldisc.write_wakeup) (tty);
+		    && tty->ldisc.ops->write_wakeup) {
+			(tty->ldisc.ops->write_wakeup) (tty);
 		}
 		wake_up_interruptible(&tty->write_wait);
 
