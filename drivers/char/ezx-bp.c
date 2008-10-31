@@ -55,7 +55,6 @@ static inline void check_power_off(void)
 	}
 }
 
-
 inline int bp_handshake_passed(void)
 {
 	return (step > 4);
@@ -107,24 +106,35 @@ static void handshake(void)
 	}
 }
 
-irqreturn_t bp_wdi_handler(int irq, void *dev_id)
+static irqreturn_t bp_wdi_handler(int irq, void *dev_id)
 {
+	DEBUGP("BP Lowered WDI line. This is not good :(\n");
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t bp_wdi2_handler(int irq, void *dev_id)
+{
+	DEBUGP("BP request power off\n");
 	return IRQ_HANDLED;
 }
 
 static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 {
+	DEBUGP("BP rdy irq\n");
 
-	
 	if (!bp_handshake_passed()) {
 		handshake();
+		if (bp_handshake_passed() && bp->bp_wdi2 >= 0) {
+			disable_irq(gpio_to_irq(bp->bp_wdi2));
+			set_irq_type(gpio_to_irq(bp->bp_rdy),
+						IRQ_TYPE_EDGE_FALLING);
+		}
 	}
 #ifdef CONFIG_TS0710_MUX_USB
 	else usb_send_readurb();
 #endif
 	return IRQ_HANDLED;
 }
-
 
 static int __init ezxbp_probe(struct platform_device *pdev)
 {
@@ -137,6 +147,12 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	set_irq_type(gpio_to_irq(bp->bp_rdy), IRQ_TYPE_EDGE_BOTH);
 	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler, IRQF_DISABLED,
 			"bp rdy", bp);
+
+	if (bp->bp_wdi2 >= 0) {
+		set_irq_type(gpio_to_irq(bp->bp_wdi2), IRQ_TYPE_EDGE_FALLING);
+		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
+				IRQF_DISABLED, "bp wdi2", bp);
+	}
 
 	/* turn on BP */
 	gpio_direction_output(bp->bp_reset, 1);
@@ -155,6 +171,8 @@ static int ezxbp_remove(struct platform_device *dev)
 
 	free_irq(gpio_to_irq(bp->bp_wdi), bp);
 	free_irq(gpio_to_irq(bp->bp_rdy), bp);
+	if (bp->bp_wdi2 >= 0)
+		free_irq(gpio_to_irq(bp->bp_wdi2), bp);
 
 	return 0;
 }
