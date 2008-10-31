@@ -814,6 +814,41 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 	.udc_command = ezx_udc_command,
 };
 
+/* BP */
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 57,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 115,
+'	.start_step = 1,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.start_step = 3,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
