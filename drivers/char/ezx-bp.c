@@ -97,7 +97,7 @@ static void handshake(void)
 		if (gpio_get_value(bp->bp_rdy)) {
 			step++;
 			gpio_direction_output(bp->ap_rdy, 1);
-			DEBUGP(ezx-bp: handshake done!\n");
+			DEBUGP("ezx-bp: handshake done!\n");
 		}
 	}
 }
