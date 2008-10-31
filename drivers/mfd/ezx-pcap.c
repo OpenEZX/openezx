@@ -407,7 +407,7 @@ static ssize_t pcap_store_regs(struct device *dev,
 	char *p = (char *)buf;
 
 	while(p < (buf + size)) {
-		if ((sscanf(p, "%ud %x\n", &reg, &val) != 2) ||
+		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
 			reg < 0 || reg >= 32)
 			return -EINVAL;
 		p = strchr(p, '\n') + 1;
@@ -415,7 +415,7 @@ static ssize_t pcap_store_regs(struct device *dev,
 
 	p = (char *)buf;
 	while(p < (buf + size)) {
-		sscanf(p, "%ud %x\n", &reg, &val);
+		sscanf(p, "%u %x\n", &reg, &val);
 		ezx_pcap_write(reg, val);
 		p = strchr(p, '\n') + 1;
 	}
