@@ -130,7 +130,7 @@
 	COL_FMT(_name, _depth, _fourcc, V4L2_COLORSPACE_SRGB)
 
 static const struct soc_camera_data_format mt9m111_colour_formats[] = {
-	COL_FMT("YCrYCb 8 bit", 8, V4L2_PIX_FMT_YUYV, V4L2_COLORSPACE_JPEG),
+	COL_FMT("YCrYCb 16 bit", 16, V4L2_PIX_FMT_YUYV, V4L2_COLORSPACE_JPEG),
 	RGB_FMT("RGB 565", 16, V4L2_PIX_FMT_RGB565),
 	RGB_FMT("RGB 555", 16, V4L2_PIX_FMT_RGB555),
 	RGB_FMT("Bayer (sRGB) 10 bit", 10, V4L2_PIX_FMT_SBGGR16),
@@ -863,6 +863,9 @@ static int mt9m111_video_probe(struct soc_camera_device *icd)
 
 	mt9m111->swap_rgb_even_odd = 1;
 	mt9m111->swap_rgb_red_blue = 1;
+
+	mt9m111->swap_yuv_y_chromas = 1;
+	mt9m111->swap_yuv_cb_cr = 0;
 
 	return 0;
 eisis:
