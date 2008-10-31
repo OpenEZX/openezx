@@ -821,7 +821,7 @@ static struct ezxbp_config gen1_bp_data = {
 	.bp_wdi2 = 3,
 	.bp_rdy = 0,
 	.ap_rdy = 115,
-'	.start_step = 1,
+'	.first_step = 2,
 };
 
 static struct platform_device gen1_bp_device = {
@@ -838,7 +838,7 @@ static struct ezxbp_config gen2_bp_data = {
 	.bp_wdi2 = -1,
 	.bp_rdy = 0,
 	.ap_rdy = 96,
-	.start_step = 3,
+	.first_step = 3,
 };
 
 static struct platform_device gen2_bp_device = {
