@@ -249,7 +249,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 
 	/* ssp2 pins to in */
 	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
+	GPIO37_GPIO,				/* SSP2_SFRM */
 	GPIO38_GPIO,				/* SSP2_TXD */
 	GPIO88_GPIO,				/* SSP2_RXD */
 
