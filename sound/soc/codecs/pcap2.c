@@ -21,18 +21,19 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
-//#include <mach/pxa-regs.h>
 #include <linux/mfd/ezx-pcap.h>
-//#include <asm/arch/hardware.h>
 
 #include "pcap2.h"
 
 #define AUDIO_NAME "pcap2-codec"
-#define PCAP2_VERSION "0.1"
 
-extern int ezx_pcap_write(u_int8_t, u_int32_t);
-extern int ezx_pcap_read(u_int8_t, u_int32_t *);
-static struct snd_soc_device *pcap2_codec_socdev;
+#define DAI_AP_ST	0
+#define DAI_AP_MONO	1
+#define DAI_BP		2
+
+#define OUT_LOUDSPEAKER	0
+#define OUT_EARPIECE	1		
+#define OUT_HEADPHONE	2
 
 /*
  * Debug
@@ -114,32 +115,115 @@ static unsigned int pcap2_codec_read(struct snd_soc_codec *codec, unsigned int r
 
 }
 
-static const char *pcap2_output_select[] = {"2ch", "2->1ch", "2->1ch -3db", "2->1ch -6db"};
+static int pcap2_dai_mode;
+static int pcap2_get_dai(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
+{
+	printk("WM: get_dai %d\n", pcap2_dai_mode);
+	ucontrol->value.integer.value[0] = pcap2_dai_mode;
+	return 0;
+}
 
-static const struct soc_enum pcap2_enum[] = {
-SOC_ENUM_SINGLE((PCAP2_OUTPUT_AMP|SH), 3, 4, pcap2_output_select),
+static int pcap2_set_dai_sysclk(struct snd_soc_dai *, int, unsigned int, int);
+static int pcap2_set_dai_fmt(struct snd_soc_dai *, unsigned int);
+
+static int pcap2_set_dai_mode(struct snd_soc_codec *codec, int mode)
+{
+	u32 tmp;
+
+	printk("WM: set_dai_mode %d\n", mode);
+	if (mode == DAI_AP_ST) {
+		printk("WM: ep st\n");
+		snd_soc_dapm_enable_pin(codec, "ST_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+	}
+	else {
+		printk("WM: ep mono\n");
+		snd_soc_dapm_disable_pin(codec, "ST_DAC");
+		snd_soc_dapm_enable_pin(codec, "CDC_DAC");
+		snd_soc_dapm_enable_pin(codec, "CDC_ADC");
+	}
+	if (mode == DAI_BP) {
+		printk("WM: dai bp\n");
+
+		tmp = pcap2_codec_read(codec, PCAP2_OUTPUT_AMP);
+		tmp &= ~PCAP2_OUTPUT_AMP_ST_DAC_SW;
+		tmp |= PCAP2_OUTPUT_AMP_CDC_SW;
+		pcap2_codec_write(codec, PCAP2_OUTPUT_AMP, tmp);
+
+		tmp = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
+		tmp |= PCAP2_INPUT_AMP_V2EN2;
+		pcap2_codec_write(codec, PCAP2_INPUT_AMP, tmp);
+
+		tmp = (PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN | 0x5);
+		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
+	}
+	else {
+		printk("WM: dai ap\n");
+
+		tmp = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
+		tmp &= ~PCAP2_INPUT_AMP_V2EN2;
+		pcap2_codec_write(codec, PCAP2_INPUT_AMP, tmp);
+
+		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
+		tmp &= ~(PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
+		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
+	}
+	snd_soc_dapm_sync(codec);
+
+	return 0;
+}
+
+static int pcap2_set_dai(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+
+	printk("WM: set_dai %d\n", ucontrol->value.integer.value[0]);
+
+	if (pcap2_dai_mode == ucontrol->value.integer.value[0])
+		return 0;
+	
+	pcap2_dai_mode = ucontrol->value.integer.value[0];
+
+	if (pcap2_dai_mode > 2) pcap2_dai_mode = 0;
+
+	pcap2_set_dai_mode(codec, pcap2_dai_mode);
+
+	return 1;
+}
+
+static const char *pcap2_downmix_select[] = {
+	"Off",
+	"2->1ch",
+	"2->1ch -3db",
+	"2->1ch -6db"
 };
 
-static const struct snd_kcontrol_new pcap2_input_mixer_controls[] = {
-SOC_DAPM_SINGLE("A3 Switch", (PCAP2_INPUT_AMP|SL), 6, 1, 0),
-SOC_DAPM_SINGLE("A5 Switch", (PCAP2_INPUT_AMP|SL), 8, 1, 0),
+static const struct soc_enum pcap2_downmixer_enum[] = {
+SOC_ENUM_SINGLE((PCAP2_OUTPUT_AMP|SH), 3, 4, pcap2_downmix_select),
 };
 
-static const struct snd_kcontrol_new pcap2_output_mixer_controls[] = {
-SOC_DAPM_SINGLE("A1 Switch", (PCAP2_OUTPUT_AMP|SL), 0, 1, 0),
-SOC_DAPM_SINGLE("A2 Switch", (PCAP2_OUTPUT_AMP|SL), 1, 1, 0),
-SOC_DAPM_SINGLE("AR Switch", (PCAP2_OUTPUT_AMP|SL), 5, 1, 0),
-SOC_DAPM_SINGLE("AL Switch", (PCAP2_OUTPUT_AMP|SL), 6, 1, 0),
+static const char *pcap2_dai_select[] = {
+	"Stereo",
+	"Mono",
+	"BP"
+};
+
+static const struct soc_enum pcap2_dai_enum[] = {
+SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(pcap2_dai_select), pcap2_dai_select),
 };
 
 /* pcap2 codec non DAPM controls */
 static const struct snd_kcontrol_new pcap2_codec_snd_controls[] = {
-SOC_SINGLE("Master Playback Volume", (PCAP2_OUTPUT_AMP|SM),  5, 15, 0),
-SOC_SINGLE("Capture Volume", (PCAP2_INPUT_AMP|SL),   0, 31, 0),
+SOC_SINGLE("Master Playback Volume", (PCAP2_OUTPUT_AMP|SM), 5, 15, 0),
+SOC_ENUM_EXT("DAI Select", pcap2_dai_enum[0], pcap2_get_dai, pcap2_set_dai),
+SOC_SINGLE("Capture Volume", (PCAP2_INPUT_AMP|SL), 0, 31, 0),
 };
 
 static const struct snd_kcontrol_new pcap2_codec_dm_mux_control[] = {
-	SOC_DAPM_ENUM("Output Mode",	pcap2_enum[0]),
+SOC_DAPM_ENUM("Downmixer Mode",	pcap2_downmixer_enum[0]),
 };
 
 /* add non dapm controls */
@@ -158,16 +242,20 @@ static int pcap2_codec_add_controls(struct snd_soc_codec *codec)
 
 /* pcap2 codec DAPM controls */
 static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
-	SND_SOC_DAPM_DAC("ST_DAC", "ST_DAC playback", SND_SOC_NOPM, 0, 0),
-	SND_SOC_DAPM_DAC("CDC_DAC", "CDC_DAC playback", SND_SOC_NOPM, 0, 0),
-	SND_SOC_DAPM_ADC("CDC_ADC", "CDC_DAC capture", SND_SOC_NOPM, 0, 0),
-	SND_SOC_DAPM_PGA("PGA_ST", (PCAP2_OUTPUT_AMP|SL), 9, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_CDC", (PCAP2_OUTPUT_AMP|SL), 8, 0, NULL, 0),
+	SND_SOC_DAPM_DAC("ST_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 9, 0),
+	SND_SOC_DAPM_DAC("CDC_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 8, 0),
+//	SND_SOC_DAPM_DAC("BP_DAC", "playback", SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_ADC("CDC_ADC", "capture", (PCAP2_OUTPUT_AMP|SL), 8, 0),
+//	SND_SOC_DAPM_ADC("BP_ADC", "capture", SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_PGA("PGA_R", (PCAP2_OUTPUT_AMP|SL), 11, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_L", (PCAP2_OUTPUT_AMP|SL), 12, 0, NULL, 0),
-	SND_SOC_DAPM_MUX("Downmixer", SND_SOC_NOPM, 0, 0, pcap2_codec_dm_mux_control),
+	SND_SOC_DAPM_MUX("Downmixer", SND_SOC_NOPM, 0, 0,
+						pcap2_codec_dm_mux_control),
 	SND_SOC_DAPM_PGA("PGA_A1CTRL", (PCAP2_OUTPUT_AMP|SH), 1, 1, NULL, 0),
-	SND_SOC_DAPM_MIXER("Output Mixer", SND_SOC_NOPM, 0, 0, &pcap2_output_mixer_controls[0], ARRAY_SIZE(pcap2_output_mixer_controls)),
+	SND_SOC_DAPM_PGA("PGA_A1", (PCAP2_OUTPUT_AMP|SL), 0, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A2", (PCAP2_OUTPUT_AMP|SL), 1, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_AR", (PCAP2_OUTPUT_AMP|SL), 5, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_AL", (PCAP2_OUTPUT_AMP|SL), 6, 0, NULL, 0),
 	SND_SOC_DAPM_OUTPUT("A1"), /* Earpiece */
 	SND_SOC_DAPM_OUTPUT("A2"), /* LoudSpeaker */
 	SND_SOC_DAPM_OUTPUT("AR"), /* headset right */
@@ -175,21 +263,22 @@ static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
 
 	SND_SOC_DAPM_MICBIAS("BIAS1", (PCAP2_INPUT_AMP|SL), 10, 0),
 	SND_SOC_DAPM_MICBIAS("BIAS2", (PCAP2_INPUT_AMP|SL), 11, 0),
-	SND_SOC_DAPM_MIXER("Input Mixer", SND_SOC_NOPM, 0, 0, &pcap2_input_mixer_controls[0], ARRAY_SIZE(pcap2_input_mixer_controls)),
+	SND_SOC_DAPM_PGA("PGA_A3", (PCAP2_INPUT_AMP|SL), 6, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A5", (PCAP2_INPUT_AMP|SL), 8, 0, NULL, 0),
 	SND_SOC_DAPM_INPUT("A3"), /* Headset Mic */
 	SND_SOC_DAPM_INPUT("A5"), /* Builtin Mic */
 };
 
 static const struct snd_soc_dapm_route audio_map[] = {
-	{ "A1", NULL, "Output Mixer" },
-	{ "A2", NULL, "Output Mixer" },
-	{ "AR", NULL, "Output Mixer" },
-	{ "AL", NULL, "Output Mixer" },
+	{ "A1", NULL, "PGA_A1" },
+	{ "A2", NULL, "PGA_A2" },
+	{ "AR", NULL, "PGA_AR" },
+	{ "AL", NULL, "PGA_AL" },
 
-	{ "Output Mixer", "A1 Switch", "PGA_A1CTRL" },
-	{ "Output Mixer", "A2 Switch", "Downmixer" },
-	{ "Output Mixer", "AR Switch", "PGA_R" },
-	{ "Output Mixer", "AL Switch", "PGA_L" },
+	{ "PGA_A1", NULL, "PGA_A1CTRL" },
+	{ "PGA_A2", NULL, "Downmixer" },
+	{ "PGA_AR", NULL, "PGA_R" },
+	{ "PGA_AL", NULL, "PGA_L" },
 
 	{ "PGA_A1CTRL", NULL, "Downmixer" },
 
@@ -199,26 +288,26 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{ "Downmixer", "2->1ch -3db", "PGA_R" },
 	{ "Downmixer", "2->1ch -6db", "PGA_L" },
 	{ "Downmixer", "2->1ch -6db", "PGA_R" },
-	{ "Downmixer", "2ch", "PGA_R" },
+	{ "Downmixer", "Off", "PGA_R" },
 
-	{ "PGA_R", NULL, "PGA_ST" },
-	{ "PGA_L", NULL, "PGA_ST" },
-	{ "PGA_R", NULL, "PGA_CDC" },
-
-	{ "PGA_ST", NULL, "ST_DAC" },
-	{ "PGA_CDC", NULL, "CDC_DAC" },
+	{ "PGA_R", NULL, "ST_DAC" },
+	{ "PGA_L", NULL, "ST_DAC" },
+	{ "PGA_R", NULL, "CDC_DAC" },
+//	{ "PGA_R", NULL, "BP_DAC" },
 
 	/* input path */
 	{ "BIAS1", NULL, "A3" },
 	{ "BIAS2", NULL, "A5" },
 
-	{ "Input Mixer", "A3 Switch", "BIAS1" },
-	{ "Input Mixer", "A5 Switch", "BIAS2" },
+	{ "PGA_A3", NULL, "BIAS1" },
+	{ "PGA_A5", NULL, "BIAS2" },
 
-	{ "PGA_R", NULL, "Input Mixer" },
+	{ "PGA_R", NULL, "PGA_A3" },
+	{ "PGA_R", NULL, "PGA_A5" },
 
-	{ "PGA_CDC", NULL, "PGA_R" },
-	{ "CDC_ADC", NULL, "PGA_CDC" },
+	{ "CDC_ADC", NULL, "PGA_R" },
+//	{ "BP_ADC", NULL, "PGA_R" },
+
 };
 
 static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
@@ -260,7 +349,7 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 
-	if (codec_dai->id == PCAP2_STEREO_DAI) {
+	if (pcap2_dai_mode == DAI_AP_ST) {
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 
 		tmp &= ~PCAP2_ST_DAC_RATE_MASK;
@@ -325,24 +414,29 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream)
 	struct snd_soc_dapm_widget *w;
 	unsigned int tmp;
 
-	if (codec_dai->id == PCAP2_STEREO_DAI) {
-		snd_soc_dapm_disable_pin(codec, "ST_DAC");
+	switch (pcap2_dai_mode) {
+	case DAI_AP_ST:
+//		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp &= ~(PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
-	}
-	else {
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			snd_soc_dapm_disable_pin(codec, "CDC_DAC");
-		else
-			snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+		break;
+	case DAI_AP_MONO:
+//		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+//			snd_soc_dapm_disable_pin(codec, "CDC_DAC");
+//		else
+//			snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		list_for_each_entry(w, &codec->dapm_widgets, list) {
-			if ((!strcmp(w->name, "CDC_DAC") || !strcmp(w->name, "CDC_ADC")) && w->connected)
+			if ((!strcmp(w->name, "CDC_DAC") ||
+				!strcmp(w->name, "CDC_ADC")) && w->connected)
 				goto in_use;
 		}
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 		tmp &= ~(PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
+		break;
+	default:
+		return -EINVAL;
 	}
 in_use:
 	snd_soc_dapm_sync(codec);
@@ -356,7 +450,7 @@ static int pcap2_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 	struct snd_soc_codec *codec = codec_dai->codec;
 
 	unsigned int tmp;
-	if (codec_dai->id == PCAP2_STEREO_DAI) {
+	if (pcap2_dai_mode == DAI_AP_ST) {
 		/* ST_DAC */
 
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
@@ -420,7 +514,7 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp = 0;
 
-	if (codec_dai->id == PCAP2_STEREO_DAI) {
+	if (pcap2_dai_mode == DAI_AP_ST) {
 		/* ST_DAC */
 
 		/* disable CODEC */
@@ -506,7 +600,7 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			tmp |= 0x200;
 			break;
 		}
-		if (codec_dai->id == PCAP2_MONO_DAI)
+		if (pcap2_dai_mode == DAI_AP_MONO)
 			/* set dai to AP */
 			tmp |= 0x8000;
 
@@ -525,26 +619,29 @@ static int pcap2_prepare(struct snd_pcm_substream *substream)
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 	/* FIXME enable clock only if codec is master */
-	if (codec_dai->id == PCAP2_STEREO_DAI) {
-		snd_soc_dapm_enable_pin(codec, "ST_DAC");
-		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
-		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+	switch(pcap2_dai_mode) {
+	case DAI_AP_ST:
+//		snd_soc_dapm_enable_pin(codec, "ST_DAC");
+//		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
+//		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp |= (PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
-	}
-	else {
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			snd_soc_dapm_enable_pin(codec, "CDC_DAC");
-		else
-			snd_soc_dapm_enable_pin(codec, "CDC_ADC");
-		snd_soc_dapm_disable_pin(codec, "ST_DAC");
+		break;
+	case DAI_AP_MONO:
+//		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+//			snd_soc_dapm_enable_pin(codec, "CDC_DAC");
+//		else
+//			snd_soc_dapm_enable_pin(codec, "CDC_ADC");
+//		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 		tmp |= (PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
+		break;
+	default:
+		return -EINVAL;
 	}
 	snd_soc_dapm_sync(codec);
-	mdelay(1);
 #ifdef PCAP2_DEBUG
 	dump_registers();
 #endif
@@ -556,38 +653,10 @@ static int pcap2_prepare(struct snd_pcm_substream *substream)
  */
 struct snd_soc_dai pcap2_dai[] = {
 {
-	.name = "PCAP2 MONO",
+	.name = "PCAP2",
 	.id = 0,
 	.playback = {
-		.stream_name = "CDC_DAC playback",
-		.channels_min = 1,
-		.channels_max = 1,
-		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000),
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
-	},
-	.capture = {
-		.stream_name = "CDC_DAC capture",
-		.channels_min = 1,
-		.channels_max = 1,
-		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000),
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
-	},
-	.ops = {
-		.prepare = pcap2_prepare,
-		.hw_params = pcap2_hw_params,
-		.hw_free = pcap2_hw_free,
-	},
-	.dai_ops = {
-//		.digital_mute = pcap2_mute,
-		.set_fmt = pcap2_set_dai_fmt,
-		.set_sysclk = pcap2_set_dai_sysclk,
-	},
-},
-{
-	.name = "PCAP2 STEREO",
-	.id = 1,
-	.playback = {
-		.stream_name = "ST_DAC playback",
+		.stream_name = "playback",
 		.channels_min = 1,
 		.channels_max = 2,
 		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |
@@ -596,35 +665,11 @@ struct snd_soc_dai pcap2_dai[] = {
 			SNDRV_PCM_RATE_48000),
 		.formats = SNDRV_PCM_FMTBIT_S16_LE,
 	},
-	.capture = { /* FIXME: PCAP support this?? */
-		.stream_name = "ST_DAC capture",
+	.capture = {
+		.stream_name = "capture",
 		.channels_min = 1,
 		.channels_max = 1,
-		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |
-			SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_22050 |
-			SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |
-			SNDRV_PCM_RATE_48000),
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
-	},
-	.ops = {
-		.prepare = pcap2_prepare,
-		.hw_params = pcap2_hw_params,
-		.hw_free = pcap2_hw_free,
-	},
-	.dai_ops = {
-//		.digital_mute = pcap2_mute,
-		.set_fmt = pcap2_set_dai_fmt,
-		.set_sysclk = pcap2_set_dai_sysclk,
-	},
-},
-{
-	.name = "PCAP2 BP",
-	.id = 2,
-	.playback = {
-		.stream_name = "BP playback",
-		.channels_min = 1,
-		.channels_max = 1,
-		.rates = SNDRV_PCM_RATE_8000,
+		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000),
 		.formats = SNDRV_PCM_FMTBIT_S16_LE,
 	},
 	.ops = {
@@ -696,6 +741,17 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 		snd_soc_dapm_free(socdev);
 	}
 
+	pcap2_dai_mode = DAI_AP_ST;
+	pcap2_set_dai_mode(codec, pcap2_dai_mode);
+	
+/*
+	snd_soc_dapm_disable_pin(codec, "ST_DAC");
+	snd_soc_dapm_disable_pin(codec, "CDC_DAC_");
+	snd_soc_dapm_disable_pin(codec, "BP_DAC");
+	snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+	snd_soc_dapm_disable_pin(codec, "BP_ADC");
+	snd_soc_dapm_sync(codec);
+*/
 	return ret;
 }
 
@@ -705,7 +761,6 @@ static int pcap2_codec_probe(struct platform_device *pdev)
 	struct pcap2_codec_setup_data *setup;
 	struct snd_soc_codec *codec;
 	int ret = 0;
-	info("PCAP2 Audio Codec %s", PCAP2_VERSION);
 
 	setup = socdev->codec_data;
 	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
@@ -716,8 +771,6 @@ static int pcap2_codec_probe(struct platform_device *pdev)
 	mutex_init(&codec->mutex);
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
-
-	pcap2_codec_socdev = socdev;
 
 	ret = pcap2_codec_init(socdev);
 	return ret;
