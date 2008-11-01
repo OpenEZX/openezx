@@ -57,7 +57,7 @@ static inline void check_power_off(void)
 
 inline int bp_handshake_passed(void)
 {
-	return (step > 4);
+	return (step > 3);
 }
 EXPORT_SYMBOL_GPL(bp_handshake_passed);
 
