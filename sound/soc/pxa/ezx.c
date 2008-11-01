@@ -32,10 +32,10 @@
 #include "pxa2xx-pcm.h"
 #include "pxa-ssp.h"
 
-#define AUDIO_OFF		-1
-#define LOUDSPEAKER		0
-#define EARPIECE		1
-#define HEADSET			2
+#define AUDIO_OFF		0
+#define LOUDSPEAKER		1
+#define EARPIECE		2
+#define HEADSET			3
 
 static struct snd_soc_codec *control_codec;
 
@@ -128,7 +128,8 @@ static int ezx_set_scenario(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
-static const char *ezx_scenario_select[] = { 
+static const char *ezx_scenario_select[] = {
+	"Off",
 	"Loudspeaker", 
 	"Earpiece", 
 	"Headset",
