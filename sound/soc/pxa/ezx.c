@@ -298,31 +298,6 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 	return 0;
 }
 
-static struct snd_soc_dai bp_dai =
-{
-	.name = "Baseband",
-	.id = 0,
-	.type = SND_SOC_DAI_PCM,
-	.playback = {
-		.channels_min = 1,
-		.channels_max = 1,
-		.rates = SNDRV_PCM_RATE_8000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
-	},
-	.capture = {
-		.channels_min = 1,
-		.channels_max = 1,
-		.rates = SNDRV_PCM_RATE_8000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
-	},
-	.ops = {
-//		.startup = bp_startup,
-//		.shutdown = bp_shutdown,
-		.hw_params = bp_hw_params,
-//		.hw_free = bp_hw_free,
-	},
-};
-
 /* template digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link ezx_dai[] = {
 {
@@ -333,20 +308,6 @@ static struct snd_soc_dai_link ezx_dai[] = {
 	.init = ezx_machine_init,
 	.ops = &ezx_ops,
 },
-//{
-//	.name = "PCAP2 MONO",
-//	.stream_name = "mono playback",
-//	.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
-//	.codec_dai = &pcap2_dai[PCAP2_MONO_DAI],
-//	.init = ezx_machine_init, /* the stereo call already registered our controls */
-//	.ops = &ezx_ops,
-//},
-//{
-//	.name = "PCAP2 BP",
-//	.stream_name = "BP Audio",
-//	.cpu_dai = &bp_dai,
-//	.codec_dai = &pcap2_dai[PCAP2_BP_DAI],
-//},
 };
 
 /* template audio machine driver */
@@ -403,4 +364,3 @@ static void __exit ezx_exit(void)
 
 module_init(ezx_init);
 module_exit(ezx_exit);
-
