@@ -315,6 +315,9 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 
+	if (pcap2_dai_mode == DAI_BP) /* pcap is set to talk with BP */
+		return -EINVAL;
+
 	if (pcap2_dai_mode == DAI_AP_ST) {
 		if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 			return -EINVAL;
