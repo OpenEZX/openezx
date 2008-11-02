@@ -1,7 +1,7 @@
 /*
  * pcap2.c - PCAP2 ASIC Audio driver
  *
- * 	Copyright (C) 2007 Daniel Ribeiro <wyrm@openezx.org>
+ * 	Copyright (C) 2007-2008 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -36,34 +36,6 @@
 #define OUT_HEADPHONE	2
 
 /*
- * Debug
- */
-
-//#define PCAP2_DEBUG
-
-#ifdef PCAP2_DEBUG
-#define dbg(format, arg...) \
-	printk(KERN_DEBUG AUDIO_NAME ": " format "\n" , ## arg)
-#else
-#define dbg(format, arg...)
-#endif
-
-#define err(format, arg...) \
-	printk(KERN_ERR AUDIO_NAME ": " format "\n" , ## arg)
-#define info(format, arg...) \
-	printk(KERN_INFO AUDIO_NAME ": " format "\n" , ## arg)
-#define warn(format, arg...) \
-	printk(KERN_WARNING AUDIO_NAME ": " format "\n" , ## arg)
-
-#define dump_registers()	pcap2_codec_read(NULL, 13); \
-				pcap2_codec_read(NULL, 12); \
-				pcap2_codec_read(NULL, 11); \
-				pcap2_codec_read(NULL, 26);
-
-
-
-
-/*
  * ASoC limits register value to 16 bits and pcap uses 32 bit registers
  * to work around this, we get 16 bits from low, mid or high positions.
  * ASoC limits register number to 8 bits we use 0x1f for register
@@ -72,7 +44,6 @@
 static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
-	dbg("codec_write reg=%x, val=%08x", reg, value);
 	ezx_pcap_write(reg, value);
 	return 0;
 }
@@ -82,7 +53,6 @@ static unsigned int pcap2_codec_read(struct snd_soc_codec *codec, unsigned int r
 	unsigned int ret;
 
 	ezx_pcap_read((reg & 0x1f), &ret);
-	dbg("codec_read  reg=%x, val=%08x", reg, ret);
 	return(ret);
 }
 
@@ -647,7 +617,6 @@ static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->codec;
 
-	dbg("pcap2_codec_suspend");
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
@@ -657,7 +626,6 @@ static int pcap2_codec_resume(struct platform_device *pdev)
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->codec;
 
-	dbg("pcap2_codec_resume");
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	pcap2_set_bias_level(codec, codec->suspend_bias_level);
 	return 0;
@@ -672,7 +640,6 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 	struct snd_soc_codec *codec = socdev->codec;
 	int ret = 0;
 
-	dbg("pcap2_codec_init");
 	codec->name = "PCAP2 Audio";
 	codec->owner = THIS_MODULE;
 	codec->read = pcap2_codec_read;
