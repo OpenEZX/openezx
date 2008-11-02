@@ -244,9 +244,7 @@ static int pcap2_codec_add_controls(struct snd_soc_codec *codec)
 static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_DAC("ST_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 9, 0),
 	SND_SOC_DAPM_DAC("CDC_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 8, 0),
-//	SND_SOC_DAPM_DAC("BP_DAC", "playback", SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_ADC("CDC_ADC", "capture", (PCAP2_OUTPUT_AMP|SL), 8, 0),
-//	SND_SOC_DAPM_ADC("BP_ADC", "capture", SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_PGA("PGA_R", (PCAP2_OUTPUT_AMP|SL), 11, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_L", (PCAP2_OUTPUT_AMP|SL), 12, 0, NULL, 0),
 	SND_SOC_DAPM_MUX("Downmixer", SND_SOC_NOPM, 0, 0,
@@ -293,7 +291,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{ "PGA_R", NULL, "ST_DAC" },
 	{ "PGA_L", NULL, "ST_DAC" },
 	{ "PGA_R", NULL, "CDC_DAC" },
-//	{ "PGA_R", NULL, "BP_DAC" },
 
 	/* input path */
 	{ "BIAS1", NULL, "A3" },
@@ -306,8 +303,6 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{ "PGA_R", NULL, "PGA_A5" },
 
 	{ "CDC_ADC", NULL, "PGA_R" },
-//	{ "BP_ADC", NULL, "PGA_R" },
-
 };
 
 static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
@@ -416,16 +411,11 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream)
 
 	switch (pcap2_dai_mode) {
 	case DAI_AP_ST:
-//		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp &= ~(PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 		break;
 	case DAI_AP_MONO:
-//		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-//			snd_soc_dapm_disable_pin(codec, "CDC_DAC");
-//		else
-//			snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		list_for_each_entry(w, &codec->dapm_widgets, list) {
 			if ((!strcmp(w->name, "CDC_DAC") ||
 				!strcmp(w->name, "CDC_ADC")) && w->connected)
@@ -534,10 +524,7 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		case SND_SOC_DAIFMT_I2S:
 			tmp |= 0x4000;
 			break;
-/*		case SND_SOC_NET:
-			tmp |= 0x2000;
-			break;
-*/		case SND_SOC_DAIFMT_DSP_B:
+		case SND_SOC_DAIFMT_DSP_B:
 			break;
 		default:
 			return -EINVAL;
@@ -621,19 +608,11 @@ static int pcap2_prepare(struct snd_pcm_substream *substream)
 	/* FIXME enable clock only if codec is master */
 	switch(pcap2_dai_mode) {
 	case DAI_AP_ST:
-//		snd_soc_dapm_enable_pin(codec, "ST_DAC");
-//		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
-//		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 		tmp |= (PCAP2_ST_DAC_EN | PCAP2_ST_DAC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 		break;
 	case DAI_AP_MONO:
-//		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-//			snd_soc_dapm_enable_pin(codec, "CDC_DAC");
-//		else
-//			snd_soc_dapm_enable_pin(codec, "CDC_ADC");
-//		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 		tmp |= (PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
@@ -744,14 +723,6 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 	pcap2_dai_mode = DAI_AP_ST;
 	pcap2_set_dai_mode(codec, pcap2_dai_mode);
 	
-/*
-	snd_soc_dapm_disable_pin(codec, "ST_DAC");
-	snd_soc_dapm_disable_pin(codec, "CDC_DAC_");
-	snd_soc_dapm_disable_pin(codec, "BP_DAC");
-	snd_soc_dapm_disable_pin(codec, "CDC_ADC");
-	snd_soc_dapm_disable_pin(codec, "BP_ADC");
-	snd_soc_dapm_sync(codec);
-*/
 	return ret;
 }
 
