@@ -178,7 +178,11 @@ static void ezx_pcap_adc_event(struct work_struct *unused)
 {
 	void (*adc_done)(void *);
 	void *adc_data;
-
+	
+	if (!pcap.adc_done) {
+		printk(KERN_ERR "I havent asked for ADC! Maybe BP? Ignoring\n");
+		return;
+	}
 	/* caller may call start_adc, so we save adc_done/data before */
 	adc_done = pcap.adc_done;
 	adc_data = pcap.adc_data;
