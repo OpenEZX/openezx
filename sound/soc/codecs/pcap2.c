@@ -316,6 +316,9 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 	unsigned int tmp;
 
 	if (pcap2_dai_mode == DAI_AP_ST) {
+		if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
+			return -EINVAL;
+
 		tmp = pcap2_codec_read(codec, PCAP2_ST_DAC);
 
 		tmp &= ~PCAP2_ST_DAC_RATE_MASK;
