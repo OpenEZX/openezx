@@ -45,13 +45,10 @@ static void ezx_ext_control(struct snd_soc_codec *codec)
 
 	ezx_pcap_read(PCAP_REG_PSTAT, &tmp);
 
-	if (tmp & PCAP_IRQ_A1) {
-		printk("HP on\n");
+	if (tmp & PCAP_IRQ_A1)
 		snd_soc_dapm_enable_pin(codec, "Headset");
-	} else {
-		printk("HP off\n");
+	else
 		snd_soc_dapm_disable_pin(codec, "Headset");
-	}
 
 	if (tmp & PCAP_IRQ_MB2)
 		snd_soc_dapm_enable_pin(codec, "External Mic");
