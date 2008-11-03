@@ -7,6 +7,11 @@
 #ifndef _PCAP2_H
 #define _PCAP2_H
 
+/* 16 bit reads/writes on pcap registers (ugly workaround) */
+#define SL (1 << 5)	/* lower 16 bits */
+#define SM (1 << 6)	/* mid 16 bits */
+#define SH (1 << 7)	/* higher 16 bits */
+
 /* PCAP2 register space */
 #define PCAP2_CODEC			0x0b
 #define PCAP2_OUTPUT_AMP		0x0c

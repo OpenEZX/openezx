@@ -44,15 +44,42 @@
 static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
-	ezx_pcap_write(reg, value);
+	unsigned int tmp;
+
+	ezx_pcap_read((reg & 0x1f), &tmp);
+
+	if (reg & SL) {
+		tmp &= 0xffff0000;
+		tmp |= (value & 0xffff);
+	}
+	else if (reg & SM) {
+		tmp &= 0xff0000ff;
+		tmp |= ((value << 8) & 0x00ffff00);
+	}
+	else if (reg & SH) {
+		tmp &= 0xffff;
+		tmp |= ((value << 16) & 0xffff0000);
+	}
+	else
+	tmp = value;
+
+	ezx_pcap_write((reg & 0x1f), tmp);
 	return 0;
 }
 
 static unsigned int pcap2_codec_read(struct snd_soc_codec *codec, unsigned int reg)
 {
-	unsigned int ret;
+	unsigned int tmp, ret;
 
-	ezx_pcap_read((reg & 0x1f), &ret);
+	ezx_pcap_read((reg & 0x1f), &tmp);
+	ret = tmp;
+	if (reg & SL)
+		ret = (tmp & 0xffff);
+	else if (reg & SM)
+		ret = ((tmp >> 8) & 0xffff);
+	else if (reg & SH)
+		ret = ((tmp >> 16) & 0xffff);
+
 	return(ret);
 }
 
@@ -143,7 +170,7 @@ static const char *pcap2_downmix_select[] = {
 };
 
 static const struct soc_enum pcap2_downmixer_enum[] = {
-SOC_ENUM_SINGLE(PCAP2_OUTPUT_AMP, 19, 4, pcap2_downmix_select),
+SOC_ENUM_SINGLE((PCAP2_OUTPUT_AMP|SH), 3, 4, pcap2_downmix_select),
 };
 
 static const char *pcap2_dai_select[] = {
@@ -158,9 +185,9 @@ SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(pcap2_dai_select), pcap2_dai_select),
 
 /* pcap2 codec non DAPM controls */
 static const struct snd_kcontrol_new pcap2_codec_snd_controls[] = {
-SOC_SINGLE("Master Playback Volume", PCAP2_OUTPUT_AMP, 13, 15, 0),
+SOC_SINGLE("Master Playback Volume", (PCAP2_OUTPUT_AMP|SM), 5, 15, 0),
 SOC_ENUM_EXT("DAI Select", pcap2_dai_enum[0], pcap2_get_dai, pcap2_set_dai),
-SOC_SINGLE("Capture Volume", PCAP2_INPUT_AMP, 0, 31, 0),
+SOC_SINGLE("Capture Volume", (PCAP2_INPUT_AMP|SL), 0, 31, 0),
 };
 
 static const struct snd_kcontrol_new pcap2_codec_dm_mux_control[] = {
@@ -183,27 +210,27 @@ static int pcap2_codec_add_controls(struct snd_soc_codec *codec)
 
 /* pcap2 codec DAPM controls */
 static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
-	SND_SOC_DAPM_DAC("ST_DAC", "playback", PCAP2_OUTPUT_AMP, 9, 0),
-	SND_SOC_DAPM_DAC("CDC_DAC", "playback", PCAP2_OUTPUT_AMP, 8, 0),
-	SND_SOC_DAPM_ADC("CDC_ADC", "capture", PCAP2_OUTPUT_AMP, 8, 0),
-	SND_SOC_DAPM_PGA("PGA_R", PCAP2_OUTPUT_AMP, 11, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_L", PCAP2_OUTPUT_AMP, 12, 0, NULL, 0),
+	SND_SOC_DAPM_DAC("ST_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 9, 0),
+	SND_SOC_DAPM_DAC("CDC_DAC", "playback", (PCAP2_OUTPUT_AMP|SL), 8, 0),
+	SND_SOC_DAPM_ADC("CDC_ADC", "capture", (PCAP2_OUTPUT_AMP|SL), 8, 0),
+	SND_SOC_DAPM_PGA("PGA_R", (PCAP2_OUTPUT_AMP|SL), 11, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_L", (PCAP2_OUTPUT_AMP|SL), 12, 0, NULL, 0),
 	SND_SOC_DAPM_MUX("Downmixer", SND_SOC_NOPM, 0, 0,
 						pcap2_codec_dm_mux_control),
-	SND_SOC_DAPM_PGA("PGA_A1CTRL", PCAP2_OUTPUT_AMP, 17, 1, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_A1", PCAP2_OUTPUT_AMP, 0, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_A2", PCAP2_OUTPUT_AMP, 1, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_AR", PCAP2_OUTPUT_AMP, 5, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_AL", PCAP2_OUTPUT_AMP, 6, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A1CTRL", (PCAP2_OUTPUT_AMP|SH), 1, 1, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A1", (PCAP2_OUTPUT_AMP|SL), 0, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A2", (PCAP2_OUTPUT_AMP|SL), 1, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_AR", (PCAP2_OUTPUT_AMP|SL), 5, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_AL", (PCAP2_OUTPUT_AMP|SL), 6, 0, NULL, 0),
 	SND_SOC_DAPM_OUTPUT("A1"), /* Earpiece */
 	SND_SOC_DAPM_OUTPUT("A2"), /* LoudSpeaker */
 	SND_SOC_DAPM_OUTPUT("AR"), /* headset right */
 	SND_SOC_DAPM_OUTPUT("AL"), /* headset left */
 
-	SND_SOC_DAPM_MICBIAS("BIAS1", PCAP2_INPUT_AMP, 10, 0),
-	SND_SOC_DAPM_MICBIAS("BIAS2", PCAP2_INPUT_AMP, 11, 0),
-	SND_SOC_DAPM_PGA("PGA_A3", PCAP2_INPUT_AMP, 6, 0, NULL, 0),
-	SND_SOC_DAPM_PGA("PGA_A5", PCAP2_INPUT_AMP, 8, 0, NULL, 0),
+	SND_SOC_DAPM_MICBIAS("BIAS1", (PCAP2_INPUT_AMP|SL), 10, 0),
+	SND_SOC_DAPM_MICBIAS("BIAS2", (PCAP2_INPUT_AMP|SL), 11, 0),
+	SND_SOC_DAPM_PGA("PGA_A3", (PCAP2_INPUT_AMP|SL), 6, 0, NULL, 0),
+	SND_SOC_DAPM_PGA("PGA_A5", (PCAP2_INPUT_AMP|SL), 8, 0, NULL, 0),
 	SND_SOC_DAPM_INPUT("A3"), /* Headset Mic */
 	SND_SOC_DAPM_INPUT("A5"), /* Builtin Mic */
 };
