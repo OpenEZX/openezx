@@ -6,5 +6,6 @@ struct ezxbp_config {
 	int bp_rdy;
 	int ap_rdy;
 	int first_step;
+	void (*init)(void);
 };
 
