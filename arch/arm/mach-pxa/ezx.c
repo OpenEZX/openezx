@@ -828,27 +828,16 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 };
 
 /* OHCI Controller */
-static int ezx_ohci_init(struct device *dev)
-{
-	void __iomem *iobase;
-
-	iobase = ioremap(0x40600000,0x1000);
-	__raw_writel(0x00000002, iobase+0x24);
-	iounmap(iobase);
-
-	iobase = ioremap(0x4C000000,0x1000);
-	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)), iobase+0x64);
-	iounmap(iobase);
-
-	return 0;
-}
-
 static struct pxaohci_platform_data ezx_ohci_platform_data = {
 	.port_mode	= PMM_NPS_MODE,
-	.init		= ezx_ohci_init,
 };
 
 /* BP */
+static void ezx_bp_init (void)
+{
+	UP3OCR = 2;
+}
+
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
 	.bp_reset = 82,
@@ -857,6 +846,7 @@ static struct ezxbp_config gen1_bp_data = {
 	.bp_rdy = 0,
 	.ap_rdy = 57,
 	.first_step = 2,
+	.init = ezx_bp_init,
 };
 
 static struct platform_device gen1_bp_device = {
@@ -877,6 +867,7 @@ static struct ezxbp_config gen2_bp_data = {
 	.bp_rdy = 0,
 	.ap_rdy = 96,
 	.first_step = 3,
+	.init = ezx_bp_init,
 };
 
 static struct platform_device gen2_bp_device = {
