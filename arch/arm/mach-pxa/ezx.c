@@ -240,6 +240,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
+	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
 
 	/* sound */
 	GPIO52_SSP3_SCLK,
@@ -842,6 +843,66 @@ static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 }
 
 #ifdef CONFIG_MACH_EZX_A780
+static int a780_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO19_GPIO is CAM_RST: active high
+	 */
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+
+	/* 
+	 * This is reported to resolve the vertical line in view finder issue
+	 * (LIBff11930), is this still needed?
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO19, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a780_pxacamera_platform_data = {
+	.init	= a780_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a780_iclink = {
+	.bus_id	= 0,
+	.power = a780_pxacamera_power,
+	.reset = a780_pxacamera_reset,
+};
+
+static struct i2c_board_info __initdata a780_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a780_iclink,
+	},
+};
+
 static void __init a780_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -849,6 +910,7 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
@@ -866,6 +928,9 @@ static void __init a780_init(void)
 #endif
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
+#endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a780_pxacamera_platform_data);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
