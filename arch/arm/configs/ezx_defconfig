@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.28-rc2
-# Fri Oct 31 21:53:54 2008
+# Linux kernel version: 2.6.28-rc3
+# Fri Nov  7 00:12:36 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -946,7 +946,7 @@ CONFIG_SPI_PXA2XX=y
 # CONFIG_SPI_TLE62X0 is not set
 CONFIG_ARCH_REQUIRE_GPIOLIB=y
 CONFIG_GPIOLIB=y
-# CONFIG_GPIO_SYSFS is not set
+CONFIG_GPIO_SYSFS=y
 
 #
 # I2C GPIO expanders:
