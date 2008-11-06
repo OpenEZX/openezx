@@ -240,6 +240,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
+	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
 
 	/* sound */
 	GPIO52_SSP3_SCLK,
