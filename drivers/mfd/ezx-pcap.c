@@ -580,7 +580,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_write(PCAP_REG_ADR, 0);
 	ezx_pcap_write(PCAP_REG_AUXVREG, 0);
 
-	/* redirect all interrupts to AP */
+	/* redirect interrupts to AP */
 	if (!(pdata->config & PCAP_SECOND_PORT))
 		ezx_pcap_write(PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
 
