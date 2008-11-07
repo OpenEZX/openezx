@@ -35,12 +35,13 @@
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
-
+#include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/io.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -207,18 +208,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO112_MMC_CMD,
 	GPIO11_GPIO,				/* mmc detect */
 
-	/* sound */
-	GPIO52_SSP3_SCLK,
-	GPIO83_SSP3_SFRM,
-	GPIO81_SSP3_TXD,
-	GPIO82_SSP3_RXD,
-
-	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
-
 	/* usb to external transceiver */
 	GPIO34_USB_P2_2,
 	GPIO35_USB_P2_1,
@@ -252,6 +241,19 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
+	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO89_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO37_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -297,6 +299,18 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO116_GPIO,				/* RESET */
 	GPIO41_GPIO,				/* BP_FLASH */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO82_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO14_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -814,6 +828,58 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 	.udc_command = ezx_udc_command,
 };
 
+/* OHCI Controller */
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_NPS_MODE,
+};
+
+/* BP */
+static void ezx_bp_init (void)
+{
+	UP3OCR = 2;
+}
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 82,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 57,
+	.first_step = 2,
+	.init = ezx_bp_init,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+	.init = ezx_bp_init,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
 static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -830,6 +896,66 @@ static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
 }
 
 #ifdef CONFIG_MACH_EZX_A780
+static int a780_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO19_GPIO is CAM_RST: active high
+	 */
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+
+	/* 
+	 * This is reported to resolve the vertical line in view finder issue
+	 * (LIBff11930), is this still needed?
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO19, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a780_pxacamera_platform_data = {
+	.init	= a780_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a780_iclink = {
+	.bus_id	= 0,
+	.power = a780_pxacamera_power,
+	.reset = a780_pxacamera_reset,
+};
+
+static struct i2c_board_info __initdata a780_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a780_iclink,
+	},
+};
+
 static void __init a780_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -837,10 +963,13 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
@@ -855,6 +984,11 @@ static void __init a780_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a780_pxacamera_platform_data);
+#endif
+
+	platform_device_register(&gen1_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -890,6 +1024,8 @@ static void __init e680_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -903,6 +1039,8 @@ static void __init e680_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+
+	platform_device_register(&gen1_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -937,6 +1075,8 @@ static void __init a1200_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -950,6 +1090,8 @@ static void __init a1200_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1086,6 +1228,8 @@ static void __init a910_init(void)
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1097,6 +1241,8 @@ static void __init a910_init(void)
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1131,6 +1277,8 @@ static void __init e6_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1144,6 +1292,8 @@ static void __init e6_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1178,6 +1328,8 @@ static void __init e2_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1188,6 +1340,8 @@ static void __init e2_init(void)
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
