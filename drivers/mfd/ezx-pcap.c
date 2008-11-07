@@ -85,7 +85,7 @@ int ezx_pcap_set_sw(u8 sw, u8 what, u8 val)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_set_sw);
 
-static u8 vreg_table[][10] = {
+static u8 vreg_table[][5] = {
 	/*		EN	INDEX	MASK	STBY	LOWPWR	*/
 	[V1]	= {	1,	2,	0x7,	18,	0,	},
 	[V2]	= {	5,	6,	0x1,	19,	22,	},
