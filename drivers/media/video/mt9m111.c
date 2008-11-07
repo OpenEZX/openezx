@@ -410,7 +410,8 @@ static int mt9m111_stop_capture(struct soc_camera_device *icd)
 
 static unsigned long mt9m111_query_bus_param(struct soc_camera_device *icd)
 {
-	return SOCAM_MASTER | SOCAM_PCLK_SAMPLE_RISING |
+	return SOCAM_MASTER |
+		SOCAM_PCLK_SAMPLE_RISING | SOCAM_PCLK_SAMPLE_FALLING |
 		SOCAM_HSYNC_ACTIVE_HIGH | SOCAM_VSYNC_ACTIVE_HIGH |
 		SOCAM_DATAWIDTH_8;
 }

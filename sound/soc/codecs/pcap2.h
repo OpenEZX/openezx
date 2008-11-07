@@ -18,10 +18,6 @@
 #define PCAP2_ST_DAC			0x0d
 #define PCAP2_INPUT_AMP			0x1a
 
-#define PCAP2_MONO_DAI			0
-#define PCAP2_STEREO_DAI		1
-#define PCAP2_BP_DAI			2
-
 #define PCAP2_CLK_BP			0
 #define PCAP2_CLK_AP			1
 
