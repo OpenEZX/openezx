@@ -5,3 +5,4 @@ ezx/asoc
 ezx/eoc
 ezx/bp
 ezx/defconfig
+pxa/sparsemem
