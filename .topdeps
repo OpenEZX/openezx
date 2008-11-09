@@ -1,6 +1,7 @@
 ezx/mach/bp
 ezx/pcap
 ezx/pcap_ts
+ezx/pcap_leds
 ezx/asoc
 ezx/eoc
 ezx/bp
