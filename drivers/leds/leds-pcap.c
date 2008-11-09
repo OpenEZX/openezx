@@ -83,10 +83,21 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		struct pcap_led *led = &pdata->leds[i];
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
+		if (led->gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
+			err = gpio_request(gpio, "PCAP LED");
+			if (err) {
+				dev_err(&pdev->dev,
+					"couldn't request gpio %d\n", gpio);
+				goto fail;
+			}
+			gpio_direction_output(gpio, 
+				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
+		}
 		err = led_classdev_register(&pdev->dev, &led->ldev);
 		if (err) {
 			dev_err(&pdev->dev, "couldn't register LED %s\n",
-				led->name);
+					led->name);
 			goto fail;
 		}
 	}
