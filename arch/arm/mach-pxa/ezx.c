@@ -101,10 +101,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO44_BTUART_CTS,
 	GPIO45_BTUART_RTS,
 
-	/* STUART */
-	GPIO46_STUART_RXD,
-	GPIO47_STUART_TXD,
-
 	/* PCAP SSP */
 	GPIO29_SSP1_SCLK,
 	GPIO25_SSP1_TXD,
@@ -289,6 +285,10 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO15_GPIO,				/* MIDI_IRQ */
 	GPIO49_GPIO,				/* MIDI_NPWE */
 	GPIO18_GPIO,				/* MIDI_RDY */
+
+	/* leds */
+	GPIO46_GPIO | MFP_DIR_OUT,
+	GPIO47_GPIO | MFP_DIR_OUT,
 };
 #endif
 
