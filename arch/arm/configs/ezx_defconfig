@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.28-rc3
-# Sat Nov  8 14:02:23 2008
+# Sun Nov  9 03:05:27 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1320,6 +1320,7 @@ CONFIG_LEDS_CLASS=y
 # CONFIG_LEDS_PCA9532 is not set
 # CONFIG_LEDS_GPIO is not set
 # CONFIG_LEDS_PCA955X is not set
+CONFIG_LEDS_PCAP=y
 
 #
 # LED Triggers
