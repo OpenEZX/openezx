@@ -22,6 +22,8 @@
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
+#include <linux/leds.h>
+#include <linux/leds-pcap.h>
 
 #include <media/soc_camera.h>
 
@@ -827,6 +829,30 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 };
 
 #ifdef CONFIG_MACH_EZX_A780
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data a780_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		},
+	},
+	.num_leds = 2,
+};
+
+struct platform_device a780_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a780_leds,
+	},
+};
+#endif
+
 static int a780_pxacamera_init(struct device *dev)
 {
 	/* 
@@ -913,6 +939,9 @@ static void __init a780_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&a780_leds_device);
+#endif
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 #endif
@@ -932,6 +961,42 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data e680_leds = {
+	.leds = {
+		{
+			.type = PCAP_LED0,
+			.name = "e680:red",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xf,
+			.gpio = 46 | PCAP_LED_GPIO_EN | PCAP_LED_GPIO_INVERT,
+		}, {
+			.type = PCAP_LED0,
+			.name = "e680:green",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xf,
+			.gpio = 47 | PCAP_LED_GPIO_EN,
+		}, {
+			.type = PCAP_LED1,
+			.name = "e680:blue",
+			.curr = PCAP_LED_3MA,
+			.timing = 0xf,
+			.gpio = 0,
+		},
+	},
+	.num_leds = 3,
+};
+
+struct platform_device e680_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e680_leds,
+	},
+};
+#endif
+
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
@@ -962,6 +1027,9 @@ static void __init e680_init(void)
 #endif
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
+#endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&e680_leds_device);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
