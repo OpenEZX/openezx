@@ -20,9 +20,18 @@
 static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 					enum led_brightness val)
 {
-	u32 tmp;
-	u8 t, c, e ;
 	struct pcap_led *led = container_of(led_cdev, struct pcap_led, ldev);
+
+	led->brightness = val;
+
+	schedule_work(&led->work);
+}
+
+static void pcap_led_work(struct work_struct *work)
+{
+	u32 tmp;
+	u8 t, c, e;
+	struct pcap_led *led = container_of(work, struct pcap_led, work);
 
 	ezx_pcap_read(PCAP_REG_PERIPH, &tmp);
 	switch(led->type) {
@@ -30,28 +39,28 @@ static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 		t = PCAP_LED0_T_SHIFT;
 		c = PCAP_LED0_C_SHIFT;
 		e = PCAP_LED0_EN;
-		if (val)
-			val = 1;
+		if (led->brightness)
+			led->brightness = 1;
 		break;
 	case PCAP_LED1:
 		t = PCAP_LED1_T_SHIFT;
 		c = PCAP_LED1_C_SHIFT;
 		e = PCAP_LED1_EN;
-		if (val)
-			val = 1;
+		if (led->brightness)
+			led->brightness = 1;
 		break;
 	case PCAP_BL0:
-		if (val > PCAP_BL_MASK)
-			val = PCAP_BL_MASK;
+		if (led->brightness > PCAP_BL_MASK)
+			led->brightness = PCAP_BL_MASK;
 		tmp &= ~(PCAP_BL_MASK << PCAP_BL0_SHIFT);
-		tmp |= val << PCAP_BL0_SHIFT;
+		tmp |= led->brightness << PCAP_BL0_SHIFT;
 		ezx_pcap_write(PCAP_REG_PERIPH, tmp);
 		return;
 	case PCAP_BL1:
-		if (val > PCAP_BL_MASK)
-			val = PCAP_BL_MASK;
+		if (led->brightness > PCAP_BL_MASK)
+			led->brightness = PCAP_BL_MASK;
 		tmp &= ~(PCAP_BL_MASK << PCAP_BL1_SHIFT);
-		tmp |= val << PCAP_BL1_SHIFT;
+		tmp |= led->brightness << PCAP_BL1_SHIFT;
 		ezx_pcap_write(PCAP_REG_PERIPH, tmp);
 		return;
 	default:
@@ -60,14 +69,15 @@ static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 	/* turn off */
 	tmp &= ~(e | (PCAP_LED_T_MASK << t) | (PCAP_LED_C_MASK << c));
 
-	if (val) /* turn on */
+	if (led->brightness) /* turn on */
 		tmp |= (e | (led->curr << c) | (led->timing << t));
 
+	if (led->gpio & PCAP_LED_GPIO_EN)
+		gpio_set_value((led->gpio & PCAP_LED_GPIO_VAL_MASK),
+			((led->gpio & PCAP_LED_GPIO_INVERT) ?
+			!led->brightness : led->brightness));
+
 	ezx_pcap_write(PCAP_REG_PERIPH, tmp);
-	if (led->gpio & PCAP_LED_GPIO_EN) {
-		val ^= (led->gpio & PCAP_LED_GPIO_INVERT);
-		gpio_set_value((led->gpio & PCAP_LED_GPIO_VAL_MASK), val);
-	}
 }
 
 static int __devinit pcap_led_probe(struct platform_device *pdev)
@@ -100,6 +110,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 					led->name);
 			goto fail;
 		}
+		INIT_WORK(&led->work, pcap_led_work);
 	}
 	return 0;
 
