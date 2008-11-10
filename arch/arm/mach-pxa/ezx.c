@@ -410,8 +410,8 @@ static unsigned long a910_pin_config[] __initdata = {
 	GPIO33_GPIO,				/* WAKEUP */
 	GPIO94_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
 
-	/* MMC CS */
-	GPIO20_GPIO,
+        /* MMC CS */
+        GPIO20_GPIO,
 };
 #endif
 
@@ -752,13 +752,12 @@ static struct pcap_platform_data ezx_pcap_platform_data = {
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT) {
+	if (command & PXA2XX_CS_ASSERT)
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1);
-	} else {
+	else
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0);
-	}
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
