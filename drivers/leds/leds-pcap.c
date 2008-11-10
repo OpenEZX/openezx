@@ -115,8 +115,10 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 	return 0;
 
 fail:
-	while (i >= 0)
+	while (i >= 0) {
 		led_classdev_unregister(&pdata->leds[--i].ldev);
+		cancel_work_sync(&pdata->leds[i].work);
+	}
 	return err;
 }
 
@@ -125,8 +127,10 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 	int i;
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
 
-	for (i = 0; i < pdata->num_leds; i++)
+	for (i = 0; i < pdata->num_leds; i++) {
 		led_classdev_unregister(&pdata->leds[i].ldev);
+		cancel_work_sync(&pdata->leds[i].work);
+	}
 	return 0;
 }
 
