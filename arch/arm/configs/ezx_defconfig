@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.28-rc3
-# Sun Nov  9 03:05:27 2008
+# Sun Nov  9 22:35:28 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1391,14 +1391,7 @@ CONFIG_RTC_INTF_DEV=y
 #
 CONFIG_RTC_DRV_SA1100=m
 # CONFIG_DMADEVICES is not set
-
-#
-# Voltage and Current regulators
-#
 # CONFIG_REGULATOR is not set
-# CONFIG_REGULATOR_FIXED_VOLTAGE is not set
-# CONFIG_REGULATOR_VIRTUAL_CONSUMER is not set
-# CONFIG_REGULATOR_BQ24022 is not set
 # CONFIG_UIO is not set
 
 #
