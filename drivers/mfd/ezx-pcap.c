@@ -374,11 +374,12 @@ int ezx_pcap_unregister_event(u32 events)
 {
 	int ret = -EINVAL;
 	struct pcap_event *cb;
+	struct pcap_event *store;
 
 	ezx_pcap_mask_event(events);
 
 	mutex_lock(&event_lock);
-	list_for_each_entry(cb, &event_list, node) {
+	list_for_each_entry_safe(cb, store, &event_list, node) {
 		if (cb->events & events) {
 			list_del(&cb->node);
 			kfree(cb);
