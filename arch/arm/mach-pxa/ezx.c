@@ -330,6 +330,9 @@ static unsigned long a910_pin_config[] __initdata = {
 	GPIO89_GPIO,				/* RESET */
 	GPIO33_GPIO,				/* WAKEUP */
 	GPIO94_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
+
+        /* MMC CS */
+        GPIO20_GPIO,
 };
 #endif
 
