@@ -35,6 +35,7 @@
 #include <linux/list.h>
 #include <linux/errno.h>
 #include <asm/uaccess.h>
+#include <asm/io.h>
 #include <mach/pxa-regs.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
@@ -94,6 +95,8 @@ EXPORT_SYMBOL(ipcusb_bp_to_ap);
 static int sumbit_times = 0;
 static int callback_times = 0;
 //static unsigned long last_jiff = 0;
+void __iomem *__iobase;
+#define UHCRHPS3 (__iobase+0x005c)
 /*end global values defined*/
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
@@ -350,10 +353,10 @@ static void suspend_timeout(unsigned long data)
 		bvd_dbg("suspend_timeout: add the suspend timer again");
 	} else {
 		unlink_urbs(&bvd_ipc->readurb_mux);
-//		UHCRHPS3 = 0x4;
-//		mdelay(40);
-//		bvd_dbg("suspend_timeout: send SUSPEND signal! UHCRHPS3=0x%x",
-//			UHCRHPS3);
+		__raw_writel(0x4, UHCRHPS3);
+		mdelay(40);
+		bvd_dbg("suspend_timeout: send SUSPEND signal! UHCRHPS3=0x%x",
+			__raw_readl(UHCRHPS3));
 	}
 }
 
@@ -401,16 +404,16 @@ static void ipcusb_xmit_data(void)
 		bvd_ipc->writeurb_mux.transfer_buffer_length = buf_num;
 		bvd_dbg("ipcusb_xmit_data: copy data to write urb finished! ");
 
-		/* if ((UHCRHPS3 & 0x4) == 0x4) */{
+		if ((__raw_readl(UHCRHPS3) & 0x4) == 0x4) {
 			static int ret;
 			int time = 0;
 
 
 			/* Resume BP */
-//			UHCRHPS3 = 0x8;
-//			mdelay(40);
+			__raw_writel(0x8, UHCRHPS3);
+			mdelay(40);
 			bvd_dbg("ipcusb_xmit_data: Send RESUME signal! UHCRHPS3=0x%x",
-				 UHCRHPS3);
+				 __raw_readl(UHCRHPS3));
 			/*send IN token*/
 			bvd_ipc->readurb_mux.actual_length = 0;
 			bvd_ipc->readurb_mux.dev = bvd_ipc->ipc_dev;
@@ -441,12 +444,12 @@ static void usbipc_bh_func(unsigned long param)
 
 static void usbipc_bh_bp_func(unsigned long param)
 {
-//	if ((UHCRHPS3 & 0x4) == 0x4) {
-//		UHCRHPS3 = 0x8;
-//		mdelay(40);
-//		bvd_dbg("ipcusb_softint_send_readurb: Send RESUME signal! "
-//			"UHCRHPS3=0x%x", UHCRHPS3);
-//	}
+	if ((__raw_readl(UHCRHPS3) & 0x4) == 0x4) {
+		__raw_writel(0x8, UHCRHPS3);
+		mdelay(40);
+		bvd_dbg("ipcusb_softint_send_readurb: Send RESUME signal! "
+			"UHCRHPS3=0x%x", __raw_readl(UHCRHPS3));
+	}
 	if (bvd_ipc->ipc_flag == IPC_USB_PROBE_READY) {
 		//get_halted_bit();
 
@@ -716,10 +719,10 @@ static void usb_ipc_disconnect(struct usb_interface *intf)
 	printk("usb_ipc_disconnect. bvd_ipc_disconnect address: %p\n", bvd_ipc_disconnect);
 
 	//FIXME: Memory leak?
-//	if ((UHCRHPS3 & 0x4) == 0)
-	//	usb_unlink_urb(&bvd_ipc_disconnect->readurb_mux);
+	if ((__raw_readl(UHCRHPS3) & 0x4) == 0)
+		usb_unlink_urb(&bvd_ipc_disconnect->readurb_mux);
 
-	//usb_unlink_urb(&bvd_ipc_disconnect->writeurb_mux);
+	usb_unlink_urb(&bvd_ipc_disconnect->writeurb_mux);
 
 	bvd_ipc_disconnect->ipc_flag = IPC_USB_PROBE_NOT_READY;
 	kfree(bvd_ipc_disconnect->ibuf);
@@ -762,6 +765,9 @@ static int __init usb_ipc_init(void)
 	int result;
 
 	bvd_dbg("init usb_ipc");
+
+	__iobase = ioremap(0x4C000000,0x1000);
+
 	/*init the related mux interface*/
 	if (!(bvd_ipc = kzalloc(sizeof(struct ipc_usb_data), GFP_KERNEL))) {
 		err("usb_ipc_init: Out of memory.");
@@ -818,6 +824,7 @@ static void __exit usb_ipc_exit(void)
 
 	kfree(bvd_ipc->xmit.buf);
 	kfree(bvd_ipc);
+	iounmap(__iobase);
 	usb_deregister(&usb_ipc_driver);
 
 	info("USB Host(Bulverde) IPC driver deregistered.");

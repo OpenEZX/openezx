@@ -57,20 +57,16 @@ static inline void check_power_off(void)
 
 inline int bp_handshake_passed(void)
 {
-	return (step > 4);
+	return (step > 3);
 }
 EXPORT_SYMBOL_GPL(bp_handshake_passed);
 
 static void handshake(void)
 {
-	/* step 1: check MCU_INT_SW or BP_RDY is low (now it is checked in apboot) */
 	DEBUGP("bp handshake entered!\n");
+	/* step 1: check MCU_INT_SW or BP_RDY is low (now it is checked in apboot) */
 	if (step == 1) {
 		int timeout = BP_RDY_TIMEOUT;
-
-		/* config MCU_INT_SW, BP_RDY as input */
-		gpio_direction_input(bp->ap_rdy);
-		gpio_direction_input(bp->bp_rdy);
 
 		while (timeout--) {
 			if (gpio_get_value(bp->ap_rdy) == 0
@@ -89,8 +85,6 @@ static void handshake(void)
 		if (gpio_get_value(bp->bp_rdy) == 0) {
 			/* config MCU_INT_SW as output */
 			gpio_direction_output(bp->ap_rdy, 0);
-//			gpio_set_value(bp->ap_rdy, 0);
-
 			step++;
 			DEBUGP("ezx-bp: handshake step 2\n");
 		}
@@ -101,7 +95,9 @@ static void handshake(void)
 		if (gpio_get_value(bp->bp_rdy)) {
 			step++;
 			gpio_direction_output(bp->ap_rdy, 1);
-//			gpio_set_value(bp->ap_rdy, 1);
+			DEBUGP("ezx-bp: handshake done!\n");
+			if (bp->init)
+				bp->init();
 		}
 	}
 }
@@ -154,11 +150,10 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 				IRQF_DISABLED, "bp wdi2", bp);
 	}
 
-	/* turn on BP */
-	gpio_direction_output(bp->bp_reset, 1);
-//	gpio_set_value(gen2_bp_single.bp_reset, 1);
-
 	step = bp->first_step;
+
+	if (bp->bp_reset >= 0)
+		gpio_direction_output(bp->bp_reset, 1);
 
 	handshake();
 
@@ -180,14 +175,14 @@ static int ezxbp_remove(struct platform_device *dev)
 static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
 {
 	DEBUGP("bp suspend!\n");
-/*	gpio_set_value(bp->bp_mcu_int_sw, 0); */
+	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
 static int ezxbp_resume(struct platform_device *dev)
 {
 	DEBUGP("bp resume!\n");
-/*	gpio_set_value(bp->bp_mcu_int_sw, 1); */
+	gpio_set_value(bp->ap_rdy, 1);
 	return 0;
 }
 
