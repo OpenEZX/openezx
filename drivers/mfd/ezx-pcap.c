@@ -1,4 +1,4 @@
-/* 
+/*
  * Driver for Motorola PCAP2 as present in EZX phones
  *
  * Copyright (C) 2006 Harald Welte <laforge@openezx.org>
@@ -85,7 +85,7 @@ int ezx_pcap_set_sw(u8 sw, u8 what, u8 val)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_set_sw);
 
-static u8 vreg_table[][10] = {
+static u8 vreg_table[][5] = {
 	/*		EN	INDEX	MASK	STBY	LOWPWR	*/
 	[V1]	= {	1,	2,	0x7,	18,	0,	},
 	[V2]	= {	5,	6,	0x1,	19,	22,	},
@@ -179,6 +179,10 @@ static void ezx_pcap_adc_event(struct work_struct *unused)
 	void (*adc_done)(void *);
 	void *adc_data;
 
+	if (!pcap.adc_done) {
+		printk(KERN_ERR "I havent asked for ADC! Maybe BP? Ignoring\n");
+		return;
+	}
 	/* caller may call start_adc, so we save adc_done/data before */
 	adc_done = pcap.adc_done;
 	adc_data = pcap.adc_data;
@@ -245,7 +249,7 @@ void ezx_pcap_get_adc_bank_result(u32 res[])
 	int x;
 	u32 tmp[2];
 
-	for (x = 0;x < 7; x += 2) {
+	for (x = 0; x < 7; x += 2) {
 		ezx_pcap_get_adc_channel_result(x, (x+1) % 6, tmp);
 		res[x] = tmp[0];
 		if ((x + 1) < 7)
@@ -314,7 +318,7 @@ static void pcap_work(struct work_struct *_pcap)
 	ezx_pcap_read(PCAP_REG_MSR, &msr);
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
 	isr &= ~msr;
-	
+
 	list_for_each_entry(cb, &event_list, node) {
 		service = isr & cb->events;
 		if (service) {
@@ -370,11 +374,12 @@ int ezx_pcap_unregister_event(u32 events)
 {
 	int ret = -EINVAL;
 	struct pcap_event *cb;
+	struct pcap_event *store;
 
 	ezx_pcap_mask_event(events);
 
 	mutex_lock(&event_lock);
-	list_for_each_entry(cb, &event_list, node) {
+	list_for_each_entry_safe(cb, store, &event_list, node) {
 		if (cb->events & events) {
 			list_del(&cb->node);
 			kfree(cb);
@@ -406,7 +411,7 @@ static ssize_t pcap_store_regs(struct device *dev,
 	unsigned int reg, val;
 	char *p = (char *)buf;
 
-	while(p < (buf + size)) {
+	while (p < (buf + size)) {
 		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
 			reg < 0 || reg >= 32)
 			return -EINVAL;
@@ -414,7 +419,7 @@ static ssize_t pcap_store_regs(struct device *dev,
 	}
 
 	p = (char *)buf;
-	while(p < (buf + size)) {
+	while (p < (buf + size)) {
 		sscanf(p, "%u %x\n", &reg, &val);
 		ezx_pcap_write(reg, val);
 		p = strchr(p, '\n') + 1;
@@ -521,7 +526,7 @@ static int ezx_pcap_setup_sysfs(int create)
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battcurr);
 	if (ret)
 		goto fail7;
-	
+
 	goto ret;
 
 remove_all:
@@ -538,7 +543,7 @@ ret:	return ret;
 static int ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
-	
+
 	ezx_pcap_setup_sysfs(0);
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
@@ -576,9 +581,9 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_write(PCAP_REG_ADR, 0);
 	ezx_pcap_write(PCAP_REG_AUXVREG, 0);
 
-	/* redirect all interrupts to AP */
+	/* redirect interrupts to AP */
 	if (!(pdata->config & PCAP_SECOND_PORT))
-		ezx_pcap_write(PCAP_REG_INT_SEL, 0);
+		ezx_pcap_write(PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
 
 	/* set board-specific settings */
 	if (pdata->init)
@@ -587,7 +592,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	/* mask/ack all PCAP interrupts */
 	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
 	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
-	
+
 	ret = ezx_pcap_setup_sysfs(1);
 	if (ret) {
 		dev_err(&spi->dev, "cant create sysfs files\n");

@@ -22,6 +22,8 @@
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
+#include <linux/leds.h>
+#include <linux/leds-pcap.h>
 
 #include <media/soc_camera.h>
 
@@ -41,6 +43,7 @@
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/io.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -185,10 +188,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO44_BTUART_CTS,
 	GPIO45_BTUART_RTS,
 
-	/* STUART */
-	GPIO46_STUART_RXD,
-	GPIO47_STUART_TXD,
-
 	/* PCAP SSP */
 	GPIO29_SSP1_SCLK,
 	GPIO25_SSP1_TXD,
@@ -206,18 +205,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO111_MMC_DAT_3,
 	GPIO112_MMC_CMD,
 	GPIO11_GPIO,				/* mmc detect */
-
-	/* sound */
-	GPIO52_SSP3_SCLK,
-	GPIO83_SSP3_SFRM,
-	GPIO81_SSP3_TXD,
-	GPIO82_SSP3_RXD,
-
-	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* usb to external transceiver */
 	GPIO34_USB_P2_2,
@@ -252,6 +239,19 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
+	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO89_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO37_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -297,6 +297,18 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO116_GPIO,				/* RESET */
 	GPIO41_GPIO,				/* BP_FLASH */
+
+	/* sound */
+	GPIO52_SSP3_SCLK,
+	GPIO83_SSP3_SFRM,
+	GPIO81_SSP3_TXD,
+	GPIO82_SSP3_RXD,
+
+	/* ssp2 pins to in */
+	GPIO22_GPIO,				/* SSP2_SCLK */
+	GPIO14_GPIO,				/* SSP2_SFRM */
+	GPIO38_GPIO,				/* SSP2_TXD */
+	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -360,6 +372,10 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO15_GPIO,				/* MIDI_IRQ */
 	GPIO49_GPIO,				/* MIDI_NPWE */
 	GPIO18_GPIO,				/* MIDI_RDY */
+
+	/* leds */
+	GPIO46_GPIO | MFP_DIR_OUT,
+	GPIO47_GPIO | MFP_DIR_OUT,
 };
 #endif
 
@@ -400,8 +416,8 @@ static unsigned long a910_pin_config[] __initdata = {
 	GPIO33_GPIO,				/* WAKEUP */
 	GPIO94_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
 
-	/* MMC CS */
-	GPIO20_GPIO,
+        /* MMC CS */
+        GPIO20_GPIO,
 };
 #endif
 
@@ -438,7 +454,6 @@ static unsigned long e6_pin_config[] __initdata = {
 	GPIO108_KP_MKOUT_5,
 };
 #endif
-
 
 /* KEYPAD */
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
@@ -749,13 +764,12 @@ static struct pcap_platform_data ezx_pcap_platform_data = {
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT) {
+	if (command & PXA2XX_CS_ASSERT)
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1);
-	} else {
+	else
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0);
-	}
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
@@ -815,29 +829,25 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 };
 
 /* OHCI Controller */
-static int ezx_ohci_init(struct device *dev)
-{
-	UP3OCR = 0x00000002;
-
-//	UHCHR = UHCHR & ~(UHCHR_SSEP2 | UHCHR_SSEP3 | UHCHR_SSE);
-
-	return 0;
-}
-
 static struct pxaohci_platform_data ezx_ohci_platform_data = {
 	.port_mode	= PMM_NPS_MODE,
-	.init		= ezx_ohci_init,
 };
 
 /* BP */
+static void ezx_bp_init (void)
+{
+	UP3OCR = 2;
+}
+
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
-	.bp_reset = 57,
+	.bp_reset = 82,
 	.bp_wdi = 13,
 	.bp_wdi2 = 3,
 	.bp_rdy = 0,
-	.ap_rdy = 115,
+	.ap_rdy = 57,
 	.first_step = 2,
+	.init = ezx_bp_init,
 };
 
 static struct platform_device gen1_bp_device = {
@@ -858,6 +868,7 @@ static struct ezxbp_config gen2_bp_data = {
 	.bp_rdy = 0,
 	.ap_rdy = 96,
 	.first_step = 3,
+	.init = ezx_bp_init,
 };
 
 static struct platform_device gen2_bp_device = {
@@ -869,22 +880,91 @@ static struct platform_device gen2_bp_device = {
 };
 #endif
 
-static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
-		char **cmdline, struct meminfo *mi)
+#ifdef CONFIG_MACH_EZX_A780
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data a780_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		},
+	},
+	.num_leds = 2,
+};
+
+struct platform_device a780_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a780_leds,
+	},
+};
+#endif
+
+static int a780_pxacamera_init(struct device *dev)
 {
-	/* We have two ram chips. First one with 32MB at 0xA0000000 and a second
-	 * 16MB one at 0xAC000000
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO19_GPIO is CAM_RST: active high
 	 */
-	mi->nr_banks = 2;
-	mi->bank[0].start = 0xa0000000;
-	mi->bank[0].node = 0;
-	mi->bank[0].size = (32*1024*1024);
-	mi->bank[1].start = 0xac000000;
-	mi->bank[1].node = 1;
-	mi->bank[1].size = (16*1024*1024);
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
 }
 
-#ifdef CONFIG_MACH_EZX_A780
+static int a780_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+
+	/* 
+	 * This is reported to resolve the vertical line in view finder issue
+	 * (LIBff11930), is this still needed?
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO19, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a780_pxacamera_platform_data = {
+	.init	= a780_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a780_iclink = {
+	.bus_id	= 0,
+	.power = a780_pxacamera_power,
+	.reset = a780_pxacamera_reset,
+};
+
+static struct i2c_board_info __initdata a780_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a780_iclink,
+	},
+};
+
 static void __init a780_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -892,6 +972,7 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
@@ -912,6 +993,12 @@ static void __init a780_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&a780_leds_device);
+#endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a780_pxacamera_platform_data);
+#endif
 
 	platform_device_register(&gen1_bp_device);
 
@@ -921,7 +1008,6 @@ static void __init a780_init(void)
 MACHINE_START(EZX_A780, "Motorola EZX A780")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -931,6 +1017,42 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data e680_leds = {
+	.leds = {
+		{
+			.type = PCAP_LED0,
+			.name = "e680:red",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = 46 | PCAP_LED_GPIO_EN | PCAP_LED_GPIO_INVERT,
+		}, {
+			.type = PCAP_LED0,
+			.name = "e680:green",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = 47 | PCAP_LED_GPIO_EN,
+		}, {
+			.type = PCAP_LED1,
+			.name = "e680:blue",
+			.curr = PCAP_LED_3MA,
+			.timing = 0xc,
+			.gpio = 0,
+		},
+	},
+	.num_leds = 3,
+};
+
+struct platform_device e680_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e680_leds,
+	},
+};
+#endif
+
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
@@ -964,6 +1086,9 @@ static void __init e680_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&e680_leds_device);
+#endif
 
 	platform_device_register(&gen1_bp_device);
 
@@ -973,7 +1098,6 @@ static void __init e680_init(void)
 MACHINE_START(EZX_E680, "Motorola EZX E680")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1024,7 +1148,6 @@ static void __init a1200_init(void)
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1175,7 +1298,6 @@ static void __init a910_init(void)
 MACHINE_START(EZX_A910, "Motorola EZX A910")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1226,7 +1348,6 @@ static void __init e6_init(void)
 MACHINE_START(EZX_E6, "Motorola EZX E6")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1274,7 +1395,6 @@ static void __init e2_init(void)
 MACHINE_START(EZX_E2, "Motorola EZX E2")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,

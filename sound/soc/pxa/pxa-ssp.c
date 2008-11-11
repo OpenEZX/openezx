@@ -523,7 +523,7 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	sscr0 = ssp_read_reg(ssp, SSCR0) &
 		(SSCR0_ECS |  SSCR0_NCS | SSCR0_MOD | SSCR0_ADC);
 	sscr1 = SSCR1_RxTresh(8) | SSCR1_TxTresh(7);
-	sspsp = 0;
+	sspsp = SSPSP_SCMODE(2);
 
         switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
         case SND_SOC_DAIFMT_CBM_CFM:
