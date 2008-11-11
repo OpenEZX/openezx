@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.28-rc3
-# Sun Nov  9 22:35:28 2008
+# Linux kernel version: 2.6.28-rc4
+# Tue Nov 11 21:50:04 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -971,11 +971,11 @@ CONFIG_GPIO_SYSFS=y
 # CONFIG_THERMAL is not set
 # CONFIG_THERMAL_HWMON is not set
 # CONFIG_WATCHDOG is not set
+CONFIG_SSB_POSSIBLE=y
 
 #
 # Sonics Silicon Backplane
 #
-CONFIG_SSB_POSSIBLE=y
 # CONFIG_SSB is not set
 
 #
