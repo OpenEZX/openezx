@@ -379,33 +379,33 @@ static unsigned long e6_pin_config[] __initdata = {
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
-	KEY(0, 0, KEY_PHONE),
+	KEY(0, 0, KEY_OK),
 	KEY(0, 1, KEY_MENU),
 	KEY(0, 2, KEY_CANCEL),
 	KEY(0, 3, KEY_PAGEUP),
 	KEY(0, 4, KEY_UP),
 
-	KEY(1, 0, KEY_KP1),
-	KEY(1, 1, KEY_KP2),
-	KEY(1, 2, KEY_KP3),
+	KEY(1, 0, KEY_NUMERIC_1),
+	KEY(1, 1, KEY_NUMERIC_2),
+	KEY(1, 2, KEY_NUMERIC_3),
 	KEY(1, 3, KEY_ENTER),
 	KEY(1, 4, KEY_KPENTER),
 
-	KEY(2, 0, KEY_KP4),
-	KEY(2, 1, KEY_KP5),
-	KEY(2, 2, KEY_KP6),
+	KEY(2, 0, KEY_NUMERIC_4),
+	KEY(2, 1, KEY_NUMERIC_5),
+	KEY(2, 2, KEY_NUMERIC_6),
 	KEY(2, 3, KEY_RECORD),
 	KEY(2, 4, KEY_LEFT),
 
-	KEY(3, 0, KEY_KP7),
-	KEY(3, 1, KEY_KP8),
-	KEY(3, 2, KEY_KP9),
+	KEY(3, 0, KEY_NUMERIC_7),
+	KEY(3, 1, KEY_NUMERIC_8),
+	KEY(3, 2, KEY_NUMERIC_9),
 	KEY(3, 3, KEY_HOME),
 	KEY(3, 4, KEY_RIGHT),
 
-	KEY(4, 0, KEY_KPASTERISK),
-	KEY(4, 1, KEY_KP0),
-	KEY(4, 2, KEY_KPDOT),
+	KEY(4, 0, KEY_NUMERIC_STAR),
+	KEY(4, 1, KEY_NUMERIC_0),
+	KEY(4, 2, KEY_NUMERIC_POUND),
 	KEY(4, 3, KEY_PAGEDOWN),
 	KEY(4, 4, KEY_DOWN),
 };
@@ -428,12 +428,12 @@ static unsigned int e680_key_map[] = {
 	KEY(0, 0, KEY_UP),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_RESERVED),
-	KEY(0, 3, KEY_PHONE),
+	KEY(0, 3, KEY_OK),
 
 	KEY(1, 0, KEY_DOWN),
 	KEY(1, 1, KEY_LEFT),
-	KEY(1, 2, KEY_VOLUMEUP),
-	KEY(1, 3, KEY_VOLUMEDOWN),
+	KEY(1, 2, KEY_PAGEUP),
+	KEY(1, 3, KEY_PAGEDOWN),
 
 	KEY(2, 0, KEY_RESERVED),
 	KEY(2, 1, KEY_RESERVED),
@@ -452,9 +452,9 @@ static struct pxa27x_keypad_platform_data e680_keypad_platform_data = {
 		KEY_CAMERA,
 		KEY_RESERVED,
 		KEY_RESERVED,
-		KEY_HOME,
-		KEY_POWER,
-		KEY_MENU,
+		KEY_F1,
+		KEY_CANCEL,
+		KEY_F2,
 		0,
 		0,
 	},
@@ -484,11 +484,11 @@ static unsigned int a1200_key_map[] = {
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_RESERVED),
 	KEY(2, 4, KEY_RESERVED),
-	KEY(2, 5, KEY_ENTER),
+	KEY(2, 5, KEY_SELECT),
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_HOME),
+	KEY(3, 2, KEY_OK),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_RESERVED),
@@ -515,10 +515,10 @@ static struct pxa27x_keypad_platform_data a1200_keypad_platform_data = {
 static unsigned int e6_key_map[] = {
 	KEY(0, 0, KEY_RESERVED),
 	KEY(0, 1, KEY_RIGHT),
-	KEY(0, 2, KEY_VOLUMEDOWN),
+	KEY(0, 2, KEY_PAGEDOWN),
 	KEY(0, 3, KEY_RESERVED),
 	KEY(0, 4, KEY_RESERVED),
-	KEY(0, 5, KEY_NEXT),
+	KEY(0, 5, KEY_NEXTSONG),
 
 	KEY(1, 0, KEY_RESERVED),
 	KEY(1, 1, KEY_DOWN),
@@ -536,17 +536,17 @@ static unsigned int e6_key_map[] = {
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_PHONE),
+	KEY(3, 2, KEY_OK),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_PLAYPAUSE),
 
 	KEY(4, 0, KEY_RESERVED),
 	KEY(4, 1, KEY_LEFT),
-	KEY(4, 2, KEY_VOLUMEUP),
+	KEY(4, 2, KEY_PAGEUP),
 	KEY(4, 3, KEY_RESERVED),
 	KEY(4, 4, KEY_RESERVED),
-	KEY(4, 5, KEY_PREVIOUS),
+	KEY(4, 5, KEY_PREVIOUSSONG),
 };
 
 static struct pxa27x_keypad_platform_data e6_keypad_platform_data = {
@@ -561,39 +561,39 @@ static struct pxa27x_keypad_platform_data e6_keypad_platform_data = {
 
 #ifdef CONFIG_MACH_EZX_A910
 static unsigned int a910_key_map[] = {
-	KEY(0, 0, KEY_KP6),
+	KEY(0, 0, KEY_NUMERIC_6),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_PAGEDOWN),
 	KEY(0, 3, KEY_KPENTER),
-	KEY(0, 4, KEY_KP5),
+	KEY(0, 4, KEY_NUMERIC_5),
 	KEY(0, 5, KEY_CAMERA),
 
-	KEY(1, 0, KEY_KP8),
+	KEY(1, 0, KEY_NUMERIC_8),
 	KEY(1, 1, KEY_DOWN),
 	KEY(1, 2, KEY_RESERVED),
 	KEY(1, 3, KEY_F1), /* Left SoftKey */
-	KEY(1, 4, KEY_KPASTERISK),
+	KEY(1, 4, KEY_NUMERIC_STAR),
 	KEY(1, 5, KEY_RESERVED),
 
-	KEY(2, 0, KEY_KP7),
-	KEY(2, 1, KEY_KP9),
+	KEY(2, 0, KEY_NUMERIC_7),
+	KEY(2, 1, KEY_NUMERIC_9),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_F2), /* Right SoftKey */
 	KEY(2, 4, KEY_CANCEL),
 	KEY(2, 5, KEY_ENTER),
 
-	KEY(3, 0, KEY_KP2),
+	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
 	KEY(3, 2, KEY_PHONE),
-	KEY(3, 3, KEY_KP0),
-	KEY(3, 4, KEY_KP1),
+	KEY(3, 3, KEY_NUMERIC_0),
+	KEY(3, 4, KEY_NUMERIC_1),
 	KEY(3, 5, KEY_RECORD),
 
-	KEY(4, 0, KEY_KP4),
+	KEY(4, 0, KEY_NUMERIC_4),
 	KEY(4, 1, KEY_LEFT),
 	KEY(4, 2, KEY_PAGEUP),
-	KEY(4, 3, KEY_KPDOT),
-	KEY(4, 4, KEY_KP3),
+	KEY(4, 3, KEY_NUMERIC_POUND),
+	KEY(4, 4, KEY_NUMERIC_3),
 	KEY(4, 5, KEY_RESERVED),
 };
 
@@ -609,39 +609,39 @@ static struct pxa27x_keypad_platform_data a910_keypad_platform_data = {
 
 #ifdef CONFIG_MACH_EZX_E2
 static unsigned int e2_key_map[] = {
-	KEY(0, 0, KEY_KP6),
+	KEY(0, 0, KEY_NUMERIC_6),
 	KEY(0, 1, KEY_RIGHT),
-	KEY(0, 2, KEY_KP9),
-	KEY(0, 3, KEY_FORWARD),
-	KEY(0, 4, KEY_KP5),
+	KEY(0, 2, KEY_NUMERIC_9),
+	KEY(0, 3, KEY_NEXTSONG),
+	KEY(0, 4, KEY_NUMERIC_5),
 	KEY(0, 5, KEY_F1), /* Left SoftKey */
 
-	KEY(1, 0, KEY_KP8),
+	KEY(1, 0, KEY_NUMERIC_8),
 	KEY(1, 1, KEY_DOWN),
 	KEY(1, 2, KEY_RESERVED),
 	KEY(1, 3, KEY_PAGEUP),
-	KEY(1, 4, KEY_KPASTERISK),
+	KEY(1, 4, KEY_NUMERIC_STAR),
 	KEY(1, 5, KEY_F2), /* Right SoftKey */
 
-	KEY(2, 0, KEY_KP7),
-	KEY(2, 1, KEY_ENTER),
+	KEY(2, 0, KEY_NUMERIC_7),
+	KEY(2, 1, KEY_KPENTER),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_PAGEDOWN),
 	KEY(2, 4, KEY_CANCEL),
-	KEY(2, 5, KEY_KP0),
+	KEY(2, 5, KEY_NUMERIC_0),
 
-	KEY(3, 0, KEY_KP2),
+	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_PHONE),
-	KEY(3, 3, KEY_PLAY),
-	KEY(3, 4, KEY_KP1),
-	KEY(3, 5, KEY_F3), /* Music SoftKey */
+	KEY(3, 2, KEY_OK),
+	KEY(3, 3, KEY_PLAYPAUSE),
+	KEY(3, 4, KEY_NUMERIC_1),
+	KEY(3, 5, KEY_SOUND), /* Music SoftKey */
 
-	KEY(4, 0, KEY_KP4),
+	KEY(4, 0, KEY_NUMERIC_4),
 	KEY(4, 1, KEY_LEFT),
-	KEY(4, 2, KEY_KPDOT),
-	KEY(4, 3, KEY_BACK),
-	KEY(4, 4, KEY_KP3),
+	KEY(4, 2, KEY_NUMERIC_POUND),
+	KEY(4, 3, KEY_PREVIOUSSONG),
+	KEY(4, 4, KEY_NUMERIC_3),
 	KEY(4, 5, KEY_RESERVED),
 };
 
