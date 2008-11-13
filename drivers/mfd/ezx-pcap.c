@@ -85,7 +85,7 @@ int ezx_pcap_set_sw(u8 sw, u8 what, u8 val)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_set_sw);
 
-static u8 vreg_table[][10] = {
+static u8 vreg_table[][5] = {
 	/*		EN	INDEX	MASK	STBY	LOWPWR	*/
 	[V1]	= {	1,	2,	0x7,	18,	0,	},
 	[V2]	= {	5,	6,	0x1,	19,	22,	},
@@ -374,11 +374,12 @@ int ezx_pcap_unregister_event(u32 events)
 {
 	int ret = -EINVAL;
 	struct pcap_event *cb;
+	struct pcap_event *store;
 
 	ezx_pcap_mask_event(events);
 
 	mutex_lock(&event_lock);
-	list_for_each_entry(cb, &event_list, node) {
+	list_for_each_entry_safe(cb, store, &event_list, node) {
 		if (cb->events & events) {
 			list_del(&cb->node);
 			kfree(cb);
@@ -580,7 +581,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_write(PCAP_REG_ADR, 0);
 	ezx_pcap_write(PCAP_REG_AUXVREG, 0);
 
-	/* redirect all interrupts to AP */
+	/* redirect interrupts to AP */
 	if (!(pdata->config & PCAP_SECOND_PORT))
 		ezx_pcap_write(PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
 
