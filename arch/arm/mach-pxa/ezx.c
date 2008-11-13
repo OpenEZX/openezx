@@ -979,6 +979,7 @@ static void __init a910_init(void)
 
 	gpio_request(24, "PCAP CS");
 	gpio_direction_output(24, 0);
+	gpio_request(20, "MMC CS");
 	gpio_direction_output(20, 1);
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
