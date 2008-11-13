@@ -8,14 +8,12 @@
 #define EZX_PCAP_H
 
 struct pcap_platform_data {
-	unsigned int cs;
 	unsigned int irq;
 	unsigned int config;
 	void (*init)(void);	/* board specific init */
 };
 
-#define PCAP_CS_INVERTED	1
-#define PCAP_SECOND_PORT	2
+#define PCAP_SECOND_PORT	1
 
 #define PCAP_REGISTER_WRITE_OP_BIT	0x80000000
 #define PCAP_REGISTER_READ_OP_BIT	0x00000000
@@ -26,8 +24,6 @@ struct pcap_platform_data {
 #define PCAP_REGISTER_NUMBER		32
 #define PCAP_CLEAR_INTERRUPT_REGISTER	0x01ffffff
 #define PCAP_MASK_ALL_INTERRUPT		0x01ffffff
-
-#define pbit(reg, bit)	((reg << PCAP_REGISTER_ADDRESS_SHIFT) | bit)
 
 /* registers acessible by both pcap ports */
 #define PCAP_REG_ISR		0x0	/* Interrupt Status */
