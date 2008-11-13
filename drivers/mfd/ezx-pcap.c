@@ -526,13 +526,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		goto ret;
 
 	pcap.spi = spi;
-	ret = gpio_request(pdata->cs, "PCAP CS");
-	if (ret) {
-		dev_err(&spi->dev, "cant request CS gpio\n");
-		goto ret;
-	}
-	gpio_direction_output(pdata->cs,
-				(pdata->config & PCAP_CS_INVERTED) ? 1 : 0);
 
 	INIT_WORK(&pcap.work, pcap_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
@@ -540,11 +533,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		dev_err(&spi->dev, "cant create pcap thread\n");
 		goto ret;
 	}
-
-	/* set default register values */
-	ezx_pcap_write(PCAP_REG_ADC, 0);
-	ezx_pcap_write(PCAP_REG_ADR, 0);
-	ezx_pcap_write(PCAP_REG_AUXVREG, 0);
 
 	/* redirect interrupts to AP */
 	if (!(pdata->config & PCAP_SECOND_PORT))
@@ -554,15 +542,15 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	if (pdata->init)
 		pdata->init();
 
-	/* mask/ack all PCAP interrupts */
-	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
-	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
-
 	ret = ezx_pcap_setup_sysfs(1);
 	if (ret) {
 		dev_err(&spi->dev, "cant create sysfs files\n");
 		goto wq_destroy;
 	}
+
+	/* mask/ack all PCAP interrupts */
+	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
+	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
 
 	/* register irq for pcap */
 	ret = request_irq(pdata->irq, pcap_irq_handler, IRQF_DISABLED,
