@@ -669,21 +669,19 @@ static void ezx_pcap_init(void)
 }
 
 static struct pcap_platform_data ezx_pcap_platform_data = {
-	.cs     = 24,
-	.irq    = IRQ_GPIO1,
+	.irq    = gpio_to_irq(1),
 	.config = 0,
 	.init   = ezx_pcap_init,
 };
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT) {
-		gpio_set_value(ezx_pcap_platform_data.cs,
-		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1);
-	} else {
-		gpio_set_value(ezx_pcap_platform_data.cs,
-		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0);
-	}
+	if (command & PXA2XX_CS_ASSERT)
+		gpio_set_value(24,
+		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 0 : 1);
+	else
+		gpio_set_value(24,
+		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 1 : 0);
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
@@ -721,7 +719,8 @@ static void __init a780_init(void)
 
 	pxa_set_i2c_info(NULL);
 
-	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
+	gpio_request(24, "PCAP CS");
+	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -760,7 +759,8 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	ezx_pcap_platform_data.config |= PCAP_SECOND_PORT | PCAP_CS_INVERTED;
+	gpio_request(24, "PCAP CS");
+	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -799,6 +799,7 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
+	gpio_request(24, "PCAP CS");
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -836,6 +837,7 @@ static void __init a910_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
+	gpio_request(24, "PCAP CS");
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -874,6 +876,7 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
+	gpio_request(24, "PCAP CS");
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -912,6 +915,7 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
+	gpio_request(24, "PCAP CS");
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
