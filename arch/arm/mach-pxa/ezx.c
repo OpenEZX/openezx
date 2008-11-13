@@ -22,6 +22,8 @@
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
+#include <linux/leds.h>
+#include <linux/leds-pcap.h>
 
 #include <media/soc_camera.h>
 
@@ -185,10 +187,6 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO43_BTUART_TXD,
 	GPIO44_BTUART_CTS,
 	GPIO45_BTUART_RTS,
-
-	/* STUART */
-	GPIO46_STUART_RXD,
-	GPIO47_STUART_TXD,
 
 	/* PCAP SSP */
 	GPIO29_SSP1_SCLK,
@@ -374,6 +372,10 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO15_GPIO,				/* MIDI_IRQ */
 	GPIO49_GPIO,				/* MIDI_NPWE */
 	GPIO18_GPIO,				/* MIDI_RDY */
+
+	/* leds */
+	GPIO46_GPIO | MFP_DIR_OUT,
+	GPIO47_GPIO | MFP_DIR_OUT,
 };
 #endif
 
@@ -414,8 +416,8 @@ static unsigned long a910_pin_config[] __initdata = {
 	GPIO33_GPIO,				/* WAKEUP */
 	GPIO94_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
 
-	/* MMC CS */
-	GPIO20_GPIO,
+        /* MMC CS */
+        GPIO20_GPIO,
 };
 #endif
 
@@ -453,39 +455,38 @@ static unsigned long e6_pin_config[] __initdata = {
 };
 #endif
 
-
 /* KEYPAD */
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
-	KEY(0, 0, KEY_PHONE),
+	KEY(0, 0, KEY_OK),
 	KEY(0, 1, KEY_MENU),
 	KEY(0, 2, KEY_CANCEL),
 	KEY(0, 3, KEY_PAGEUP),
 	KEY(0, 4, KEY_UP),
 
-	KEY(1, 0, KEY_KP1),
-	KEY(1, 1, KEY_KP2),
-	KEY(1, 2, KEY_KP3),
+	KEY(1, 0, KEY_NUMERIC_1),
+	KEY(1, 1, KEY_NUMERIC_2),
+	KEY(1, 2, KEY_NUMERIC_3),
 	KEY(1, 3, KEY_ENTER),
 	KEY(1, 4, KEY_KPENTER),
 
-	KEY(2, 0, KEY_KP4),
-	KEY(2, 1, KEY_KP5),
-	KEY(2, 2, KEY_KP6),
+	KEY(2, 0, KEY_NUMERIC_4),
+	KEY(2, 1, KEY_NUMERIC_5),
+	KEY(2, 2, KEY_NUMERIC_6),
 	KEY(2, 3, KEY_RECORD),
 	KEY(2, 4, KEY_LEFT),
 
-	KEY(3, 0, KEY_KP7),
-	KEY(3, 1, KEY_KP8),
-	KEY(3, 2, KEY_KP9),
+	KEY(3, 0, KEY_NUMERIC_7),
+	KEY(3, 1, KEY_NUMERIC_8),
+	KEY(3, 2, KEY_NUMERIC_9),
 	KEY(3, 3, KEY_HOME),
 	KEY(3, 4, KEY_RIGHT),
 
-	KEY(4, 0, KEY_KPASTERISK),
-	KEY(4, 1, KEY_KP0),
-	KEY(4, 2, KEY_KPDOT),
+	KEY(4, 0, KEY_NUMERIC_STAR),
+	KEY(4, 1, KEY_NUMERIC_0),
+	KEY(4, 2, KEY_NUMERIC_POUND),
 	KEY(4, 3, KEY_PAGEDOWN),
 	KEY(4, 4, KEY_DOWN),
 };
@@ -508,12 +509,12 @@ static unsigned int e680_key_map[] = {
 	KEY(0, 0, KEY_UP),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_RESERVED),
-	KEY(0, 3, KEY_PHONE),
+	KEY(0, 3, KEY_OK),
 
 	KEY(1, 0, KEY_DOWN),
 	KEY(1, 1, KEY_LEFT),
-	KEY(1, 2, KEY_VOLUMEUP),
-	KEY(1, 3, KEY_VOLUMEDOWN),
+	KEY(1, 2, KEY_PAGEUP),
+	KEY(1, 3, KEY_PAGEDOWN),
 
 	KEY(2, 0, KEY_RESERVED),
 	KEY(2, 1, KEY_RESERVED),
@@ -532,9 +533,9 @@ static struct pxa27x_keypad_platform_data e680_keypad_platform_data = {
 		KEY_CAMERA,
 		KEY_RESERVED,
 		KEY_RESERVED,
-		KEY_HOME,
-		KEY_POWER,
-		KEY_MENU,
+		KEY_F1,
+		KEY_CANCEL,
+		KEY_F2,
 		0,
 		0,
 	},
@@ -564,11 +565,11 @@ static unsigned int a1200_key_map[] = {
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_RESERVED),
 	KEY(2, 4, KEY_RESERVED),
-	KEY(2, 5, KEY_ENTER),
+	KEY(2, 5, KEY_SELECT),
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_HOME),
+	KEY(3, 2, KEY_OK),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_RESERVED),
@@ -595,10 +596,10 @@ static struct pxa27x_keypad_platform_data a1200_keypad_platform_data = {
 static unsigned int e6_key_map[] = {
 	KEY(0, 0, KEY_RESERVED),
 	KEY(0, 1, KEY_RIGHT),
-	KEY(0, 2, KEY_VOLUMEDOWN),
+	KEY(0, 2, KEY_PAGEDOWN),
 	KEY(0, 3, KEY_RESERVED),
 	KEY(0, 4, KEY_RESERVED),
-	KEY(0, 5, KEY_NEXT),
+	KEY(0, 5, KEY_NEXTSONG),
 
 	KEY(1, 0, KEY_RESERVED),
 	KEY(1, 1, KEY_DOWN),
@@ -616,17 +617,17 @@ static unsigned int e6_key_map[] = {
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_PHONE),
+	KEY(3, 2, KEY_OK),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_PLAYPAUSE),
 
 	KEY(4, 0, KEY_RESERVED),
 	KEY(4, 1, KEY_LEFT),
-	KEY(4, 2, KEY_VOLUMEUP),
+	KEY(4, 2, KEY_PAGEUP),
 	KEY(4, 3, KEY_RESERVED),
 	KEY(4, 4, KEY_RESERVED),
-	KEY(4, 5, KEY_PREVIOUS),
+	KEY(4, 5, KEY_PREVIOUSSONG),
 };
 
 static struct pxa27x_keypad_platform_data e6_keypad_platform_data = {
@@ -641,39 +642,39 @@ static struct pxa27x_keypad_platform_data e6_keypad_platform_data = {
 
 #ifdef CONFIG_MACH_EZX_A910
 static unsigned int a910_key_map[] = {
-	KEY(0, 0, KEY_KP6),
+	KEY(0, 0, KEY_NUMERIC_6),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_PAGEDOWN),
 	KEY(0, 3, KEY_KPENTER),
-	KEY(0, 4, KEY_KP5),
+	KEY(0, 4, KEY_NUMERIC_5),
 	KEY(0, 5, KEY_CAMERA),
 
-	KEY(1, 0, KEY_KP8),
+	KEY(1, 0, KEY_NUMERIC_8),
 	KEY(1, 1, KEY_DOWN),
 	KEY(1, 2, KEY_RESERVED),
 	KEY(1, 3, KEY_F1), /* Left SoftKey */
-	KEY(1, 4, KEY_KPASTERISK),
+	KEY(1, 4, KEY_NUMERIC_STAR),
 	KEY(1, 5, KEY_RESERVED),
 
-	KEY(2, 0, KEY_KP7),
-	KEY(2, 1, KEY_KP9),
+	KEY(2, 0, KEY_NUMERIC_7),
+	KEY(2, 1, KEY_NUMERIC_9),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_F2), /* Right SoftKey */
 	KEY(2, 4, KEY_CANCEL),
 	KEY(2, 5, KEY_ENTER),
 
-	KEY(3, 0, KEY_KP2),
+	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
 	KEY(3, 2, KEY_PHONE),
-	KEY(3, 3, KEY_KP0),
-	KEY(3, 4, KEY_KP1),
+	KEY(3, 3, KEY_NUMERIC_0),
+	KEY(3, 4, KEY_NUMERIC_1),
 	KEY(3, 5, KEY_RECORD),
 
-	KEY(4, 0, KEY_KP4),
+	KEY(4, 0, KEY_NUMERIC_4),
 	KEY(4, 1, KEY_LEFT),
 	KEY(4, 2, KEY_PAGEUP),
-	KEY(4, 3, KEY_KPDOT),
-	KEY(4, 4, KEY_KP3),
+	KEY(4, 3, KEY_NUMERIC_POUND),
+	KEY(4, 4, KEY_NUMERIC_3),
 	KEY(4, 5, KEY_RESERVED),
 };
 
@@ -689,39 +690,39 @@ static struct pxa27x_keypad_platform_data a910_keypad_platform_data = {
 
 #ifdef CONFIG_MACH_EZX_E2
 static unsigned int e2_key_map[] = {
-	KEY(0, 0, KEY_KP6),
+	KEY(0, 0, KEY_NUMERIC_6),
 	KEY(0, 1, KEY_RIGHT),
-	KEY(0, 2, KEY_KP9),
-	KEY(0, 3, KEY_FORWARD),
-	KEY(0, 4, KEY_KP5),
+	KEY(0, 2, KEY_NUMERIC_9),
+	KEY(0, 3, KEY_NEXTSONG),
+	KEY(0, 4, KEY_NUMERIC_5),
 	KEY(0, 5, KEY_F1), /* Left SoftKey */
 
-	KEY(1, 0, KEY_KP8),
+	KEY(1, 0, KEY_NUMERIC_8),
 	KEY(1, 1, KEY_DOWN),
 	KEY(1, 2, KEY_RESERVED),
 	KEY(1, 3, KEY_PAGEUP),
-	KEY(1, 4, KEY_KPASTERISK),
+	KEY(1, 4, KEY_NUMERIC_STAR),
 	KEY(1, 5, KEY_F2), /* Right SoftKey */
 
-	KEY(2, 0, KEY_KP7),
-	KEY(2, 1, KEY_ENTER),
+	KEY(2, 0, KEY_NUMERIC_7),
+	KEY(2, 1, KEY_KPENTER),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_PAGEDOWN),
 	KEY(2, 4, KEY_CANCEL),
-	KEY(2, 5, KEY_KP0),
+	KEY(2, 5, KEY_NUMERIC_0),
 
-	KEY(3, 0, KEY_KP2),
+	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_PHONE),
-	KEY(3, 3, KEY_PLAY),
-	KEY(3, 4, KEY_KP1),
-	KEY(3, 5, KEY_F3), /* Music SoftKey */
+	KEY(3, 2, KEY_OK),
+	KEY(3, 3, KEY_PLAYPAUSE),
+	KEY(3, 4, KEY_NUMERIC_1),
+	KEY(3, 5, KEY_SOUND), /* Music SoftKey */
 
-	KEY(4, 0, KEY_KP4),
+	KEY(4, 0, KEY_NUMERIC_4),
 	KEY(4, 1, KEY_LEFT),
-	KEY(4, 2, KEY_KPDOT),
-	KEY(4, 3, KEY_BACK),
-	KEY(4, 4, KEY_KP3),
+	KEY(4, 2, KEY_NUMERIC_POUND),
+	KEY(4, 3, KEY_PREVIOUSSONG),
+	KEY(4, 4, KEY_NUMERIC_3),
 	KEY(4, 5, KEY_RESERVED),
 };
 
@@ -763,13 +764,12 @@ static struct pcap_platform_data ezx_pcap_platform_data = {
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT) {
+	if (command & PXA2XX_CS_ASSERT)
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1);
-	} else {
+	else
 		gpio_set_value(ezx_pcap_platform_data.cs,
 		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0);
-	}
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
@@ -880,22 +880,31 @@ static struct platform_device gen2_bp_device = {
 };
 #endif
 
-static void __init ezx_fixup(struct machine_desc *desc, struct tag *tags,
-		char **cmdline, struct meminfo *mi)
-{
-	/* We have two ram chips. First one with 32MB at 0xA0000000 and a second
-	 * 16MB one at 0xAC000000
-	 */
-	mi->nr_banks = 2;
-	mi->bank[0].start = 0xa0000000;
-	mi->bank[0].node = 0;
-	mi->bank[0].size = (32*1024*1024);
-	mi->bank[1].start = 0xac000000;
-	mi->bank[1].node = 1;
-	mi->bank[1].size = (16*1024*1024);
-}
-
 #ifdef CONFIG_MACH_EZX_A780
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data a780_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		},
+	},
+	.num_leds = 2,
+};
+
+struct platform_device a780_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a780_leds,
+	},
+};
+#endif
+
 static int a780_pxacamera_init(struct device *dev)
 {
 	/* 
@@ -984,6 +993,9 @@ static void __init a780_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&a780_leds_device);
+#endif
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 #endif
@@ -996,7 +1008,6 @@ static void __init a780_init(void)
 MACHINE_START(EZX_A780, "Motorola EZX A780")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1006,6 +1017,42 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+static struct pcap_leds_platform_data e680_leds = {
+	.leds = {
+		{
+			.type = PCAP_LED0,
+			.name = "e680:red",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = 46 | PCAP_LED_GPIO_EN | PCAP_LED_GPIO_INVERT,
+		}, {
+			.type = PCAP_LED0,
+			.name = "e680:green",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = 47 | PCAP_LED_GPIO_EN,
+		}, {
+			.type = PCAP_LED1,
+			.name = "e680:blue",
+			.curr = PCAP_LED_3MA,
+			.timing = 0xc,
+			.gpio = 0,
+		},
+	},
+	.num_leds = 3,
+};
+
+struct platform_device e680_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e680_leds,
+	},
+};
+#endif
+
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
@@ -1039,6 +1086,9 @@ static void __init e680_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
+	platform_device_register(&e680_leds_device);
+#endif
 
 	platform_device_register(&gen1_bp_device);
 
@@ -1048,7 +1098,6 @@ static void __init e680_init(void)
 MACHINE_START(EZX_E680, "Motorola EZX E680")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1099,7 +1148,6 @@ static void __init a1200_init(void)
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1250,7 +1298,6 @@ static void __init a910_init(void)
 MACHINE_START(EZX_A910, "Motorola EZX A910")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1301,7 +1348,6 @@ static void __init e6_init(void)
 MACHINE_START(EZX_E6, "Motorola EZX E6")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
@@ -1349,7 +1395,6 @@ static void __init e2_init(void)
 MACHINE_START(EZX_E2, "Motorola EZX E2")
 	.phys_io        = 0x40000000,
 	.io_pg_offst    = (io_p2v(0x40000000) >> 18) & 0xfffc,
-	.fixup			= ezx_fixup,
 	.boot_params    = 0xa0000100,
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
