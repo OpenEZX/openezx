@@ -177,6 +177,10 @@ int power_ic_get_num_power_cuts(int *power_cuts)
 	return (1000);
 }
 
+/* 
+ * why do you need to adjust rtc time based on hz irq? both come from the same
+ * chip. ????
+ */
 static irqreturn_t pcap_hz_irq(void *unused)
 {
 	struct timeval tmrtc, tmsys;
