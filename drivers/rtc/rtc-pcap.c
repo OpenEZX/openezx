@@ -36,28 +36,29 @@
 #define RTC_POWER_CUT_REG               POWER_IC_REG_PCAP_RTC_DAY
 #define RTC_TODA_EVENT                  POWER_IC_EVENT_PCAP_TODAI
 
-#define PCAP_RTC_DAY_MASK       0x3fff
-#define PCAP_RTC_TOD_MASK       0xffff
-#define PCAP_RTC_PC_MASK        0x7
-
 static struct rtc_device *rtc;
 
 int power_ic_rtc_set_time(struct timeval *power_ic_time)
 {
 	int err = 0;
 	unsigned int value;
-
-	if (power_ic_time->tv_usec > 500000) {
-		power_ic_time->tv_sec += 1;
-	}
+	unsigned int mask;
+	if (power_ic_time->tv_usec > 500000)
+		power_ic_time->tv_sec++;
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	value &= ~PCAP_RTC_TOD_MASK;
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= (~mask);
 	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	value &= ~PCAP_RTC_DAY_MASK;
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= (~mask);
 	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
@@ -81,13 +82,20 @@ int power_ic_rtc_get_time(struct timeval *power_ic_time)
 	int err = 0;
 
 	unsigned int value;
+	unsigned int mask;
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	value &= PCAP_RTC_TOD_MASK;
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= mask;
 	power_ic_time->tv_sec = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	value &= PCAP_RTC_DAY_MASK;
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= mask;
 	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
 	return err;
@@ -96,8 +104,9 @@ int power_ic_rtc_get_time(struct timeval *power_ic_time)
 /*!
  * @brief Sets the RTC alarm time
  *
- * This function sets the value in the RTC_TODA and RTC_DAYA registers based on the
- * number of seconds that have passed since January, 1 1970 00:00:00 UTC.
+ * This function sets the value in the RTC_TODA and RTC_DAYA
+ * registers based on the number of seconds that have passed since
+ * January, 1 1970 00:00:00 UTC.
  *
  * @param power_ic_time pointer to the time in seconds stored in memory
  *
@@ -109,22 +118,27 @@ int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
 
 	int err = 0;
 	unsigned int value;
+	unsigned int mask;
 
-	if (power_ic_time->tv_usec > 500000) {
-		power_ic_time->tv_sec += 1;
-	}
+	if (power_ic_time->tv_usec > 500000)
+		power_ic_time->tv_sec++;
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	value &= ~PCAP_RTC_TOD_MASK;
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= ~mask;
 	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	value &= ~PCAP_RTC_DAY_MASK;
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= ~mask;
 	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
-//    err |= power_ic_event_unmask(RTC_TODA_EVENT);
 
 	return err;
 }
@@ -146,41 +160,27 @@ int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
 	int err = 0;
 
 	unsigned int value;
+	unsigned int mask;
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	value &= PCAP_RTC_TOD_MASK;
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= mask;
 	power_ic_time->tv_sec = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	value &= PCAP_RTC_DAY_MASK;
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= mask;
 
 	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
 	return err;
 }
 
-/*!
- * @brief Gets the value of the power cut counter
- *
- * This function reads the power cut counter from the power IC.
- *
- * @param power_cuts pointer to location in which to store the power cut counter value
- *
- * @return 0 if successful
- */
 
-int power_ic_get_num_power_cuts(int *power_cuts)
-{
-
-	//err = power_ic_get_reg_value(RTC_POWER_CUT_REG, POWER_IC_POWER_CUT_BIT,
-	//                           power_cuts, POWER_IC_POWER_CUT_NUM_BITS);
-	return (1000);
-}
-
-/* 
- * why do you need to adjust rtc time based on hz irq? both come from the same
- * chip. ????
- */
 static irqreturn_t pcap_hz_irq(void *unused)
 {
 	struct timeval tmrtc, tmsys;
@@ -188,19 +188,17 @@ static irqreturn_t pcap_hz_irq(void *unused)
 
 	power_ic_rtc_get_time(&tmrtc);
 	do_gettimeofday(&tmsys);
-	if (tmsys.tv_usec > 500000) {
+	if (tmsys.tv_usec > 500000)
 		tmsys.tv_sec++;
-	}
 
-	if (tmsys.tv_sec < 3) {
+	if (tmsys.tv_sec < 3)
 		return IRQ_HANDLED;
-	}
 
-	if (tmsys.tv_sec > tmrtc.tv_sec) {
+	if (tmsys.tv_sec > tmrtc.tv_sec)
 		diff = tmsys.tv_sec - tmrtc.tv_sec;
-	} else {
+	else
 		diff = tmrtc.tv_sec - tmsys.tv_sec;
-	}
+
 	if (diff > 1) {
 		do_gettimeofday(&tmsys);
 		power_ic_rtc_set_time(&tmsys);
@@ -217,8 +215,6 @@ static irqreturn_t pcap_alarm_irq(void *unused)
 	return IRQ_HANDLED;
 }
 
-void rtc_time_to_tm(unsigned long time, struct rtc_time *tm);
-int rtc_tm_to_time(struct rtc_time *tm, unsigned long *time);
 
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
@@ -326,7 +322,7 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 
 	return 0;
 
-      error:
+error:
 	rtc_device_unregister(rtc);
 	return err;
 }
