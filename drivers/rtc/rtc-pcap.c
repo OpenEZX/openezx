@@ -42,147 +42,6 @@
 
 static struct rtc_device *rtc;
 
-int power_ic_rtc_set_time(struct timeval *power_ic_time)
-{
-	int err = 0;
-	unsigned int value;
-
-	if (power_ic_time->tv_usec > 500000)
-		power_ic_time->tv_sec++;
-
-	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	value &= ~PCAP_RTC_TOD_MASK;
-	value |= power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
-
-	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	value &= ~PCAP_RTC_DAY_MASK;
-	value |= power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
-
-	return err;
-}
-
-/*!
- * @brief Gets the RTC time
- *
- * This function retrieves the value in the RTC_TOD and RTC_DAY registers.
- * Those values are converted into the number of seconds that have elapsed
- * since January, 1 1970 00:00:00 UTC.
- *
- * @param power_ic_time pointer to the time in seconds stored in memory
- *
- * @return 0 if successful
- */
-
-int power_ic_rtc_get_time(struct timeval *power_ic_time)
-{
-	int err = 0;
-
-	unsigned int value;
-
-	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	value &= PCAP_RTC_TOD_MASK;
-	power_ic_time->tv_sec = value;
-
-	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	value &= PCAP_RTC_DAY_MASK;
-	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
-
-	return err;
-}
-
-/*!
- * @brief Sets the RTC alarm time
- *
- * This function sets the value in the RTC_TODA and RTC_DAYA
- * registers based on the number of seconds that have passed since
- * January, 1 1970 00:00:00 UTC.
- *
- * @param power_ic_time pointer to the time in seconds stored in memory
- *
- * @return 0 if successful
- */
-
-int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
-{
-
-	int err = 0;
-	unsigned int value;
-
-	if (power_ic_time->tv_usec > 500000)
-		power_ic_time->tv_sec++;
-
-	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	value &= ~PCAP_RTC_TOD_MASK;
-	value |= power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
-
-	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	value &= ~PCAP_RTC_DAY_MASK;
-	value |= power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
-
-
-	return err;
-}
-
-/*!
- * @brief Gets the RTC alarm time
- *
- * This function retrieves the value in the RTC_TODA and RTC_DAYA registers.
- * Those values are converted into the number of seconds that have elapsed
- * since January, 1 1970 00:00:00 UTC.
- *
- * @param power_ic_time pointer to the time in seconds stored in memory
- *
- * @return 0 if successful
- */
-
-int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
-{
-	int err = 0;
-
-	unsigned int value;
-
-	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	value &= PCAP_RTC_TOD_MASK;
-	power_ic_time->tv_sec = value;
-
-	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	value &= PCAP_RTC_DAY_MASK;
-	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
-
-	return err;
-}
-
-
-static void pcap_hz_irq(struct work_struct *unused)
-{
-	struct timeval tmrtc, tmsys;
-	time_t diff;
-
-	power_ic_rtc_get_time(&tmrtc);
-	do_gettimeofday(&tmsys);
-	if (tmsys.tv_usec > 500000)
-		tmsys.tv_sec++;
-
-	if (tmsys.tv_sec < 3)
-		return;
-
-	if (tmsys.tv_sec > tmrtc.tv_sec)
-		diff = tmsys.tv_sec - tmrtc.tv_sec;
-	else
-		diff = tmrtc.tv_sec - tmsys.tv_sec;
-
-	if (diff > 1) {
-		do_gettimeofday(&tmsys);
-		power_ic_rtc_set_time(&tmsys);
-	}
-
-	return;
-}
-
 static void pcap_alarm_irq(struct work_struct *unused)
 {
 
@@ -195,10 +54,18 @@ static void pcap_alarm_irq(struct work_struct *unused)
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
-	struct timeval power_ic_time;
+	struct timeval tmv;
+	u32 value;
 
-	power_ic_rtc_get_time_alarm(&power_ic_time);
-	rtc_time_to_tm(power_ic_time.tv_sec, tm);
+	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	value &= PCAP_RTC_TOD_MASK;
+	tmv.tv_sec = value;
+
+	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	value &= PCAP_RTC_DAY_MASK;
+	tmv.tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
+
+	rtc_time_to_tm(tmv.tv_sec, tm);
 
 	return 0;
 }
@@ -208,12 +75,22 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
 	int err;
-	struct timeval power_ic_time;
+	struct timeval tmv;
+	u32 value;
 
 	err = rtc_tm_to_time(tm, &secs);
-	power_ic_time.tv_sec = secs;
-	power_ic_time.tv_usec = 0;
-	power_ic_rtc_set_time_alarm(&power_ic_time);
+	tmv.tv_sec = secs;
+	tmv.tv_usec = 0;
+
+	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	value &= ~PCAP_RTC_TOD_MASK;
+	value |= tmv.tv_sec % POWER_IC_NUM_SEC_PER_DAY;
+	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
+
+	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	value &= ~PCAP_RTC_DAY_MASK;
+	value |= tmv.tv_sec / POWER_IC_NUM_SEC_PER_DAY;
+	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 	return 0;
 }
@@ -221,7 +98,16 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	struct timeval tmv;
-	power_ic_rtc_get_time(&tmv);
+	u32 value;
+
+	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	value &= PCAP_RTC_TOD_MASK;
+	tmv.tv_sec = value;
+
+	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	value &= PCAP_RTC_DAY_MASK;
+	tmv.tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
+
 	rtc_time_to_tm(tmv.tv_sec, tm);
 	return 0;
 }
@@ -229,8 +115,22 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
 	struct timeval tmv;
+	u32 value;
 	rtc_tm_to_time(tm, &tmv.tv_sec);
-	power_ic_rtc_set_time(&tmv);
+
+	if (tmv.tv_usec > 500000)
+		tmv.tv_sec++;
+
+	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	value &= ~PCAP_RTC_TOD_MASK;
+	value |= tmv.tv_sec % POWER_IC_NUM_SEC_PER_DAY;
+	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
+
+	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	value &= ~PCAP_RTC_DAY_MASK;
+	value |= tmv.tv_sec / POWER_IC_NUM_SEC_PER_DAY;
+	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
+
 	return 0;
 }
 
@@ -292,8 +192,6 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	/* request 1Hz event */
-	ezx_pcap_register_event(PCAP_IRQ_1HZ, pcap_hz_irq, "PCAP HZ");
 	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq, "PCAP alarm");
 
 	return 0;
