@@ -22,7 +22,6 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-
 #define POWER_IC_POWER_CUT_BIT             14
 #define POWER_IC_POWER_CUT_NUM_BITS         4
 #define POWER_IC_TIME_REG_BIT               0
@@ -39,36 +38,32 @@
 
 static struct rtc_device *rtc;
 
-
 int power_ic_rtc_set_time(struct timeval *power_ic_time)
 {
-    int err = 0;
-    unsigned int value;
-    unsigned int mask;
-    if (power_ic_time->tv_usec > 500000)
-    {
-      power_ic_time->tv_sec += 1;
-    }
+	int err = 0;
+	unsigned int value;
+	unsigned int mask;
+	if (power_ic_time->tv_usec > 500000) {
+		power_ic_time->tv_sec += 1;
+	}
 
-    ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-    mask=1;
-    mask<<=17;
-    mask-=1;
-    value&=(~mask);
-    value|=((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY)&mask);
-    ezx_pcap_write(PCAP_REG_RTC_TOD, value);
+	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= (~mask);
+	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
+	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
+	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= (~mask);
+	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
+	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
-    ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-    mask=1;
-    mask<<=15;
-    mask-=1;
-    value&=(~mask);
-    value|=((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY)&mask);
-    ezx_pcap_write(PCAP_REG_RTC_DAY, value);
-
-
-    return err;
+	return err;
 }
 
 /*!
@@ -85,28 +80,26 @@ int power_ic_rtc_set_time(struct timeval *power_ic_time)
 
 int power_ic_rtc_get_time(struct timeval *power_ic_time)
 {
-    int err = 0;
+	int err = 0;
 
-    unsigned int value;
-    unsigned int mask;
+	unsigned int value;
+	unsigned int mask;
 
-    ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-    mask=1;
-    mask<<=17;
-    mask-=1;
-    value&=mask;
-    power_ic_time->tv_sec = value;
+	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= mask;
+	power_ic_time->tv_sec = value;
 
+	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= mask;
+	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
-    ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-    mask=1;
-    mask<<=15;
-    mask-=1;
-    value&=mask;
-    power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
-
-
-    return err;
+	return err;
 }
 
 /*!
@@ -123,36 +116,33 @@ int power_ic_rtc_get_time(struct timeval *power_ic_time)
 int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
 {
 
-    int err = 0;
-    unsigned int value;
-    unsigned int mask;
+	int err = 0;
+	unsigned int value;
+	unsigned int mask;
 
-    if (power_ic_time->tv_usec > 500000)
-    {
-       power_ic_time->tv_sec += 1;
-    }
+	if (power_ic_time->tv_usec > 500000) {
+		power_ic_time->tv_sec += 1;
+	}
 
+	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= ~mask;
+	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
+	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
-    ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-    mask=1;
-    mask<<=17;
-    mask-=1;
-    value&=~mask;
-    value|=((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY)&mask);
-    ezx_pcap_write(PCAP_REG_RTC_TODA, value);
-
-
-    ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-    mask=1;
-    mask<<=15;
-    mask-=1;
-    value&=~mask;
-    value|=((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY)&mask);
-    ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
+	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= ~mask;
+	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
+	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 //    err |= power_ic_event_unmask(RTC_TODA_EVENT);
 
-    return err;
+	return err;
 }
 
 /*!
@@ -169,28 +159,27 @@ int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
 
 int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
 {
-    int err = 0;
+	int err = 0;
 
-    unsigned int value;
-    unsigned int mask;
+	unsigned int value;
+	unsigned int mask;
 
-    ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-    mask=1;
-    mask<<=17;
-    mask-=1;
-    value&=mask;
-    power_ic_time->tv_sec = value;
+	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	mask = 1;
+	mask <<= 17;
+	mask -= 1;
+	value &= mask;
+	power_ic_time->tv_sec = value;
 
+	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	mask = 1;
+	mask <<= 15;
+	mask -= 1;
+	value &= mask;
 
-    ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-    mask=1;
-    mask<<=15;
-    mask-=1;
-    value&=mask;
+	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
-    power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
-
-    return err;
+	return err;
 }
 
 /*!
@@ -203,37 +192,37 @@ int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
  * @return 0 if successful
  */
 
-int power_ic_get_num_power_cuts(int * power_cuts)
+int power_ic_get_num_power_cuts(int *power_cuts)
 {
 
-    //err = power_ic_get_reg_value(RTC_POWER_CUT_REG, POWER_IC_POWER_CUT_BIT,
-    //             		 power_cuts, POWER_IC_POWER_CUT_NUM_BITS);
-    return (1000);
+	//err = power_ic_get_reg_value(RTC_POWER_CUT_REG, POWER_IC_POWER_CUT_BIT,
+	//                           power_cuts, POWER_IC_POWER_CUT_NUM_BITS);
+	return (1000);
 }
 
 static irqreturn_t pcap_hz_irq(void *unused)
 {
-	struct timeval tmrtc,tmsys;
+	struct timeval tmrtc, tmsys;
 	time_t diff;
 
 	power_ic_rtc_get_time(&tmrtc);
 	do_gettimeofday(&tmsys);
-	if(tmsys.tv_usec>500000){
-	    tmsys.tv_sec++;
+	if (tmsys.tv_usec > 500000) {
+		tmsys.tv_sec++;
 	}
 
-	if(tmsys.tv_sec<3){
-	    return IRQ_HANDLED;
+	if (tmsys.tv_sec < 3) {
+		return IRQ_HANDLED;
 	}
 
-	if(tmsys.tv_sec > tmrtc.tv_sec){
-	    diff=tmsys.tv_sec - tmrtc.tv_sec;
-	}else{
-	    diff=tmrtc.tv_sec - tmsys.tv_sec;
+	if (tmsys.tv_sec > tmrtc.tv_sec) {
+		diff = tmsys.tv_sec - tmrtc.tv_sec;
+	} else {
+		diff = tmrtc.tv_sec - tmsys.tv_sec;
 	}
-	if(diff > 1){
-	    do_gettimeofday(&tmsys);
-	    power_ic_rtc_set_time(&tmsys);
+	if (diff > 1) {
+		do_gettimeofday(&tmsys);
+		power_ic_rtc_set_time(&tmsys);
 	}
 
 	return IRQ_HANDLED;
@@ -247,13 +236,10 @@ static irqreturn_t pcap_alarm_irq(void *unused)
 	return IRQ_HANDLED;
 }
 
-
 void rtc_time_to_tm(unsigned long time, struct rtc_time *tm);
 int rtc_tm_to_time(struct rtc_time *tm, unsigned long *time);
 
-
-static int pcap_rtc_read_alarm(struct device *dev,
-	struct rtc_wkalrm *alrm)
+static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
 	struct timeval power_ic_time;
@@ -264,8 +250,7 @@ static int pcap_rtc_read_alarm(struct device *dev,
 	return 0;
 }
 
-static int pcap_rtc_set_alarm(struct device *dev,
-	struct rtc_wkalrm *alrm)
+static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
@@ -273,15 +258,14 @@ static int pcap_rtc_set_alarm(struct device *dev,
 	struct timeval power_ic_time;
 
 	err = rtc_tm_to_time(tm, &secs);
-	power_ic_time.tv_sec=secs;
-	power_ic_time.tv_usec=0;
+	power_ic_time.tv_sec = secs;
+	power_ic_time.tv_usec = 0;
 	power_ic_rtc_set_time_alarm(&power_ic_time);
 
 	return 0;
 }
 
-static int pcap_rtc_read_time(struct device *dev,
-	struct rtc_time *tm)
+static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	struct timeval tmv;
 	power_ic_rtc_get_time(&tmv);
@@ -289,8 +273,7 @@ static int pcap_rtc_read_time(struct device *dev,
 	return 0;
 }
 
-static int pcap_rtc_set_time(struct device *dev,
-	struct rtc_time *tm)
+static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
 	struct timeval tmv;
 	rtc_tm_to_time(tm, &tmv.tv_sec);
@@ -314,7 +297,7 @@ static int pcap_rtc_proc(struct device *dev, struct seq_file *seq)
 }
 
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
-	unsigned long arg)
+			  unsigned long arg)
 {
 	/* We do support interrupts, they're generated
 	 * using the sysfs interface.
@@ -344,12 +327,11 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 	.ioctl = pcap_rtc_ioctl,
 };
 
-
 static int pcap_rtc_probe(struct platform_device *plat_dev)
 {
 	int err;
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
-						&pcap_rtc_ops, THIS_MODULE);
+				  &pcap_rtc_ops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
 		err = PTR_ERR(rtc);
 		goto error;
@@ -363,7 +345,7 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 
 	return 0;
 
-error:
+      error:
 	rtc_device_unregister(rtc);
 	return err;
 }
@@ -376,16 +358,14 @@ static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
 	return 0;
 }
 
-
 static struct platform_driver pcap_rtc_driver = {
-	.probe	= pcap_rtc_probe,
+	.probe = pcap_rtc_probe,
 	.remove = __devexit_p(pcap_rtc_remove),
 	.driver = {
-		.name = "rtc-pcap",
-		.owner = THIS_MODULE,
-	},
+		   .name = "rtc-pcap",
+		   .owner = THIS_MODULE,
+		   },
 };
-
 
 static int __init rtc_pcap_init(void)
 {
