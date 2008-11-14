@@ -157,7 +157,7 @@ int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
 }
 
 
-static irqreturn_t pcap_hz_irq(void *unused)
+static void pcap_hz_irq(struct work_struct *unused)
 {
 	struct timeval tmrtc, tmsys;
 	time_t diff;
@@ -168,7 +168,7 @@ static irqreturn_t pcap_hz_irq(void *unused)
 		tmsys.tv_sec++;
 
 	if (tmsys.tv_sec < 3)
-		return IRQ_HANDLED;
+		return;
 
 	if (tmsys.tv_sec > tmrtc.tv_sec)
 		diff = tmsys.tv_sec - tmrtc.tv_sec;
@@ -180,15 +180,15 @@ static irqreturn_t pcap_hz_irq(void *unused)
 		power_ic_rtc_set_time(&tmsys);
 	}
 
-	return IRQ_HANDLED;
+	return;
 }
 
-static irqreturn_t pcap_alarm_irq(void *unused)
+static void pcap_alarm_irq(struct work_struct *unused)
 {
 
 	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
 
-	return IRQ_HANDLED;
+	return;
 }
 
 
