@@ -36,30 +36,28 @@
 #define RTC_POWER_CUT_REG               POWER_IC_REG_PCAP_RTC_DAY
 #define RTC_TODA_EVENT                  POWER_IC_EVENT_PCAP_TODAI
 
+#define PCAP_RTC_DAY_MASK       0x3fff
+#define PCAP_RTC_TOD_MASK       0xffff
+#define PCAP_RTC_PC_MASK        0x7
+
 static struct rtc_device *rtc;
 
 int power_ic_rtc_set_time(struct timeval *power_ic_time)
 {
 	int err = 0;
 	unsigned int value;
-	unsigned int mask;
+
 	if (power_ic_time->tv_usec > 500000) {
 		power_ic_time->tv_sec += 1;
 	}
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	mask = 1;
-	mask <<= 17;
-	mask -= 1;
-	value &= (~mask);
+	value &= ~PCAP_RTC_TOD_MASK;
 	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	mask = 1;
-	mask <<= 15;
-	mask -= 1;
-	value &= (~mask);
+	value &= ~PCAP_RTC_DAY_MASK;
 	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
@@ -83,20 +81,13 @@ int power_ic_rtc_get_time(struct timeval *power_ic_time)
 	int err = 0;
 
 	unsigned int value;
-	unsigned int mask;
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
-	mask = 1;
-	mask <<= 17;
-	mask -= 1;
-	value &= mask;
+	value &= PCAP_RTC_TOD_MASK;
 	power_ic_time->tv_sec = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
-	mask = 1;
-	mask <<= 15;
-	mask -= 1;
-	value &= mask;
+	value &= PCAP_RTC_DAY_MASK;
 	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
 	return err;
@@ -118,25 +109,18 @@ int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
 
 	int err = 0;
 	unsigned int value;
-	unsigned int mask;
 
 	if (power_ic_time->tv_usec > 500000) {
 		power_ic_time->tv_sec += 1;
 	}
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	mask = 1;
-	mask <<= 17;
-	mask -= 1;
-	value &= ~mask;
+	value &= ~PCAP_RTC_TOD_MASK;
 	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	mask = 1;
-	mask <<= 15;
-	mask -= 1;
-	value &= ~mask;
+	value &= ~PCAP_RTC_DAY_MASK;
 	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
@@ -162,20 +146,13 @@ int power_ic_rtc_get_time_alarm(struct timeval *power_ic_time)
 	int err = 0;
 
 	unsigned int value;
-	unsigned int mask;
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
-	mask = 1;
-	mask <<= 17;
-	mask -= 1;
-	value &= mask;
+	value &= PCAP_RTC_TOD_MASK;
 	power_ic_time->tv_sec = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
-	mask = 1;
-	mask <<= 15;
-	mask -= 1;
-	value &= mask;
+	value &= PCAP_RTC_DAY_MASK;
 
 	power_ic_time->tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
