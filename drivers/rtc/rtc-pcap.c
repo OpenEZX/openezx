@@ -293,8 +293,8 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 	platform_set_drvdata(plat_dev, rtc);
 
 	/* request 1Hz event */
-	ezx_pcap_register_event(PCAP_IRQ_1HZ, pcap_hz_irq, (char *)rtc);
-	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq, (char *)rtc);
+	ezx_pcap_register_event(PCAP_IRQ_1HZ, pcap_hz_irq, "PCAP HZ");
+	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq, "PCAP alarm");
 
 	return 0;
 
