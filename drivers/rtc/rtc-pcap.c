@@ -52,12 +52,12 @@ int power_ic_rtc_set_time(struct timeval *power_ic_time)
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
+	value |= power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
+	value |= power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
 	return err;
@@ -115,12 +115,12 @@ int power_ic_rtc_set_time_alarm(struct timeval *power_ic_time)
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= ((power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY) & mask);
+	value |= power_ic_time->tv_sec % POWER_IC_NUM_SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= ((power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY) & mask);
+	value |= power_ic_time->tv_sec / POWER_IC_NUM_SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 
