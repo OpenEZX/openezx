@@ -199,7 +199,7 @@ error:
 static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
-	ezx_pcap_unregister_event(PCAP_IRQ_1HZ);
+	ezx_pcap_unregister_event(PCAP_IRQ_TODA);
 	rtc_device_unregister(rtc);
 	return 0;
 }
