@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.28-rc4
-# Thu Nov 13 22:54:13 2008
+# Sat Nov 15 02:08:24 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1396,6 +1396,7 @@ CONFIG_RTC_INTF_DEV=y
 # on-CPU RTC drivers
 #
 CONFIG_RTC_DRV_SA1100=m
+CONFIG_RTC_DRV_PCAP=y
 # CONFIG_DMADEVICES is not set
 # CONFIG_REGULATOR is not set
 # CONFIG_UIO is not set
