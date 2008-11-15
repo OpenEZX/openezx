@@ -44,12 +44,9 @@ static struct rtc_device *rtc;
 
 static void pcap_alarm_irq(struct work_struct *unused)
 {
-
 	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
-
 	return;
 }
-
 
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
@@ -109,6 +106,7 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	tmv.tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
 
 	rtc_time_to_tm(tmv.tv_sec, tm);
+
 	return 0;
 }
 
@@ -152,9 +150,6 @@ static int pcap_rtc_proc(struct device *dev, struct seq_file *seq)
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 			  unsigned long arg)
 {
-	/* We do support interrupts, they're generated
-	 * using the sysfs interface.
-	 */
 	switch (cmd) {
 	case RTC_PIE_ON:
 	case RTC_PIE_OFF:
@@ -220,9 +215,7 @@ static struct platform_driver pcap_rtc_driver = {
 
 static int __init rtc_pcap_init(void)
 {
-	int err;
-	err = platform_driver_register(&pcap_rtc_driver);
-	return err;
+	return platform_driver_register(&pcap_rtc_driver);
 }
 
 static void __exit rtc_pcap_exit(void)
