@@ -457,7 +457,7 @@ static unsigned long e6_pin_config[] __initdata = {
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
 	KEY(0, 0, KEY_OK),
-	KEY(0, 1, KEY_MENU),
+	KEY(0, 1, KEY_CANCEL),
 	KEY(0, 2, KEY_CANCEL),
 	KEY(0, 3, KEY_PAGEUP),
 	KEY(0, 4, KEY_UP),
