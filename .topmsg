@@ -1,6 +1,4 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/pcap
+Subject: [PATCH] ezx/local/pcap
 
-<patch description>
-
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+PCAP code which is not ok for mainline.
