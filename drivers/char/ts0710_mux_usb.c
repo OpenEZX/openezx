@@ -37,6 +37,7 @@
 #include <asm/uaccess.h>
 #include <asm/io.h>
 #include <mach/pxa-regs.h>
+#include <mach/ezx-bp.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
@@ -66,7 +67,7 @@
 #define IPC_USB_PROBE_NOT_READY	4
 #define DBG_MAX_BUF_SIZE	1024
 #define ICL_EVENT_INTERVAL	(HZ)
-#undef BVD_DEBUG
+#define BVD_DEBUG
 
 #define IS_EP_BULK(ep)  ((ep).bmAttributes == USB_ENDPOINT_XFER_BULK ? 1 : 0)
 #define IS_EP_BULK_IN(ep) (IS_EP_BULK(ep) && ((ep).bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN)
@@ -405,9 +406,9 @@ static void ipcusb_xmit_data(void)
 		bvd_dbg("ipcusb_xmit_data: copy data to write urb finished! ");
 
 		if ((__raw_readl(UHCRHPS3) & 0x4) == 0x4) {
-			static int ret;
-			int time = 0;
+			int ret;
 
+			ezx_wake_bp();
 
 			/* Resume BP */
 			__raw_writel(0x8, UHCRHPS3);
