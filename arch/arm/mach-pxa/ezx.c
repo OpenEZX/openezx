@@ -803,6 +803,14 @@ struct platform_device pcap_ts_device = {
 };
 #endif
 
+/* PCAP_RTC */
+#if defined(CONFIG_RTC_DRV_PCAP || defined(CONFIG_RTC_DRV_PCAP_MODULES)
+static struct platform_device pcap_rtc_device = {
+	.name		= "rtc-pcap",
+	.id		= -1,
+};
+#endif
+
 /* UDC */
 static void ezx_udc_command(int cmd)
 {
@@ -1142,6 +1150,9 @@ static void __init a1200_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_RTC_DRV_PCAP || defined(CONFIG_RTC_DRV_PCAP_MODULES)
+	platform_device_register(&pcap_rtc_device);
+#endif
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1295,6 +1306,9 @@ static void __init a910_init(void)
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 #endif
+#if defined(CONFIG_RTC_DRV_PCAP || defined(CONFIG_RTC_DRV_PCAP_MODULES)
+	platform_device_register(&pcap_rtc_device);
+#endif
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1347,6 +1361,9 @@ static void __init e6_init(void)
 #if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 	platform_device_register(&pcap_ts_device);
 #endif
+#if defined(CONFIG_RTC_DRV_PCAP || defined(CONFIG_RTC_DRV_PCAP_MODULES)
+	platform_device_register(&pcap_rtc_device);
+#endif
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1395,6 +1412,9 @@ static void __init e2_init(void)
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
+#endif
+#if defined(CONFIG_RTC_DRV_PCAP || defined(CONFIG_RTC_DRV_PCAP_MODULES)
+	platform_device_register(&pcap_rtc_device);
 #endif
 
 	platform_device_register(&gen2_bp_device);
