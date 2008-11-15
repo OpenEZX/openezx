@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.28-rc4
-# Tue Nov 11 22:37:04 2008
+# Thu Nov 13 22:54:13 2008
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -950,6 +950,10 @@ CONFIG_GPIOLIB=y
 CONFIG_GPIO_SYSFS=y
 
 #
+# Memory mapped GPIO expanders:
+#
+
+#
 # I2C GPIO expanders:
 #
 # CONFIG_GPIO_MAX732X is not set
@@ -1360,12 +1364,14 @@ CONFIG_RTC_INTF_DEV=y
 # CONFIG_RTC_DRV_M41T80 is not set
 # CONFIG_RTC_DRV_S35390A is not set
 # CONFIG_RTC_DRV_FM3130 is not set
+# CONFIG_RTC_DRV_RX8581 is not set
 
 #
 # SPI RTC drivers
 #
 # CONFIG_RTC_DRV_M41T94 is not set
 # CONFIG_RTC_DRV_DS1305 is not set
+# CONFIG_RTC_DRV_DS1390 is not set
 # CONFIG_RTC_DRV_MAX6902 is not set
 # CONFIG_RTC_DRV_R9701 is not set
 # CONFIG_RTC_DRV_RS5C348 is not set
