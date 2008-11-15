@@ -1,6 +1,5 @@
 ezx/mach/bp
 ezx/asoc
 ezx/eoc
-ezx/pcap_rtc
 ezx/defconfig
 pxa/sparsemem
