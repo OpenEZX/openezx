@@ -384,7 +384,7 @@ static unsigned int a780_key_map[] = {
 	KEY(1, 0, KEY_NUMERIC_1),
 	KEY(1, 1, KEY_NUMERIC_2),
 	KEY(1, 2, KEY_NUMERIC_3),
-	KEY(1, 3, KEY_ENTER),
+	KEY(1, 3, KEY_SELECT),
 	KEY(1, 4, KEY_KPENTER),
 
 	KEY(2, 0, KEY_NUMERIC_4),
@@ -412,8 +412,8 @@ static struct pxa27x_keypad_platform_data a780_keypad_platform_data = {
 	.matrix_key_map = a780_key_map,
 	.matrix_key_map_size = ARRAY_SIZE(a780_key_map),
 
+	.direct_key_map = { KEY_CAMERA },
 	.direct_key_num = 1,
-	.direct_key_map = { KEY_CAMERA, 0, 0, 0, 0, 0, 0, 0 },
 
 	.debounce_interval = 30,
 };
@@ -443,7 +443,6 @@ static struct pxa27x_keypad_platform_data e680_keypad_platform_data = {
 	.matrix_key_map = e680_key_map,
 	.matrix_key_map_size = ARRAY_SIZE(e680_key_map),
 
-	.direct_key_num = 6,
 	.direct_key_map = {
 		KEY_CAMERA,
 		KEY_RESERVED,
@@ -451,9 +450,8 @@ static struct pxa27x_keypad_platform_data e680_keypad_platform_data = {
 		KEY_F1,
 		KEY_CANCEL,
 		KEY_F2,
-		0,
-		0,
 	},
+	.direct_key_num = 6,
 
 	.debounce_interval = 30,
 };
@@ -576,11 +574,11 @@ static unsigned int a910_key_map[] = {
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_F2), /* Right SoftKey */
 	KEY(2, 4, KEY_CANCEL),
-	KEY(2, 5, KEY_ENTER),
+	KEY(2, 5, KEY_SELECT),
 
 	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_PHONE),
+	KEY(3, 2, KEY_OK),
 	KEY(3, 3, KEY_NUMERIC_0),
 	KEY(3, 4, KEY_NUMERIC_1),
 	KEY(3, 5, KEY_RECORD),
