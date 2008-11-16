@@ -364,3 +364,4 @@ static void __exit ezx_exit(void)
 
 module_init(ezx_init);
 module_exit(ezx_exit);
+MODULE_LICENSE("GPL");
