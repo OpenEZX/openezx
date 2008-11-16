@@ -233,6 +233,12 @@ struct pcap_platform_data {
 #define PCAP_LED1_C_SHIFT	17
 #define PCAP_BL1_SHIFT		20
 
+/* RTC */
+#define PCAP_RTC_DAY_MASK	0x3fff
+#define PCAP_RTC_TOD_MASK	0xffff
+#define PCAP_RTC_PC_MASK	0x7
+#define SEC_PER_DAY		86400
+
 /* LOWPWR */
 #define SW1		8
 #define SW2		16
