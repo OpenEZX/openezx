@@ -930,9 +930,8 @@ static void a910_mmc_cs_control(u32 command)
 {
 	if (command & PXA2XX_CS_ASSERT)
 		gpio_set_value(20, 0);
-	else {
+	else
 		gpio_set_value(20, 1);
-	}
 }
 
 static struct pxa2xx_spi_master a910_spi_masterinfo = {
