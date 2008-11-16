@@ -34,7 +34,7 @@ static void pcap_led_work(struct work_struct *work)
 	struct pcap_led *led = container_of(work, struct pcap_led, work);
 
 	ezx_pcap_read(PCAP_REG_PERIPH, &tmp);
-	switch(led->type) {
+	switch (led->type) {
 	case PCAP_LED0:
 		t = PCAP_LED0_T_SHIFT;
 		c = PCAP_LED0_C_SHIFT;
@@ -101,7 +101,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 					"couldn't request gpio %d\n", gpio);
 				goto fail;
 			}
-			gpio_direction_output(gpio, 
+			gpio_direction_output(gpio,
 				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
 		}
 		err = led_classdev_register(&pdev->dev, &led->ldev);
