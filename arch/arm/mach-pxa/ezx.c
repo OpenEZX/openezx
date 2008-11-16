@@ -459,9 +459,9 @@ static unsigned long e6_pin_config[] __initdata = {
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
-	KEY(0, 0, KEY_OK),
-	KEY(0, 1, KEY_CANCEL),
-	KEY(0, 2, KEY_CANCEL),
+	KEY(0, 0, KEY_SEND),
+	KEY(0, 1, KEY_BACK),
+	KEY(0, 2, KEY_END),
 	KEY(0, 3, KEY_PAGEUP),
 	KEY(0, 4, KEY_UP),
 
@@ -508,7 +508,7 @@ static unsigned int e680_key_map[] = {
 	KEY(0, 0, KEY_UP),
 	KEY(0, 1, KEY_RIGHT),
 	KEY(0, 2, KEY_RESERVED),
-	KEY(0, 3, KEY_OK),
+	KEY(0, 3, KEY_SEND),
 
 	KEY(1, 0, KEY_DOWN),
 	KEY(1, 1, KEY_LEFT),
@@ -566,7 +566,7 @@ static unsigned int a1200_key_map[] = {
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_OK),
+	KEY(3, 2, KEY_SEND),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_RESERVED),
@@ -614,7 +614,7 @@ static unsigned int e6_key_map[] = {
 
 	KEY(3, 0, KEY_RESERVED),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_OK),
+	KEY(3, 2, KEY_SEND),
 	KEY(3, 3, KEY_RESERVED),
 	KEY(3, 4, KEY_RESERVED),
 	KEY(3, 5, KEY_PLAYPAUSE),
@@ -657,12 +657,12 @@ static unsigned int a910_key_map[] = {
 	KEY(2, 1, KEY_NUMERIC_9),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_F2), /* Right SoftKey */
-	KEY(2, 4, KEY_CANCEL),
+	KEY(2, 4, KEY_BACK),
 	KEY(2, 5, KEY_SELECT),
 
 	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_OK),
+	KEY(3, 2, KEY_SEND),
 	KEY(3, 3, KEY_NUMERIC_0),
 	KEY(3, 4, KEY_NUMERIC_1),
 	KEY(3, 5, KEY_RECORD),
@@ -705,12 +705,12 @@ static unsigned int e2_key_map[] = {
 	KEY(2, 1, KEY_KPENTER),
 	KEY(2, 2, KEY_RECORD),
 	KEY(2, 3, KEY_PAGEDOWN),
-	KEY(2, 4, KEY_CANCEL),
+	KEY(2, 4, KEY_BACK),
 	KEY(2, 5, KEY_NUMERIC_0),
 
 	KEY(3, 0, KEY_NUMERIC_2),
 	KEY(3, 1, KEY_UP),
-	KEY(3, 2, KEY_OK),
+	KEY(3, 2, KEY_SEND),
 	KEY(3, 3, KEY_PLAYPAUSE),
 	KEY(3, 4, KEY_NUMERIC_1),
 	KEY(3, 5, KEY_SOUND), /* Music SoftKey */
