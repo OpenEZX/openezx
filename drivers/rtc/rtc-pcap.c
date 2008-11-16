@@ -22,11 +22,6 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-#define PCAP_RTC_DAY_MASK	0x3fff
-#define PCAP_RTC_TOD_MASK	0xffff
-#define PCAP_RTC_PC_MASK	0x7
-#define SEC_PER_DAY		86400
-
 static struct rtc_device *rtc;
 
 static void pcap_alarm_irq(struct work_struct *unused)
