@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/irq.h>
+#include <linux/delay.h>
 
 #include <mach/pxa-regs.h>
 #include <mach/pxa27x-udc.h>
@@ -40,7 +41,7 @@ static int step;
 /* check power down condition */
 static inline void check_power_off(void)
 {
-	if (gpio_get_value(bp->bp_rdy) == 0) {
+	if (bp->bp_wdi2 >= 0 && gpio_get_value(bp->bp_wdi2) == 0) {
 		DEBUGP("BP request poweroff!\n");
 		/*
 		 * It is correct to power off here, the following line is
@@ -55,11 +56,33 @@ static inline void check_power_off(void)
 	}
 }
 
+int ezx_wake_bp(void)
+{
+	int t = 100;
+
+	/* bp is awake */
+	if (gpio_get_value(bp->bp_rdy))
+		return 0;
+
+	/* bp is sleeping, wake it up */
+	DEBUGP("wake up bp\n");
+	gpio_set_value(bp->ap_rdy, 0);
+	udelay(125);
+	gpio_set_value(bp->ap_rdy, 1);
+
+	while (!gpio_get_value(bp->bp_rdy) && --t)
+		udelay(1);
+
+	if (!t)
+		return -ETIMEDOUT;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(ezx_wake_bp);
+
 inline int bp_handshake_passed(void)
 {
 	return (step > 3);
 }
-EXPORT_SYMBOL_GPL(bp_handshake_passed);
 
 static void handshake(void)
 {
@@ -120,11 +143,8 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 
 	if (!bp_handshake_passed()) {
 		handshake();
-		if (bp_handshake_passed() && bp->bp_wdi2 >= 0) {
+		if (bp_handshake_passed() && bp->bp_wdi2 >= 0)
 			disable_irq(gpio_to_irq(bp->bp_wdi2));
-			set_irq_type(gpio_to_irq(bp->bp_rdy),
-						IRQ_TYPE_EDGE_FALLING);
-		}
 	}
 #ifdef CONFIG_TS0710_MUX_USB
 	else usb_send_readurb();
@@ -135,12 +155,13 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 static int __init ezxbp_probe(struct platform_device *pdev)
 {
 	bp = pdev->dev.platform_data;
+	step = bp->first_step;
 
 	set_irq_type(gpio_to_irq(bp->bp_wdi), IRQ_TYPE_EDGE_FALLING);
 	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler, IRQF_DISABLED,
 		    "bp wdi", bp);
 
-	set_irq_type(gpio_to_irq(bp->bp_rdy), IRQ_TYPE_EDGE_BOTH);
+	set_irq_type(gpio_to_irq(bp->bp_rdy), IRQ_TYPE_EDGE_RISING);
 	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler, IRQF_DISABLED,
 			"bp rdy", bp);
 
@@ -149,8 +170,6 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
 				IRQF_DISABLED, "bp wdi2", bp);
 	}
-
-	step = bp->first_step;
 
 	if (bp->bp_reset >= 0)
 		gpio_direction_output(bp->bp_reset, 1);
@@ -189,7 +208,6 @@ static int ezxbp_resume(struct platform_device *dev)
 static struct platform_driver ezxbp_driver = {
 	.probe		= ezxbp_probe,
 	.remove		= ezxbp_remove,
-#warning FIXME: missing suspend/resume support
 	.suspend	= ezxbp_suspend,
 	.resume		= ezxbp_resume,
 	.driver		= {
@@ -214,4 +232,3 @@ module_exit(ezxbp_fini);
 MODULE_DESCRIPTION("Motorola BP Control driver");
 MODULE_AUTHOR("Daniel Ribeiro <wyrm@openezx.org>");
 MODULE_LICENSE("GPL");
-
