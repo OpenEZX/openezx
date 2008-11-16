@@ -22,24 +22,6 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-#define POWER_IC_POWER_CUT_BIT             14
-#define POWER_IC_POWER_CUT_NUM_BITS         4
-#define POWER_IC_TIME_REG_BIT               0
-#define POWER_IC_TOD_NUM_BITS              17
-#define POWER_IC_DAY_NUM_BITS              15
-#define POWER_IC_NUM_SEC_PER_DAY        86400
-
-#define RTC_TOD_REG                     POWER_IC_REG_PCAP_RTC_TOD
-#define RTC_DAY_REG                     POWER_IC_REG_PCAP_RTC_DAY
-#define RTC_TODA_REG                    POWER_IC_REG_PCAP_RTC_TODA
-#define RTC_DAYA_REG                    POWER_IC_REG_PCAP_RTC_DAYA
-#define RTC_POWER_CUT_REG               POWER_IC_REG_PCAP_RTC_DAY
-#define RTC_TODA_EVENT                  POWER_IC_EVENT_PCAP_TODAI
-
-#define PCAP_RTC_DAY_MASK	0x3fff
-#define PCAP_RTC_TOD_MASK	0xffff
-#define PCAP_RTC_PC_MASK	0x7
-
 static struct rtc_device *rtc;
 
 static void pcap_alarm_irq(struct work_struct *unused)
@@ -60,7 +42,7 @@ static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
+	tmv.tv_sec += value * SEC_PER_DAY;
 
 	rtc_time_to_tm(tmv.tv_sec, tm);
 
@@ -81,12 +63,12 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % POWER_IC_NUM_SEC_PER_DAY;
+	value |= tmv.tv_sec % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / POWER_IC_NUM_SEC_PER_DAY;
+	value |= tmv.tv_sec / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 	return 0;
@@ -103,7 +85,7 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * POWER_IC_NUM_SEC_PER_DAY;
+	tmv.tv_sec += value * SEC_PER_DAY;
 
 	rtc_time_to_tm(tmv.tv_sec, tm);
 
@@ -121,12 +103,12 @@ static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % POWER_IC_NUM_SEC_PER_DAY;
+	value |= tmv.tv_sec % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / POWER_IC_NUM_SEC_PER_DAY;
+	value |= tmv.tv_sec / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
 	return 0;
