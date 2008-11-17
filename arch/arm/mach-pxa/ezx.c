@@ -37,12 +37,13 @@
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
-
+#include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/io.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -832,6 +833,58 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 	.udc_command = ezx_udc_command,
 };
 
+/* OHCI Controller */
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_NPS_MODE,
+};
+
+/* BP */
+static void ezx_bp_init (void)
+{
+	UP3OCR = 2;
+}
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 82,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 57,
+	.first_step = 2,
+	.init = ezx_bp_init,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+	.init = ezx_bp_init,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
 #ifdef CONFIG_MACH_EZX_A780
 
 #if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
@@ -932,6 +985,8 @@ static void __init a780_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -951,6 +1006,8 @@ static void __init a780_init(void)
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 #endif
+
+	platform_device_register(&gen1_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1023,6 +1080,8 @@ static void __init e680_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1039,6 +1098,8 @@ static void __init e680_init(void)
 #if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&e680_leds_device);
 #endif
+
+	platform_device_register(&gen1_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1074,6 +1135,8 @@ static void __init a1200_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1090,6 +1153,8 @@ static void __init a1200_init(void)
 #if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1227,6 +1292,8 @@ static void __init a910_init(void)
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1241,6 +1308,8 @@ static void __init a910_init(void)
 #if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1276,6 +1345,8 @@ static void __init e6_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1292,6 +1363,8 @@ static void __init e6_init(void)
 #if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1327,6 +1400,8 @@ static void __init e2_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1340,6 +1415,8 @@ static void __init e2_init(void)
 #if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
 #endif
+
+	platform_device_register(&gen2_bp_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
