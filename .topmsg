@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/pcap_leds
+Subject: [PATCH] ezx: PCAP LEDs configuration
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-<patch description>
+PCAP LEDs board configuration
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
