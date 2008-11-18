@@ -1,8 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx: Remove two memory banks fixup
+Subject: [PATCH] EZX: Remove two memory banks fixup
 To: linux-arm-kernel@lists.arm.linux.org.uk
 Cc: eric.y.miao@gmail.com
 
-FIXME: Did this never work? What do we use now?
+Our bootloader now supports ATAGS_MEM
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
