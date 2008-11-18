@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/pcap_ts
+Subject: [PATCH 05/10] PCAP2 SPI driver.
 
-<patch description>
+FIXME
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
