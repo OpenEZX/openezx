@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mci
+Subject: [PATCH] ezx: MCI configuration
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-<patch description>
+MCI board configuration for all phones
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
