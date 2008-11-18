@@ -1,7 +1,9 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 02/14] EZX: gpio configuration
+Subject: [PATCH] EZX: Keypad configuration
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-Separates the machines _init() functions and adds platform and machine
-gpio configurations.
+Matrix and signle key setups for all phones.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: Stefan Schmidt <stefan@datenfreihafen.org>
