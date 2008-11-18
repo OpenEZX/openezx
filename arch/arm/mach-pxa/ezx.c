@@ -25,6 +25,8 @@
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
 
+#include <media/soc_camera.h>
+
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
@@ -34,6 +36,7 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
+#include <mach/camera.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -854,6 +857,66 @@ struct platform_device a780_leds_device = {
 };
 #endif
 
+static int a780_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO19_GPIO is CAM_RST: active high
+	 */
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+
+	/* 
+	 * This is reported to resolve the vertical line in view finder issue
+	 * (LIBff11930), is this still needed?
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO19, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a780_pxacamera_platform_data = {
+	.init	= a780_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a780_iclink = {
+	.bus_id	= 0,
+	.power = a780_pxacamera_power,
+	.reset = a780_pxacamera_reset,
+};
+
+static struct i2c_board_info __initdata a780_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a780_iclink,
+	},
+};
+
 static void __init a780_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -861,6 +924,7 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	gpio_request(24, "PCAP CS");
 	gpio_direction_output(24, 1);
@@ -883,6 +947,9 @@ static void __init a780_init(void)
 #endif
 #if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&a780_leds_device);
+#endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a780_pxacamera_platform_data);
 #endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -1039,8 +1106,52 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+static int a910_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO28_GPIO is CAM_RST: active high
+	 */
+	gpio_set_value(MFP_PIN_GPIO50, 0);
+	gpio_set_value(MFP_PIN_GPIO28, 1);
+
+	return 0;
+}
+
+static int a910_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+	return 0;
+}
+
+static int a910_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO28, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO28, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a910_pxacamera_platform_data = {
+	.init	= a910_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 1000,
+};
+
+static struct soc_camera_link a910_iclink = {
+	.bus_id	= 0,
+	.power = a910_pxacamera_power,
+	.reset = a910_pxacamera_reset,
+};
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
+	{
+		I2C_BOARD_INFO("mt9m111", 0x5d),
+		.platform_data = &a910_iclink,
+	},
 };
 
 /* A910 SPI/MMC */
@@ -1123,6 +1234,9 @@ static void __init a910_init(void)
 
 #if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
+#endif
+#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+	pxa_set_camera_info(&a910_pxacamera_platform_data);
 #endif
 #if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
