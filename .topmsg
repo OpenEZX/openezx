@@ -1,5 +1,5 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 01/14] ezx.c: Remove fixup.
+Subject: [PATCH 01/14] EZX: Remove fixup.
 
 Now our bootloader can handle atag_mem.
 
