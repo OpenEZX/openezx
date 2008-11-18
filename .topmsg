@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/removefixup
+Subject: [PATCH] ezx: Remove two memory banks fixup
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-<patch description>
+FIXME: Did this never work? What do we use now?
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
