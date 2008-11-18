@@ -1,6 +1,9 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 07/14] EZX: MMC Support
+Subject: [PATCH] EZX: PCAP2 RTC setup
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-Add pxa mci info.
+PCAP2 RTC board setup
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: GM Zhuo <gmzhuo@gmail.com>
