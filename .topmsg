@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/pcap_leds
+Subject: [PATCH] LED: PCAP based led driver
+To: rpurdie@rpsys.net
+Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, eric.y.miao@gmail.com
 
-<patch description>
+LED driver based on the PCAP multi function device.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
