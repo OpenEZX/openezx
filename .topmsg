@@ -1,6 +1,7 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/defconfig
+Subject: [PATCH] ezx: Defconfig update
 
-<patch description>
+Update defconfig to build all features from latest patchset.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: Stefan Schmidt <stefan@datenfreihafen.org>
