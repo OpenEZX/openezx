@@ -1,5 +1,7 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/pcap
+Subject: [PATCH] mfd: PCAP driver
+To: sameo@openedhand.com
+Cc: linux-arm-kernel@lists.arm.linux.org.uk, eric.y.miao@gmail.com, linux-kernel@vger.kernel.org, spi-devel-general@lists.sourceforge.net
 
 <patch description>
 
