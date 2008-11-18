@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/bp
+Subject: [PATCH 07/14] EZX: MMC Support
 
-<patch description>
+Add pxa mci info.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
