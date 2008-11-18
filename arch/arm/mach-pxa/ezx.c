@@ -786,7 +786,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_A1200
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -825,10 +824,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
-static struct i2c_board_info __initdata a910_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
-};
-
 static void __init a910_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -836,7 +831,6 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	pxa_set_i2c_info(NULL);
-	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
 	gpio_request(24, "PCAP CS");
 	gpio_direction_output(24, 0);
@@ -865,7 +859,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E6
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -905,7 +898,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E2
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
