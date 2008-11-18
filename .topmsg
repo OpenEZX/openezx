@@ -1,6 +1,6 @@
-From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/camera
+From: Daniel Ribeiro <drwyrm@gmail.com>
+Subject: [PATCH 07/14] EZX: MMC Support
 
-<patch description>
+Add pxa mci info.
 
-Signed-off-by: Antonio Ospite <ao2@openezx.org>
+Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
