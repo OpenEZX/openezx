@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/i2c
+Subject: [PATCH 04/14] EZX: i2c config
 
-<patch description>
+add i2c board info
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
