@@ -1,6 +1,9 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 05/10] PCAP2 SPI driver.
+Subject: [PATCH] PCAP2 RTC driver
+To: a.zummo@towertech.it
+Cc: eric.y.miao@gmail.com, rtc-linux@googlegroups.com, linux-arm-kernel@lists.arm.linux.org.uk
 
-FIXME
+RTC driver based on the PCAP2 multi function device
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: guiming zhuo <gmzhuo@gmail.com>
