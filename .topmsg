@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 07/14] EZX: MMC Support
+Subject: [PATCH] EZX: PCAP2 LED setup
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-Add pxa mci info.
+PCAP2 LED driver board setup.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
