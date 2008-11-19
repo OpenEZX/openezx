@@ -448,8 +448,6 @@ static unsigned long e6_pin_config[] __initdata = {
 #endif
 
 /* KEYPAD */
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
-
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
 	KEY(0, 0, KEY_SEND),
@@ -726,8 +724,6 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
-#endif /* CONFIG_KEYBOARD_PXA27x */
-
 /* PCAP */
 static void ezx_pcap_init(void)
 {
@@ -782,12 +778,10 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 };
 
 /* PCAP_TS */
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 struct platform_device pcap_ts_device = {
 	.name           = "pcap-ts",
 	.id             = -1,
 };
-#endif
 
 #ifdef CONFIG_MACH_EZX_A780
 static void __init a780_init(void)
@@ -808,12 +802,9 @@ static void __init a780_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a780_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -854,12 +845,9 @@ static void __init e680_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e680_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -898,12 +886,9 @@ static void __init a1200_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -994,9 +979,7 @@ static void __init a910_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1035,12 +1018,9 @@ static void __init e6_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e6_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1079,9 +1059,7 @@ static void __init e2_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
