@@ -878,7 +878,6 @@ static struct platform_device gen2_bp_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
-
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -1008,7 +1007,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
-
 static struct pcap_leds_platform_data e680_leds = {
 	.leds = {
 		{
