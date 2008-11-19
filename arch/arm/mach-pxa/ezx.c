@@ -165,7 +165,7 @@ static struct pxamci_platform_data ezx_mci_platform_data = {
 	.init           = ezx_mci_init,
 	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
-	.detect_delay	= 150 / (1000 / HZ),
+	.detect_delay   = 150 / (1000 / HZ),
 };
 
 static struct platform_device *devices[] __initdata = {
@@ -730,10 +730,10 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 static void ezx_pcap_init(void)
 {
 	/* set SW1 sleep to keep SW1 1.3v in sync mode */
-	/*  SW1 active in sync mode */
+	/* SW1 active in sync mode */
 	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
 
-	/*  set core voltage */
+	/* set core voltage */
 	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
 }
 
@@ -754,35 +754,35 @@ static void pcap_cs_control(u32 command)
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
-	.tx_threshold = 1,
-	.rx_threshold = 1,
+	.tx_threshold   = 1,
+	.rx_threshold   = 1,
 	.dma_burst_size = 0,
-	.timeout = 100,
-	.cs_control = pcap_cs_control,
+	.timeout        = 100,
+	.cs_control     = pcap_cs_control,
 };
 
 static struct pxa2xx_spi_master ezx_spi_masterinfo = {
-	.clock_enable = CKEN_SSP1,
+	.clock_enable   = CKEN_SSP1,
 	.num_chipselect = 1,
-	.enable_dma = 1,
+	.enable_dma     = 1,
 };
 
 static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	{
-		.modalias = "ezx-pcap",
-		.bus_num = 1,
-		.chip_select = 0,
-		.max_speed_hz = 13000000,
-		.platform_data = &ezx_pcap_platform_data,
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &ezx_pcap_platform_data,
 		.controller_data = &ezx_pcap_chip_info,
-		.mode = SPI_MODE_0,
+		.mode            = SPI_MODE_0,
 	},
 };
 
 /* PCAP_TS */
 struct platform_device pcap_ts_device = {
-	.name           = "pcap-ts",
-	.id             = -1,
+	.name = "pcap-ts",
+	.id   = -1,
 };
 
 #ifdef CONFIG_MACH_EZX_A780
