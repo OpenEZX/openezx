@@ -933,9 +933,8 @@ static void __init a780_init(void)
 
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a780_leds_device);
-#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1204,10 +1203,9 @@ static void __init a910_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
-#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
-	pxa_set_camera_info(&a910_pxacamera_platform_data);
-#endif
 	platform_device_register(&pcap_rtc_device);
+
+	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
