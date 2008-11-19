@@ -163,7 +163,7 @@ static struct pxamci_platform_data ezx_mci_platform_data = {
 	.init           = ezx_mci_init,
 	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
-	.detect_delay	= 150 / (1000 / HZ),
+	.detect_delay   = 150 / (1000 / HZ),
 };
 
 static struct platform_device *devices[] __initdata = {
