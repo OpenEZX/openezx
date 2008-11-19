@@ -10,7 +10,7 @@
 struct pcap_platform_data {
 	unsigned int irq;
 	unsigned int config;
-	void (*init)(void);	/* board specific init */
+	void (*init) (void);	/* board specific init */
 };
 
 #define PCAP_SECOND_PORT	1
@@ -47,7 +47,6 @@ struct pcap_platform_data {
 #define PCAP_REG_VENDOR_TEST1	0x1e
 #define PCAP_REG_VENDOR_TEST2	0x1f
 
-
 /* registers acessible by pcap port 1 only (a1200, e2 & e6) */
 #define PCAP_REG_INT_SEL	0x3	/* Interrupt Select */
 #define PCAP_REG_SWCTRL		0x4	/* Switching Regulator Control */
@@ -69,22 +68,24 @@ struct pcap_platform_data {
 #define PCAP_IRQ_WH		(1 << 3)	/* "...high"??? */
 #define PCAP_IRQ_WL		(1 << 4)	/* "...low"??? */
 #define PCAP_IRQ_TODA		(1 << 5)	/* RTC Time Of Day?
-						     (see "RTC_TODA") */
+						   (see "RTC_TODA") */
 #define PCAP_IRQ_USB4V		(1 << 6)	/* USB OTG */
 #define PCAP_IRQ_ONOFF		(1 << 7)	/* in blob: "ONOFFSNS" */
 #define PCAP_IRQ_ONOFF2		(1 << 8)	/* in blob: "ONOFFSNS2" */
 #define PCAP_IRQ_USB1V		(1 << 9)	/* USB below 1volt???
-						     in blob: "USBDET_1V" */
+						   in blob: "USBDET_1V" */
 #define PCAP_IRQ_MOBPORT	(1 << 10)	/* GSM-related?? ("mobport",
-				see 958_MotDoc.pdf); in blob: "MOBSENSB" */
+						   see 958_MotDoc.pdf);
+						   in blob: "MOBSENSB" */
 #define PCAP_IRQ_MB2		(1 << 11)	/* Mic; in blob: "MB2SNS" */
 #define PCAP_IRQ_A1		(1 << 12)	/* Audio jack;
-						     in blob: "A1SNS" */
+						   in blob: "A1SNS" */
 #define PCAP_IRQ_ST		(1 << 13)	/* called "MSTB" in blob */
 #define PCAP_IRQ_PC		(1 << 14)
 #define PCAP_IRQ_WARM		(1 << 15)
-#define PCAP_IRQ_EOL		(1 << 16)	/* battery End Of Life???
-					(see below); in blob: "EOL_STAT" */
+#define PCAP_IRQ_EOL		(1 << 16)	/*  battery End Of Life???
+						   (see below);
+						   in blob: "EOL_STAT" */
 #define PCAP_IRQ_CLK		(1 << 17)	/* called "CLK_STAT" in blob */
 #define PCAP_IRQ_SYSRST		(1 << 18)
 #define PCAP_IRQ_DUMMY		(1 << 19)
@@ -282,7 +283,7 @@ struct pcap_event {
 	struct list_head node;
 	char *label;
 	u32 events;
-	void (*callback)(u32, void *);
+	void (*callback) (u32, void *);
 	void *data;
 };
 
