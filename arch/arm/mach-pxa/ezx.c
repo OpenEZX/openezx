@@ -825,7 +825,6 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 };
 
 #ifdef CONFIG_MACH_EZX_A780
-
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -951,7 +950,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
-
 static struct pcap_leds_platform_data e680_leds = {
 	.leds = {
 		{
