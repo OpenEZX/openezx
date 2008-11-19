@@ -187,12 +187,12 @@ static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
 }
 
 static struct platform_driver pcap_rtc_driver = {
-	.probe = pcap_rtc_probe,
+	.probe  = pcap_rtc_probe,
 	.remove = __devexit_p(pcap_rtc_remove),
 	.driver = {
-		   .name = "rtc-pcap",
-		   .owner = THIS_MODULE,
-		   },
+		.name  = "rtc-pcap",
+		.owner = THIS_MODULE,
+	},
 };
 
 static int __init rtc_pcap_init(void)
