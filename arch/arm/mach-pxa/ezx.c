@@ -779,8 +779,8 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 
 /* PCAP_TS */
 struct platform_device pcap_ts_device = {
-	.name           = "pcap-ts",
-	.id             = -1,
+	.name = "pcap-ts",
+	.id   = -1,
 };
 
 #ifdef CONFIG_MACH_EZX_A780
