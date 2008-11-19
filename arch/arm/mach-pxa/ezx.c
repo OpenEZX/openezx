@@ -1056,7 +1056,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_A1200
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1147,7 +1146,6 @@ static struct soc_camera_link a910_iclink = {
 };
 
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{
 		I2C_BOARD_INFO("mt9m111", 0x5d),
 		.platform_data = &a910_iclink,
@@ -1258,7 +1256,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E6
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1309,7 +1306,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E2
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
