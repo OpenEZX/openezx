@@ -787,8 +787,8 @@ struct platform_device pcap_ts_device = {
 
 /* PCAP_RTC */
 static struct platform_device pcap_rtc_device = {
-	.name		= "rtc-pcap",
-	.id		= -1,
+	.name = "rtc-pcap",
+	.id   = -1,
 };
 
 #ifdef CONFIG_MACH_EZX_A780
