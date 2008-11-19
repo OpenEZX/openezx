@@ -787,7 +787,6 @@ struct platform_device pcap_ts_device = {
 
 #ifdef CONFIG_MACH_EZX_A780
 
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -808,7 +807,6 @@ struct platform_device a780_leds_device = {
 		.platform_data = &a780_leds,
 	},
 };
-#endif
 
 static void __init a780_init(void)
 {
@@ -831,9 +829,7 @@ static void __init a780_init(void)
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
 	platform_device_register(&pcap_ts_device);
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&a780_leds_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -851,7 +847,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E680
 
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 static struct pcap_leds_platform_data e680_leds = {
 	.leds = {
 		{
@@ -884,7 +879,6 @@ struct platform_device e680_leds_device = {
 		.platform_data = &e680_leds,
 	},
 };
-#endif
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("lm4857", 0x7c) },
@@ -913,9 +907,7 @@ static void __init e680_init(void)
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
 	platform_device_register(&pcap_ts_device);
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&e680_leds_device);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
