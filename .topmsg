@@ -1,0 +1,6 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] pxa: add missing GPIOs definitions
+
+Add missing GPIOs definitions needed for EZX machines
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
