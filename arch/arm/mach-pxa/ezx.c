@@ -885,7 +885,6 @@ struct platform_device e680_leds_device = {
 };
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
