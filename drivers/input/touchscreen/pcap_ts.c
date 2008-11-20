@@ -137,7 +137,7 @@ static void pcap_ts_timer_fn(unsigned long data)
 	schedule_work(&pcap_ts->work);
 }
 
-static int __devinit ezxts_probe(struct platform_device *pdev)
+static int __devinit pcap_ts_probe(struct platform_device *pdev)
 {
 	struct input_dev *input_dev;
 	int err = -ENOMEM;
@@ -158,7 +158,7 @@ static int __devinit ezxts_probe(struct platform_device *pdev)
 	pcap_ts->input = input_dev;
 
 	input_dev->name = "pcap-touchscreen";
-	input_dev->phys = "ezxts/input0";
+	input_dev->phys = "pcap_ts/input0";
 	input_dev->id.bustype = BUS_HOST;
 	input_dev->id.vendor = 0x0001;
 	input_dev->id.product = 0x0002;
@@ -192,7 +192,7 @@ fail:
 	return err;
 }
 
-static int __devexit ezxts_remove(struct platform_device *pdev)
+static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
 	ezx_pcap_unregister_event(PCAP_IRQ_TS);
 
@@ -205,7 +205,7 @@ static int __devexit ezxts_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int ezxts_suspend(struct platform_device *dev, pm_message_t state)
+static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
 {
 	u32 tmp;
 	ezx_pcap_read(PCAP_REG_ADC, &tmp);
@@ -214,7 +214,7 @@ static int ezxts_suspend(struct platform_device *dev, pm_message_t state)
 	return 0;
 }
 
-static int ezxts_resume(struct platform_device *dev)
+static int pcap_ts_resume(struct platform_device *dev)
 {
 	u32 tmp;
 	ezx_pcap_read(PCAP_REG_ADC, &tmp);
@@ -224,34 +224,34 @@ static int ezxts_resume(struct platform_device *dev)
 }
 #else
 
-#define ezxts_suspend NULL
-#define ezxts_resume  NULL
+#define pcap_ts_suspend NULL
+#define pcap_ts_resume  NULL
 
 #endif
 
-static struct platform_driver ezxts_driver = {
-	.probe		= ezxts_probe,
-	.remove		= __devexit_p(ezxts_remove),
-	.suspend	= ezxts_suspend,
-	.resume		= ezxts_resume,
+static struct platform_driver pcap_ts_driver = {
+	.probe		= pcap_ts_probe,
+	.remove		= __devexit_p(pcap_ts_remove),
+	.suspend	= pcap_ts_suspend,
+	.resume		= pcap_ts_resume,
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
 	},
 };
 
-static int __init ezxts_init(void)
+static int __init pcap_ts_init(void)
 {
-	return platform_driver_register(&ezxts_driver);
+	return platform_driver_register(&pcap_ts_driver);
 }
 
-static void __exit ezxts_exit(void)
+static void __exit pcap_ts_exit(void)
 {
-	platform_driver_unregister(&ezxts_driver);
+	platform_driver_unregister(&pcap_ts_driver);
 }
 
-module_init(ezxts_init);
-module_exit(ezxts_exit);
+module_init(pcap_ts_init);
+module_exit(pcap_ts_exit);
 
 MODULE_DESCRIPTION("Motorola PCAP2 touchscreen driver");
 MODULE_AUTHOR("Daniel Ribeiro / Harald Welte");
