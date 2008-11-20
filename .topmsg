@@ -1,6 +1,8 @@
 From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/defconfig_mainline
+Subject: [PATCH] ezx: Defconfig update
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-<patch description>
+Update defconfig to build all features from latest patchset.
 
 Signed-off-by: Antonio Ospite <ao2@openezx.org>
