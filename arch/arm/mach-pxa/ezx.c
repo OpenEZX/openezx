@@ -676,7 +676,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E680
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
