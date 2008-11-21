@@ -163,7 +163,6 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 	return 0;
 
 error:
-	rtc_device_unregister(rtc);
 	return err;
 }
 
