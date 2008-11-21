@@ -199,6 +199,7 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 	del_timer_sync(&pcap_ts->timer);
 
 	input_unregister_device(pcap_ts->input);
+	cancel_work_sync(&pcap_ts->work);
 	kfree(pcap_ts);
 
 	return 0;
