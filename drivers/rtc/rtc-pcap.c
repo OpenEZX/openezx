@@ -24,7 +24,8 @@
 
 static void pcap_alarm_irq(u32 events, void *data)
 {
-	struct rtc_device *data = rtc;
+	struct rtc_device *rtc = data;
+
 	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
 	return;
 }
