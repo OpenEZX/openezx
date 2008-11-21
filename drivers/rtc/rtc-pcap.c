@@ -92,31 +92,29 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
-static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
+static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 {
-	struct timeval tmv;
 	u32 value;
-	rtc_tm_to_time(tm, &tmv.tv_sec);
-
-	if (tmv.tv_usec > 500000)
-		tmv.tv_sec++;
-
+	
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % SEC_PER_DAY;
+	value |= secs % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / SEC_PER_DAY;
+	value |= secs / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
 	return 0;
 }
 
-static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
+static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
-	return 0;
+	unsigned long secs;
+
+	rtc_tm_to_time(tm, &secs);
+	return pcap_rtc_set_mmss(dev, secs);
 }
 
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
