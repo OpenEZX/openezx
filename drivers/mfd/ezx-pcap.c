@@ -174,7 +174,7 @@ void ezx_pcap_disable_adc(void)
 	mutex_unlock(&adc_lock);
 }
 
-static void ezx_pcap_adc_event(struct work_struct *unused)
+static void ezx_pcap_adc_event(u32 flags, void *data)
 {
 	void (*adc_done)(void *);
 	void *adc_data;
@@ -347,7 +347,7 @@ void ezx_pcap_unmask_event(u32 events)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_unmask_event);
 
-int ezx_pcap_register_event(u32 events, void *callback, char *label)
+int ezx_pcap_register_event(u32 events, void *callback, void *data, char *label)
 {
 	struct pcap_event *cb;
 
@@ -358,6 +358,7 @@ int ezx_pcap_register_event(u32 events, void *callback, char *label)
 	cb->label = label;
 	cb->events = events;
 	cb->callback = callback;
+	cb->data = data;
 
 	mutex_lock(&event_lock);
 	list_add_tail(&cb->node, &event_list);
@@ -597,7 +598,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
 			PCAP_IRQ_ADCDONE2 : PCAP_IRQ_ADCDONE,
-			ezx_pcap_adc_event, "ADC");
+			ezx_pcap_adc_event, NULL, "ADC");
 	return 0;
 
 wq_destroy:
