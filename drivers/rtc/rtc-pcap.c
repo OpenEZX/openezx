@@ -119,16 +119,6 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_proc(struct device *dev, struct seq_file *seq)
-{
-	struct platform_device *plat_dev = to_platform_device(dev);
-
-	seq_printf(seq, "pcap\t\t: yes\n");
-	seq_printf(seq, "id\t\t: %d\n", plat_dev->id);
-
-	return 0;
-}
-
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 			  unsigned long arg)
 {
@@ -148,7 +138,6 @@ static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
-	.proc = pcap_rtc_proc,
 	.read_time = pcap_rtc_read_time,
 	.set_time = pcap_rtc_set_time,
 	.read_alarm = pcap_rtc_read_alarm,
@@ -174,7 +163,6 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 	return 0;
 
 error:
-	rtc_device_unregister(rtc);
 	return err;
 }
 
