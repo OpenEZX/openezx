@@ -274,7 +274,7 @@ void ezx_pcap_get_adc_bank_result(u32[]);
 void ezx_pcap_disable_adc(void);
 void ezx_pcap_do_general_adc(u8, u8, u32 *);
 void ezx_pcap_do_batt_adc(int, u32[]);
-int ezx_pcap_register_event(u32, void *, char *);
+int ezx_pcap_register_event(u32, void *, void *, char *);
 int ezx_pcap_unregister_event(u32);
 void ezx_pcap_mask_event(u32);
 void ezx_pcap_unmask_event(u32);
