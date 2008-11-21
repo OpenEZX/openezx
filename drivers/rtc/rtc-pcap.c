@@ -144,7 +144,7 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 	.ioctl = pcap_rtc_ioctl,
 };
 
-static int pcap_rtc_probe(struct platform_device *plat_dev)
+static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc;
 	int err;
@@ -167,7 +167,7 @@ error:
 	return err;
 }
 
-static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
+static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
 
@@ -177,7 +177,7 @@ static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
 }
 
 static struct platform_driver pcap_rtc_driver = {
-	.remove = __devexit_p(pcap_rtc_remove),
+	.remove = __exit_p(pcap_rtc_remove),
 	.driver = {
 		.name  = "rtc-pcap",
 		.owner = THIS_MODULE,
