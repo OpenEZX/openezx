@@ -1,2 +1,5 @@
-ezx/mach/camera
-ezx/bp
+ezx/mach/bp
+ezx/asoc
+ezx/eoc
+ezx/defconfig
+pxa/sparsemem
