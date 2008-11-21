@@ -684,6 +684,6 @@ config RTC_DRV_PCAP
 	depends on EZX_PCAP
 	help
 	  If you say Y here you will get support for the RTC found on
-	   pcap.
+	  the PCAP2 ASIC used on some Motorola phones.
 
 endif # RTC_CLASS
