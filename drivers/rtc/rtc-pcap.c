@@ -89,7 +89,7 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 	rtc_time_to_tm(tmv.tv_sec, tm);
 
-	return 0;
+	return rtc_valid_tm(tm);
 }
 
 static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
