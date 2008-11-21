@@ -1,4 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/local/pcap
+Subject: [PATCH 05/10] PCAP2 SPI driver.
 
-PCAP code which is not ok for mainline.
+FIXME
+
+Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
