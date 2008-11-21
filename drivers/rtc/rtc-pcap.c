@@ -22,10 +22,9 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static struct rtc_device *rtc;
-
-static void pcap_alarm_irq(struct work_struct *unused)
+static void pcap_alarm_irq(u32 events, void *data)
 {
+	struct rtc_device *data = rtc;
 	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
 	return;
 }
@@ -146,7 +145,9 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 
 static int pcap_rtc_probe(struct platform_device *plat_dev)
 {
+	struct rtc_device *rtc;
 	int err;
+
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
@@ -156,7 +157,8 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq, "PCAP alarm");
+	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq,
+							rtc, "PCAP alarm");
 
 	return 0;
 
