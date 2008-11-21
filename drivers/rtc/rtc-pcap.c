@@ -22,11 +22,17 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static void pcap_alarm_irq(u32 events, void *data)
+static void pcap_rtc_irq(u32 events, void *data)
 {
+	unsigned long rtc_events = 0;
 	struct rtc_device *rtc = data;
 
-	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
+	if (events & PCAP_IRQ_HZ)
+		rtc_events |= RTC_IRQF | RTC_UF;
+	if (events & PCAP_IRQ_TODA)
+		rtc_events |= RTC_IRQF | RTC_AF;
+
+	rtc_update_irq(rtc, 1, rtc_events);
 	return;
 }
 
@@ -121,18 +127,22 @@ static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 			  unsigned long arg)
 {
 	switch (cmd) {
-	case RTC_PIE_ON:
-	case RTC_PIE_OFF:
 	case RTC_UIE_ON:
+		ezx_pcap_unmask_event(PCAP_IRQ_HZ);
+		break;
 	case RTC_UIE_OFF:
+		ezx_pcap_mask_event(PCAP_IRQ_HZ);
+		break;
 	case RTC_AIE_ON:
+		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
+		break;
 	case RTC_AIE_OFF:
-		return 0;
-
+		ezx_pcap_mask_event(PCAP_IRQ_TODA);
+		break;
 	default:
 		return -ENOIOCTLCMD;
 	}
-
+	return 0;
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
@@ -158,8 +168,8 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq,
-							rtc, "PCAP alarm");
+	ezx_pcap_register_event(PCAP_IRQ_HZ, pcap_rtc_irq, rtc, "RTC Timer");
+	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_rtc_irq, rtc, "RTC Alarm");
 
 	return 0;
 
@@ -171,7 +181,7 @@ static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
 
-	ezx_pcap_unregister_event(PCAP_IRQ_TODA);
+	ezx_pcap_unregister_event(PCAP_IRQ_HZ | PCAP_IRQ_TODA);
 	rtc_device_unregister(rtc);
 	return 0;
 }
