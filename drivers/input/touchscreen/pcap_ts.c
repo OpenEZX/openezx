@@ -222,18 +222,15 @@ static int pcap_ts_resume(struct platform_device *dev)
 	ezx_pcap_write(PCAP_REG_ADC, tmp);
 	return 0;
 }
-#else
-
-#define pcap_ts_suspend NULL
-#define pcap_ts_resume  NULL
-
 #endif
 
 static struct platform_driver pcap_ts_driver = {
 	.probe		= pcap_ts_probe,
 	.remove		= __devexit_p(pcap_ts_remove),
+#ifdef CONFIG_PM
 	.suspend	= pcap_ts_suspend,
 	.resume		= pcap_ts_resume,
+#endif
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
