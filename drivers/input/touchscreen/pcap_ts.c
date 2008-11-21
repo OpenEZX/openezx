@@ -124,7 +124,7 @@ static void pcap_ts_work(struct work_struct *unused)
 	}
 }
 
-static void pcap_ts_event_touch(u32 events)
+static void pcap_ts_event_touch(u32 events, void *unused)
 {
 	/* pen touch down, mask touch event and start reading pressure */
 	ezx_pcap_mask_event(PCAP_IRQ_TS);
@@ -173,7 +173,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 			     PRESSURE_MAX, 0, 0);
 
 	ezx_pcap_register_event(PCAP_IRQ_TS, pcap_ts_event_touch,
-							"Touch Screen");
+							NULL, "Touch Screen");
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
@@ -199,6 +199,7 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 	del_timer_sync(&pcap_ts->timer);
 
 	input_unregister_device(pcap_ts->input);
+	cancel_work_sync(&pcap_ts->work);
 	kfree(pcap_ts);
 
 	return 0;
@@ -222,18 +223,15 @@ static int pcap_ts_resume(struct platform_device *dev)
 	ezx_pcap_write(PCAP_REG_ADC, tmp);
 	return 0;
 }
-#else
-
-#define pcap_ts_suspend NULL
-#define pcap_ts_resume  NULL
-
 #endif
 
 static struct platform_driver pcap_ts_driver = {
 	.probe		= pcap_ts_probe,
 	.remove		= __devexit_p(pcap_ts_remove),
+#ifdef CONFIG_PM
 	.suspend	= pcap_ts_suspend,
 	.resume		= pcap_ts_resume,
+#endif
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
