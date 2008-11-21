@@ -22,11 +22,17 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static struct rtc_device *rtc;
-
-static void pcap_alarm_irq(struct work_struct *unused)
+static void pcap_rtc_irq(u32 events, void *data)
 {
-	rtc_update_irq(rtc, 1, RTC_AF | RTC_IRQF);
+	unsigned long rtc_events = 0;
+	struct rtc_device *rtc = data;
+
+	if (events & PCAP_IRQ_1HZ)
+		rtc_events |= RTC_IRQF | RTC_UF;
+	if (events & PCAP_IRQ_TODA)
+		rtc_events |= RTC_IRQF | RTC_AF;
+
+	rtc_update_irq(rtc, 1, rtc_events);
 	return;
 }
 
@@ -89,66 +95,57 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 	rtc_time_to_tm(tmv.tv_sec, tm);
 
-	return 0;
+	return rtc_valid_tm(tm);
 }
 
-static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
+static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 {
-	struct timeval tmv;
 	u32 value;
-	rtc_tm_to_time(tm, &tmv.tv_sec);
-
-	if (tmv.tv_usec > 500000)
-		tmv.tv_sec++;
-
+	
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % SEC_PER_DAY;
+	value |= secs % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / SEC_PER_DAY;
+	value |= secs / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
 
 	return 0;
 }
 
-static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
+static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
-	return 0;
-}
+	unsigned long secs;
 
-static int pcap_rtc_proc(struct device *dev, struct seq_file *seq)
-{
-	struct platform_device *plat_dev = to_platform_device(dev);
-
-	seq_printf(seq, "pcap\t\t: yes\n");
-	seq_printf(seq, "id\t\t: %d\n", plat_dev->id);
-
-	return 0;
+	rtc_tm_to_time(tm, &secs);
+	return pcap_rtc_set_mmss(dev, secs);
 }
 
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 			  unsigned long arg)
 {
 	switch (cmd) {
-	case RTC_PIE_ON:
-	case RTC_PIE_OFF:
 	case RTC_UIE_ON:
+		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
+		break;
 	case RTC_UIE_OFF:
+		ezx_pcap_mask_event(PCAP_IRQ_1HZ);
+		break;
 	case RTC_AIE_ON:
+		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
+		break;
 	case RTC_AIE_OFF:
-		return 0;
-
+		ezx_pcap_mask_event(PCAP_IRQ_TODA);
+		break;
 	default:
 		return -ENOIOCTLCMD;
 	}
-
+	return 0;
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
-	.proc = pcap_rtc_proc,
 	.read_time = pcap_rtc_read_time,
 	.set_time = pcap_rtc_set_time,
 	.read_alarm = pcap_rtc_read_alarm,
@@ -157,9 +154,11 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 	.ioctl = pcap_rtc_ioctl,
 };
 
-static int pcap_rtc_probe(struct platform_device *plat_dev)
+static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 {
+	struct rtc_device *rtc;
 	int err;
+
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
@@ -169,26 +168,26 @@ static int pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_alarm_irq, "PCAP alarm");
+	ezx_pcap_register_event(PCAP_IRQ_1HZ, pcap_rtc_irq, rtc, "RTC Timer");
+	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_rtc_irq, rtc, "RTC Alarm");
 
 	return 0;
 
 error:
-	rtc_device_unregister(rtc);
 	return err;
 }
 
-static int __devexit pcap_rtc_remove(struct platform_device *plat_dev)
+static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
-	ezx_pcap_unregister_event(PCAP_IRQ_TODA);
+
+	ezx_pcap_unregister_event(PCAP_IRQ_1HZ | PCAP_IRQ_TODA);
 	rtc_device_unregister(rtc);
 	return 0;
 }
 
 static struct platform_driver pcap_rtc_driver = {
-	.probe  = pcap_rtc_probe,
-	.remove = __devexit_p(pcap_rtc_remove),
+	.remove = __exit_p(pcap_rtc_remove),
 	.driver = {
 		.name  = "rtc-pcap",
 		.owner = THIS_MODULE,
@@ -197,7 +196,7 @@ static struct platform_driver pcap_rtc_driver = {
 
 static int __init rtc_pcap_init(void)
 {
-	return platform_driver_register(&pcap_rtc_driver);
+	return platform_driver_probe(&pcap_rtc_driver, pcap_rtc_probe);
 }
 
 static void __exit rtc_pcap_exit(void)

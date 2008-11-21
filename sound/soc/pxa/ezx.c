@@ -351,7 +351,8 @@ static int __init ezx_init(void)
 #endif
 
 	/* request jack event */
-	ezx_pcap_register_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1, jack_irq, "HP/MIC");
+	ezx_pcap_register_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1, jack_irq,
+							NULL, "HP/MIC");
 
 	return ret;
 }
