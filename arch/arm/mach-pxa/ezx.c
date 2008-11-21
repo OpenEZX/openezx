@@ -171,7 +171,7 @@ static struct pxamci_platform_data ezx_mci_platform_data = {
 	.init           = ezx_mci_init,
 	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
-	.detect_delay	= 150 / (1000 / HZ),
+	.detect_delay   = 150 / (1000 / HZ),
 };
 
 static struct platform_device *devices[] __initdata = {
@@ -416,8 +416,8 @@ static unsigned long a910_pin_config[] __initdata = {
 	GPIO33_GPIO,				/* WAKEUP */
 	GPIO94_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
 
-        /* MMC CS */
-        GPIO20_GPIO,
+	/* MMC CS */
+	GPIO20_GPIO,
 };
 #endif
 
@@ -456,8 +456,6 @@ static unsigned long e6_pin_config[] __initdata = {
 #endif
 
 /* KEYPAD */
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
-
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned int a780_key_map[] = {
 	KEY(0, 0, KEY_SEND),
@@ -734,16 +732,14 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
-#endif /* CONFIG_KEYBOARD_PXA27x */
-
 /* PCAP */
 static void ezx_pcap_init(void)
 {
 	/* set SW1 sleep to keep SW1 1.3v in sync mode */
-	/*  SW1 active in sync mode */
+	/* SW1 active in sync mode */
 	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
 
-	/*  set core voltage */
+	/* set core voltage */
 	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
 
 	/* FIXME: EMU driver */
@@ -770,46 +766,42 @@ static void pcap_cs_control(u32 command)
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
-	.tx_threshold = 1,
-	.rx_threshold = 1,
+	.tx_threshold   = 1,
+	.rx_threshold   = 1,
 	.dma_burst_size = 0,
-	.timeout = 100,
-	.cs_control = pcap_cs_control,
+	.timeout        = 100,
+	.cs_control     = pcap_cs_control,
 };
 
 static struct pxa2xx_spi_master ezx_spi_masterinfo = {
-	.clock_enable = CKEN_SSP1,
+	.clock_enable   = CKEN_SSP1,
 	.num_chipselect = 1,
-	.enable_dma = 1,
+	.enable_dma     = 1,
 };
 
 static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	{
-		.modalias = "ezx-pcap",
-		.bus_num = 1,
-		.chip_select = 0,
-		.max_speed_hz = 13000000,
-		.platform_data = &ezx_pcap_platform_data,
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &ezx_pcap_platform_data,
 		.controller_data = &ezx_pcap_chip_info,
-		.mode = SPI_MODE_0,
+		.mode            = SPI_MODE_0,
 	},
 };
 
 /* PCAP_TS */
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
 struct platform_device pcap_ts_device = {
-	.name           = "pcap-ts",
-	.id             = -1,
+	.name = "pcap-ts",
+	.id   = -1,
 };
-#endif
 
 /* PCAP_RTC */
-#if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 static struct platform_device pcap_rtc_device = {
-	.name		= "rtc-pcap",
-	.id		= -1,
+	.name = "rtc-pcap",
+	.id   = -1,
 };
-#endif
 
 /* UDC */
 static void ezx_udc_command(int cmd)
@@ -886,8 +878,6 @@ static struct platform_device gen2_bp_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
-
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -908,7 +898,6 @@ struct platform_device a780_leds_device = {
 		.platform_data = &a780_leds,
 	},
 };
-#endif
 
 static int a780_pxacamera_init(struct device *dev)
 {
@@ -994,18 +983,12 @@ static void __init a780_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a780_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&a780_leds_device);
-#endif
-#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
+
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
-#endif
 
 	platform_device_register(&gen1_bp_device);
 
@@ -1024,8 +1007,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
-
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 static struct pcap_leds_platform_data e680_leds = {
 	.leds = {
 		{
@@ -1058,10 +1039,8 @@ struct platform_device e680_leds_device = {
 		.platform_data = &e680_leds,
 	},
 };
-#endif
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("lm4857", 0x7c) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1089,15 +1068,10 @@ static void __init e680_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e680_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
 	platform_device_register(&e680_leds_device);
-#endif
 
 	platform_device_register(&gen1_bp_device);
 
@@ -1117,7 +1091,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_A1200
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1144,15 +1117,10 @@ static void __init a1200_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
-#if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
-#endif
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1212,7 +1180,6 @@ static struct soc_camera_link a910_iclink = {
 };
 
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{
 		I2C_BOARD_INFO("mt9m111", 0x5d),
 		.platform_data = &a910_iclink,
@@ -1299,15 +1266,10 @@ static void __init a910_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
-#endif
-#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
-	pxa_set_camera_info(&a910_pxacamera_platform_data);
-#endif
-#if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
-#endif
+
+	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1327,7 +1289,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E6
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1354,15 +1315,10 @@ static void __init e6_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e6_keypad_platform_data);
-#endif
-#if defined(CONFIG_TOUCHSCREEN_PCAP) || defined(CONFIG_TOUCHSCREEN_PCAP_MODULES)
+
 	platform_device_register(&pcap_ts_device);
-#endif
-#if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
-#endif
 
 	platform_device_register(&gen2_bp_device);
 
@@ -1382,7 +1338,6 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E2
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
@@ -1409,12 +1364,8 @@ static void __init e2_init(void)
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
-#if defined(CONFIG_KEYBOARD_PXA27x) || defined(CONFIG_KEYBOARD_PXA27x_MODULES)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
-#endif
-#if defined(CONFIG_RTC_DRV_PCAP) || defined(CONFIG_RTC_DRV_PCAP_MODULES)
 	platform_device_register(&pcap_rtc_device);
-#endif
 
 	platform_device_register(&gen2_bp_device);
 
