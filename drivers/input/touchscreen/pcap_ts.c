@@ -124,7 +124,7 @@ static void pcap_ts_work(struct work_struct *unused)
 	}
 }
 
-static void pcap_ts_event_touch(u32 events)
+static void pcap_ts_event_touch(u32 events, void *unused)
 {
 	/* pen touch down, mask touch event and start reading pressure */
 	ezx_pcap_mask_event(PCAP_IRQ_TS);
@@ -173,7 +173,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 			     PRESSURE_MAX, 0, 0);
 
 	ezx_pcap_register_event(PCAP_IRQ_TS, pcap_ts_event_touch,
-							"Touch Screen");
+							NULL, "Touch Screen");
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
