@@ -1,5 +1,5 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] PCAP2 RTC driver
+Subject: PCAP2 RTC driver
 To: a.zummo@towertech.it
 Cc: eric.y.miao@gmail.com, rtc-linux@googlegroups.com, linux-arm-kernel@lists.arm.linux.org.uk
 
