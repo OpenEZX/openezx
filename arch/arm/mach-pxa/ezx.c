@@ -49,6 +49,7 @@
 #include "generic.h"
 
 #define GPIO1_PCAP_IRQ			1
+#define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
 #define GPIO28_PCAP_CS			28
 
@@ -1191,10 +1192,9 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 /* A910 SPI/MMC */
 static void a910_mmc_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT)
-		gpio_set_value(20, 0);
-	else
-		gpio_set_value(20, 1);
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO20_A910_MMC_CS, !on);
 }
 
 static struct pxa2xx_spi_master a910_spi_masterinfo = {
