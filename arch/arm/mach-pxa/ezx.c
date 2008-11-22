@@ -231,7 +231,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
-	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
+	GPIO99_GPIO,				/* TC_MM_EN */
 
 	/* sound */
 	GPIO52_SSP3_SCLK,
@@ -258,8 +258,8 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO94_CIF_DD_5,
 	GPIO17_CIF_DD_6,
 	GPIO108_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO19_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO19_GPIO,				/* CAM_RST */
 
 	/* EMU */
 	GPIO120_GPIO,				/* EMU_MUX1 */
@@ -315,8 +315,8 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO48_CIF_DD_5,
 	GPIO93_CIF_DD_6,
 	GPIO12_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO28_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO28_GPIO,				/* CAM_RST */
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
@@ -366,8 +366,8 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO18_GPIO,				/* MIDI_RDY */
 
 	/* leds */
-	GPIO46_GPIO | MFP_DIR_OUT,
-	GPIO47_GPIO | MFP_DIR_OUT,
+	GPIO46_GPIO,
+	GPIO47_GPIO,
 };
 #endif
 
