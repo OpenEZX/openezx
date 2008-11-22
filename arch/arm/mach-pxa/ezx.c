@@ -48,6 +48,7 @@
 #include "generic.h"
 
 #define GPIO1_PCAP_IRQ			1
+#define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
 #define GPIO28_PCAP_CS			28
@@ -116,7 +117,7 @@ static int ezx_mci_init(struct device *dev,
 
 	/* A1200 slot is not hot-plug */
 	if (!machine_is_ezx_a1200()) {
-		err = request_irq(gpio_to_irq(11), detect_int,
+		err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_int,
 			IRQF_DISABLED | IRQF_SAMPLE_RANDOM |
 			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
 			"MMC card detect", data);
@@ -162,7 +163,7 @@ static void ezx_mci_exit(struct device *dev, void *data)
 {
 	ezx_pcap_mmcsd_power(0);
 	if (!machine_is_ezx_a1200())
-		free_irq(gpio_to_irq(11), data);
+		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
 }
 
 static struct pxamci_platform_data ezx_mci_platform_data = {
