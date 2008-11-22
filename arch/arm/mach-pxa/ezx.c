@@ -47,6 +47,8 @@
 #define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
 #define GPIO28_PCAP_CS			28
+#define GPIO46_E680_LED_RED		46
+#define GPIO47_E680_LED_GREEN		47
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -856,13 +858,14 @@ static struct pcap_leds_platform_data e680_leds = {
 			.name = "e680:red",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = 46 | PCAP_LED_GPIO_EN | PCAP_LED_GPIO_INVERT,
+			.gpio = GPIO46_E680_LED_RED | PCAP_LED_GPIO_EN |
+							PCAP_LED_GPIO_INVERT,
 		}, {
 			.type = PCAP_LED0,
 			.name = "e680:green",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = 47 | PCAP_LED_GPIO_EN,
+			.gpio = GPIO47_E680_LED_GREEN | PCAP_LED_GPIO_EN,
 		}, {
 			.type = PCAP_LED1,
 			.name = "e680:blue",
