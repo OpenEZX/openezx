@@ -111,25 +111,23 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
-			  unsigned long arg)
+static int pcap_rtc_alarm_irq_enable(struct rtc_device *rtc, unsigned int en)
 {
-	switch (cmd) {
-	case RTC_UIE_ON:
-		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
-		break;
-	case RTC_UIE_OFF:
-		ezx_pcap_mask_event(PCAP_IRQ_1HZ);
-		break;
-	case RTC_AIE_ON:
+	if (en)
 		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
-		break;
-	case RTC_AIE_OFF:
+	else
 		ezx_pcap_mask_event(PCAP_IRQ_TODA);
-		break;
-	default:
-		return -ENOIOCTLCMD;
-	}
+
+	return 0;
+}
+
+static int pcap_rtc_update_irq_enable(struct rtc_device *rtc, unsigned int en)
+{
+	if (en)
+		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
+	else
+		ezx_pcap_mask_event(PCAP_IRQ_1HZ);
+
 	return 0;
 }
 
@@ -138,7 +136,8 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 	.read_alarm = pcap_rtc_read_alarm,
 	.set_alarm = pcap_rtc_set_alarm,
 	.set_mmss = pcap_rtc_set_mmss,
-	.ioctl = pcap_rtc_ioctl,
+	.alarm_irq_enable = pcap_rtc_alarm_irq_enable,
+	.update_irq_enable = pcap_rtc_update_irq_enable,
 };
 
 static int __init pcap_rtc_probe(struct platform_device *plat_dev)
