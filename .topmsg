@@ -1,5 +1,5 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] LED: PCAP2 based LED driver
+Subject: LED: PCAP2 based LED driver
 To: rpurdie@rpsys.net
 Cc: eric.y.miao@gmail.com, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org
 
