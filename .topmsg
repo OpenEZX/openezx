@@ -1,9 +1,8 @@
-From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx: Defconfig update
+From: Antonio Ospite <ao2@openezx.org>
+Subject: EZX: Defconfig update
 To: linux-arm-kernel@lists.arm.linux.org.uk
 Cc: eric.y.miao@gmail.com
 
 Update defconfig to build all features from latest patchset.
 
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
-Signed-off-by: Stefan Schmidt <stefan@datenfreihafen.org>
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
