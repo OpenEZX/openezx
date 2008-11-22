@@ -143,14 +143,11 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc;
-	int err;
 
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
-	if (IS_ERR(rtc)) {
-		err = PTR_ERR(rtc);
-		goto error;
-	}
+	if (IS_ERR(rtc))
+		return PTR_ERR(rtc);
 
 	platform_set_drvdata(plat_dev, rtc);
 
@@ -158,9 +155,6 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_rtc_irq, rtc, "RTC Alarm");
 
 	return 0;
-
-error:
-	return err;
 }
 
 static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
