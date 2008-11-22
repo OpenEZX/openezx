@@ -48,6 +48,10 @@
 #include "devices.h"
 #include "generic.h"
 
+#define GPIO1_PCAP_IRQ			1
+#define GPIO24_PCAP_CS			24
+#define GPIO28_PCAP_CS			28
+
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
 	.max_brightness	= 1023,
@@ -750,19 +754,17 @@ static void ezx_pcap_init(void)
 }
 
 static struct pcap_platform_data ezx_pcap_platform_data = {
-	.irq    = gpio_to_irq(1),
+	.irq    = gpio_to_irq(GPIO1_PCAP_IRQ),
 	.config = 0,
 	.init   = ezx_pcap_init,
 };
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT)
-		gpio_set_value(24,
-		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 0 : 1);
-	else
-		gpio_set_value(24,
-		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 1 : 0);
+	int i = machine_is_ezx_a780() || machine_is_ezx_e680();
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO24_PCAP_CS, on ^ i);
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
@@ -968,8 +970,8 @@ static void __init a780_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
@@ -1053,8 +1055,8 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
@@ -1103,8 +1105,8 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1252,10 +1254,10 @@ static void __init a910_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
-	gpio_request(20, "MMC CS");
-	gpio_direction_output(20, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
+	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
@@ -1301,8 +1303,8 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1350,8 +1352,8 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
