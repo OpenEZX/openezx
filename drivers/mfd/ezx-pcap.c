@@ -18,14 +18,6 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 
-#include <asm/mach-types.h>
-
-#include <mach/ssp.h>
-#include <mach/pxa-regs.h>
-#include <mach/regs-ssp.h>
-#include <mach/mfp-pxa27x.h>
-#include <mach/irqs.h>
-
 struct pcap_chip {
 	struct spi_device *spi;
 	struct work_struct work;
