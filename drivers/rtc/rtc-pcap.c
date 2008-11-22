@@ -2,6 +2,7 @@
  *  pcap rtc code for Motorola EZX phones
  *
  *  Copyright (c) 2008 guiming zhuo <gmzhuo@gmail.com>
+ *  Copyright (c) 2008 Daniel Ribeiro <drwyrm@gmail.com>
  *
  *  Based on Motorola's rtc.c Copyright (c) 2003-2005 Motorola
  *
