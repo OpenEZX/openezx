@@ -108,7 +108,7 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_alarm_irq_enable(struct rtc_device *rtc, unsigned int en)
+static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
 {
 	if (en)
 		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
@@ -118,7 +118,7 @@ static int pcap_rtc_alarm_irq_enable(struct rtc_device *rtc, unsigned int en)
 	return 0;
 }
 
-static int pcap_rtc_update_irq_enable(struct rtc_device *rtc, unsigned int en)
+static int pcap_rtc_update_irq_enable(struct device *dev, unsigned int en)
 {
 	if (en)
 		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
