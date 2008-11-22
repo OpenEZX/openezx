@@ -111,14 +111,6 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
-{
-	unsigned long secs;
-
-	rtc_tm_to_time(tm, &secs);
-	return pcap_rtc_set_mmss(dev, secs);
-}
-
 static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 			  unsigned long arg)
 {
@@ -143,7 +135,6 @@ static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
 
 static const struct rtc_class_ops pcap_rtc_ops = {
 	.read_time = pcap_rtc_read_time,
-	.set_time = pcap_rtc_set_time,
 	.read_alarm = pcap_rtc_read_alarm,
 	.set_alarm = pcap_rtc_set_alarm,
 	.set_mmss = pcap_rtc_set_mmss,
