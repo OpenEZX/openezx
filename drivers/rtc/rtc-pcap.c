@@ -35,18 +35,18 @@ static void pcap_rtc_irq(u32 events, void *data)
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
-	struct timeval tmv;
+	unsigned long secs;
 	u32 value;
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= PCAP_RTC_TOD_MASK;
-	tmv.tv_sec = value;
+	secs = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * SEC_PER_DAY;
+	secs += value * SEC_PER_DAY;
 
-	rtc_time_to_tm(tmv.tv_sec, tm);
+	rtc_time_to_tm(secs, tm);
 
 	return 0;
 }
@@ -55,22 +55,18 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
-	int err;
-	struct timeval tmv;
 	u32 value;
 
-	err = rtc_tm_to_time(tm, &secs);
-	tmv.tv_sec = secs;
-	tmv.tv_usec = 0;
+	rtc_tm_to_time(tm, &secs);
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % SEC_PER_DAY;
+	value |= secs % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / SEC_PER_DAY;
+	value |= secs / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 	return 0;
@@ -78,18 +74,18 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
-	struct timeval tmv;
+	unsigned long secs;
 	u32 value;
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= PCAP_RTC_TOD_MASK;
-	tmv.tv_sec = value;
+	secs = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * SEC_PER_DAY;
+	secs += value * SEC_PER_DAY;
 
-	rtc_time_to_tm(tmv.tv_sec, tm);
+	rtc_time_to_tm(secs, tm);
 
 	return rtc_valid_tm(tm);
 }
