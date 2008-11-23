@@ -32,19 +32,35 @@ static DEFINE_MUTEX(event_lock);
 static DEFINE_MUTEX(adc_lock);
 
 /* IO */
+#define PCAP_BUFSIZE	4
 static int ezx_pcap_putget(u32 *data)
 {
 	struct spi_transfer t;
 	struct spi_message m;
+	int status;
+	u8 *buf;
+
+	/* alloc DMA safe buffer */
+	buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
 
 	memset(&t, 0, sizeof t);
 	spi_message_init(&m);
-	t.len = 4;
-	t.tx_buf = (u8 *)data;
-	t.rx_buf = (u8 *)data;
-	t.bits_per_word = 32;
+	t.len = PCAP_BUFSIZE;
 	spi_message_add_tail(&t, &m);
-	return spi_sync(pcap.spi, &m);
+
+	memcpy(buf, (u8 *) data, PCAP_BUFSIZE);
+	t.tx_buf = buf;
+	t.rx_buf = buf;
+	t.bits_per_word = 32;
+	status = spi_sync(pcap.spi, &m);
+
+	if (status == 0)
+		memcpy((u8 *) data, buf, PCAP_BUFSIZE);
+	kfree(buf);
+
+	return status;
 }
 
 int ezx_pcap_write(u8 reg_num, u32 value)
@@ -539,7 +555,7 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
-	pcap.spi = 0;
+	pcap.spi = NULL;
 
 	return 0;
 }
@@ -602,7 +618,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 wq_destroy:
 	destroy_workqueue(pcap.workqueue);
 null_spi:
-	pcap.spi = 0;
+	pcap.spi = NULL;
 ret:
 	return ret;
 }
