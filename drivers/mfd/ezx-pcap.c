@@ -514,7 +514,7 @@ static int ezx_pcap_setup_sysfs(int create)
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battcurr);
 	if (ret)
 		goto fail6;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_regs);
+	ret = device_create_file(&pcap.spi->dev, &dev_attr_regs);
 	if (ret)
 		goto fail7;
 
