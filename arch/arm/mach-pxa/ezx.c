@@ -781,6 +781,11 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* PCAP_TS */
+struct platform_device pcap_ts_device = {
+	.name = "pcap-ts",
+	.id   = -1,
+};
 
 #ifdef CONFIG_MACH_EZX_A780
 static void __init a780_init(void)
@@ -802,6 +807,8 @@ static void __init a780_init(void)
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
+
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -843,6 +850,8 @@ static void __init e680_init(void)
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
+	platform_device_register(&pcap_ts_device);
+
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
 
@@ -881,6 +890,8 @@ static void __init a1200_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
+
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1010,6 +1021,8 @@ static void __init e6_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
+
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
