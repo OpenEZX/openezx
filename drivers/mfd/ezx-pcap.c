@@ -362,42 +362,6 @@ int ezx_pcap_unregister_event(u32 events)
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
 /* sysfs interface */
-static ssize_t pcap_show_regs(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	unsigned int reg, val;
-	char *p = buf;
-
-	for (reg = 0; reg < 32; reg++) {
-		ezx_pcap_read(reg, &val);
-		p += sprintf(p, "%02d %08x\n", reg, val);
-	}
-	return p - buf;
-}
-
-static ssize_t pcap_store_regs(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int reg, val;
-	char *p = (char *)buf;
-
-	while (p < (buf + size)) {
-		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
-			reg < 0 || reg >= 32)
-			return -EINVAL;
-		p = strchr(p, '\n') + 1;
-	}
-
-	p = (char *)buf;
-	while (p < (buf + size)) {
-		sscanf(p, "%u %x\n", &reg, &val);
-		ezx_pcap_write(reg, val);
-		p = strchr(p, '\n') + 1;
-	}
-
-	return size;
-}
-
 static ssize_t pcap_show_adc_coin(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -447,7 +411,6 @@ static ssize_t pcap_show_adc_chargerid(struct device *dev,
 	return sprintf(buf, "%d\n", res);
 }
 
-static DEVICE_ATTR(regs, 0600, pcap_show_regs, pcap_store_regs);
 static DEVICE_ATTR(adc_coin, 0400, pcap_show_adc_coin, NULL);
 static DEVICE_ATTR(adc_battery, 0400, pcap_show_adc_battery, NULL);
 static DEVICE_ATTR(adc_bplus, 0400, pcap_show_adc_bplus, NULL);
@@ -462,37 +425,33 @@ static int ezx_pcap_setup_sysfs(int create)
 	if (!create)
 		goto remove_all;
 
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_regs);
-	if (ret)
-		goto ret;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_coin);
 	if (ret)
-		goto fail1;
+		goto ret;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battery);
 	if (ret)
-		goto fail2;
+		goto fail1;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_bplus);
 	if (ret)
-		goto fail3;
+		goto fail2;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
 	if (ret)
-		goto fail4;
+		goto fail3;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_temperature);
 	if (ret)
-		goto fail5;
+		goto fail4;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
 	if (ret)
-		goto fail6;
+		goto fail5;
 
 	goto ret;
 
 remove_all:
-fail6:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
-fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
-fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_regs);
+fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
+fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
+fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
+fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
+fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
