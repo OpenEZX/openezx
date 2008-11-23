@@ -383,6 +383,42 @@ int ezx_pcap_unregister_event(u32 events)
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
 /* sysfs interface */
+static ssize_t pcap_show_regs(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	unsigned int reg, val;
+	char *p = buf;
+
+	for (reg = 0; reg < 32; reg++) {
+		ezx_pcap_read(reg, &val);
+		p += sprintf(p, "%02d %08x\n", reg, val);
+	}
+	return p - buf;
+}
+
+static ssize_t pcap_store_regs(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	unsigned int reg, val;
+	char *p = (char *)buf;
+
+	while (p < (buf + size)) {
+		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
+			reg < 0 || reg >= 32)
+			return -EINVAL;
+		p = strchr(p, '\n') + 1;
+	}
+
+	p = (char *)buf;
+	while (p < (buf + size)) {
+		sscanf(p, "%u %x\n", &reg, &val);
+		ezx_pcap_write(reg, val);
+		p = strchr(p, '\n') + 1;
+	}
+
+	return size;
+}
+
 static ssize_t pcap_show_adc_coin(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -448,6 +484,7 @@ static DEVICE_ATTR(adc_mobportb, 0400, pcap_show_adc_mobportb, NULL);
 static DEVICE_ATTR(adc_temperature, 0400, pcap_show_adc_temperature, NULL);
 static DEVICE_ATTR(adc_chargerid, 0400, pcap_show_adc_chargerid, NULL);
 static DEVICE_ATTR(adc_battcurr, 0400, pcap_show_adc_battcurr, NULL);
+static DEVICE_ATTR(regs, 0600, pcap_show_regs, pcap_store_regs);
 
 static int ezx_pcap_setup_sysfs(int create)
 {
@@ -477,10 +514,14 @@ static int ezx_pcap_setup_sysfs(int create)
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battcurr);
 	if (ret)
 		goto fail6;
+	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_regs);
+	if (ret)
+		goto fail7;
 
 	goto ret;
 
 remove_all:
+fail7:	device_remove_file(&pcap.spi->dev, &dev_attr_regs);
 fail6:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
 fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
 fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
