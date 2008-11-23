@@ -51,7 +51,6 @@ static int ezx_pcap_putget(u32 *data)
 	*buf = *data;
 	t.tx_buf = (u8 *) buf;
 	t.rx_buf = (u8 *) buf;
-	t.bits_per_word = 32;
 	status = spi_sync(pcap.spi, &m);
 
 	if (status == 0)
@@ -494,6 +493,12 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		ret = -EBUSY;
 		goto ret;
 	}
+
+	spi->bits_per_word = 32;
+	spi->mode = SPI_MODE_0;
+	ret = spi_setup(spi);
+	if (ret)
+		goto ret;
 
 	pcap.spi = spi;
 
