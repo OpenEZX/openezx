@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 01/14] EZX: Remove fixup.
+Subject: EZX: GPIO configuration
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-Now our bootloader can handle atag_mem.
+Pin configs for different generations and phones.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
