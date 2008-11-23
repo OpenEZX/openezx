@@ -531,7 +531,7 @@ fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
-static int ezx_pcap_remove(struct spi_device *spi)
+static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
@@ -539,6 +539,7 @@ static int ezx_pcap_remove(struct spi_device *spi)
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
+	pcap.spi = 0;
 
 	return 0;
 }
@@ -551,13 +552,18 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	if (!pdata)
 		goto ret;
 
+	if (pcap.spi) {
+		ret = -EBUSY;
+		goto ret;
+	}
+
 	pcap.spi = spi;
 
 	INIT_WORK(&pcap.work, pcap_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
 	if (!pcap.workqueue) {
 		dev_err(&spi->dev, "cant create pcap thread\n");
-		goto ret;
+		goto null_spi;
 	}
 
 	/* redirect interrupts to AP */
@@ -595,13 +601,15 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 wq_destroy:
 	destroy_workqueue(pcap.workqueue);
+null_spi:
+	pcap.spi = 0;
 ret:
 	return ret;
 }
 
 static struct spi_driver ezxpcap_driver = {
 	.probe  = ezx_pcap_probe,
-	.remove = ezx_pcap_remove,
+	.remove = __devexit_p(ezx_pcap_remove),
 	.driver = {
 		.name   = "ezx-pcap",
 		.owner  = THIS_MODULE,
