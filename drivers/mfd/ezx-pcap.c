@@ -463,7 +463,7 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
-	pcap.spi = 0;
+	pcap.spi = NULL;
 
 	return 0;
 }
@@ -526,7 +526,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 wq_destroy:
 	destroy_workqueue(pcap.workqueue);
 null_spi:
-	pcap.spi = 0;
+	pcap.spi = NULL;
 ret:
 	return ret;
 }
