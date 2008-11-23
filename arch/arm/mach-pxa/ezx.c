@@ -42,6 +42,14 @@
 #include "devices.h"
 #include "generic.h"
 
+#define GPIO1_PCAP_IRQ			1
+#define GPIO11_MMC_DETECT		11
+#define GPIO20_A910_MMC_CS		20
+#define GPIO24_PCAP_CS			24
+#define GPIO28_PCAP_CS			28
+#define GPIO46_E680_LED_RED		46
+#define GPIO47_E680_LED_GREEN		47
+
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
 	.max_brightness	= 1023,
@@ -106,7 +114,7 @@ static int ezx_mci_init(struct device *dev,
 
 	/* A1200 slot is not hot-plug */
 	if (!machine_is_ezx_a1200()) {
-		err = request_irq(gpio_to_irq(11), detect_int,
+		err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_int,
 			IRQF_DISABLED | IRQF_SAMPLE_RANDOM |
 			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
 			"MMC card detect", data);
@@ -152,7 +160,7 @@ static void ezx_mci_exit(struct device *dev, void *data)
 {
 	ezx_pcap_mmcsd_power(0);
 	if (!machine_is_ezx_a1200())
-		free_irq(gpio_to_irq(11), data);
+		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
 }
 
 static struct pxamci_platform_data ezx_mci_platform_data = {
@@ -233,7 +241,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
-	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
+	GPIO99_GPIO,				/* TC_MM_EN */
 
 	/* sound */
 	GPIO52_SSP3_SCLK,
@@ -260,8 +268,8 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO94_CIF_DD_5,
 	GPIO17_CIF_DD_6,
 	GPIO108_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO19_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO19_GPIO,				/* CAM_RST */
 
 	/* EMU */
 	GPIO120_GPIO,				/* EMU_MUX1 */
@@ -317,8 +325,8 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO48_CIF_DD_5,
 	GPIO93_CIF_DD_6,
 	GPIO12_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO28_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO28_GPIO,				/* CAM_RST */
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
@@ -368,8 +376,8 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO18_GPIO,				/* MIDI_RDY */
 
 	/* leds */
-	GPIO46_GPIO | MFP_DIR_OUT,
-	GPIO47_GPIO | MFP_DIR_OUT,
+	GPIO46_GPIO,
+	GPIO47_GPIO,
 };
 #endif
 
@@ -738,19 +746,17 @@ static void ezx_pcap_init(void)
 }
 
 static struct pcap_platform_data ezx_pcap_platform_data = {
-	.irq    = gpio_to_irq(1),
+	.irq    = gpio_to_irq(GPIO1_PCAP_IRQ),
 	.config = 0,
 	.init   = ezx_pcap_init,
 };
 
 static void pcap_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT)
-		gpio_set_value(24,
-		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 0 : 1);
-	else
-		gpio_set_value(24,
-		 (machine_is_ezx_a780() || machine_is_ezx_e680()) ? 1 : 0);
+	int i = machine_is_ezx_a780() || machine_is_ezx_e680();
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO24_PCAP_CS, on ^ i);
 }
 
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
@@ -815,8 +821,8 @@ static void __init a780_init(void)
 
 	pxa_set_i2c_info(NULL);
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
@@ -840,7 +846,7 @@ MACHINE_START(EZX_A780, "Motorola EZX A780")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a780_init,
+	.init_machine   = a780_init,
 MACHINE_END
 #endif
 
@@ -852,13 +858,14 @@ static struct pcap_leds_platform_data e680_leds = {
 			.name = "e680:red",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = 46 | PCAP_LED_GPIO_EN | PCAP_LED_GPIO_INVERT,
+			.gpio = GPIO46_E680_LED_RED | PCAP_LED_GPIO_EN |
+							PCAP_LED_GPIO_INVERT,
 		}, {
 			.type = PCAP_LED0,
 			.name = "e680:green",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = 47 | PCAP_LED_GPIO_EN,
+			.gpio = GPIO47_E680_LED_GREEN | PCAP_LED_GPIO_EN,
 		}, {
 			.type = PCAP_LED1,
 			.name = "e680:blue",
@@ -891,8 +898,8 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
@@ -916,7 +923,7 @@ MACHINE_START(EZX_E680, "Motorola EZX E680")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e680_init,
+	.init_machine   = e680_init,
 MACHINE_END
 #endif
 
@@ -934,8 +941,8 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -957,7 +964,7 @@ MACHINE_START(EZX_A1200, "Motorola EZX A1200")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a1200_init,
+	.init_machine   = a1200_init,
 MACHINE_END
 #endif
 
@@ -965,10 +972,9 @@ MACHINE_END
 /* A910 SPI/MMC */
 static void a910_mmc_cs_control(u32 command)
 {
-	if (command & PXA2XX_CS_ASSERT)
-		gpio_set_value(20, 0);
-	else
-		gpio_set_value(20, 1);
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO20_A910_MMC_CS, !on);
 }
 
 static struct pxa2xx_spi_master a910_spi_masterinfo = {
@@ -1027,10 +1033,10 @@ static void __init a910_init(void)
 
 	pxa_set_i2c_info(NULL);
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
-	gpio_request(20, "MMC CS");
-	gpio_direction_output(20, 1);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
+	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
 	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
@@ -1048,7 +1054,7 @@ MACHINE_START(EZX_A910, "Motorola EZX A910")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a910_init,
+	.init_machine   = a910_init,
 MACHINE_END
 #endif
 
@@ -1066,8 +1072,8 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1089,7 +1095,7 @@ MACHINE_START(EZX_E6, "Motorola EZX E6")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e6_init,
+	.init_machine   = e6_init,
 MACHINE_END
 #endif
 
@@ -1107,8 +1113,8 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
-	gpio_request(24, "PCAP CS");
-	gpio_direction_output(24, 0);
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1128,6 +1134,6 @@ MACHINE_START(EZX_E2, "Motorola EZX E2")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e2_init,
+	.init_machine   = e2_init,
 MACHINE_END
 #endif
