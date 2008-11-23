@@ -2,6 +2,7 @@
  *  pcap rtc code for Motorola EZX phones
  *
  *  Copyright (c) 2008 guiming zhuo <gmzhuo@gmail.com>
+ *  Copyright (c) 2008 Daniel Ribeiro <drwyrm@gmail.com>
  *
  *  Based on Motorola's rtc.c Copyright (c) 2003-2005 Motorola
  *
@@ -14,10 +15,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/string.h>
-#include <linux/sched.h>
-#include <linux/errno.h>
-#include <linux/version.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
@@ -39,18 +36,18 @@ static void pcap_rtc_irq(u32 events, void *data)
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
-	struct timeval tmv;
+	unsigned long secs;
 	u32 value;
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= PCAP_RTC_TOD_MASK;
-	tmv.tv_sec = value;
+	secs = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * SEC_PER_DAY;
+	secs += value * SEC_PER_DAY;
 
-	rtc_time_to_tm(tmv.tv_sec, tm);
+	rtc_time_to_tm(secs, tm);
 
 	return 0;
 }
@@ -59,22 +56,18 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
-	int err;
-	struct timeval tmv;
 	u32 value;
 
-	err = rtc_tm_to_time(tm, &secs);
-	tmv.tv_sec = secs;
-	tmv.tv_usec = 0;
+	rtc_tm_to_time(tm, &secs);
 
 	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
-	value |= tmv.tv_sec % SEC_PER_DAY;
+	value |= secs % SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
 
 	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
-	value |= tmv.tv_sec / SEC_PER_DAY;
+	value |= secs / SEC_PER_DAY;
 	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
 
 	return 0;
@@ -82,18 +75,18 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
-	struct timeval tmv;
+	unsigned long secs;
 	u32 value;
 
 	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
 	value &= PCAP_RTC_TOD_MASK;
-	tmv.tv_sec = value;
+	secs = value;
 
 	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
 	value &= PCAP_RTC_DAY_MASK;
-	tmv.tv_sec += value * SEC_PER_DAY;
+	secs += value * SEC_PER_DAY;
 
-	rtc_time_to_tm(tmv.tv_sec, tm);
+	rtc_time_to_tm(secs, tm);
 
 	return rtc_valid_tm(tm);
 }
@@ -115,56 +108,43 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_set_time(struct device *dev, struct rtc_time *tm)
+static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
 {
-	unsigned long secs;
+	if (en)
+		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
+	else
+		ezx_pcap_mask_event(PCAP_IRQ_TODA);
 
-	rtc_tm_to_time(tm, &secs);
-	return pcap_rtc_set_mmss(dev, secs);
+	return 0;
 }
 
-static int pcap_rtc_ioctl(struct device *dev, unsigned int cmd,
-			  unsigned long arg)
+static int pcap_rtc_update_irq_enable(struct device *dev, unsigned int en)
 {
-	switch (cmd) {
-	case RTC_UIE_ON:
+	if (en)
 		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
-		break;
-	case RTC_UIE_OFF:
+	else
 		ezx_pcap_mask_event(PCAP_IRQ_1HZ);
-		break;
-	case RTC_AIE_ON:
-		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
-		break;
-	case RTC_AIE_OFF:
-		ezx_pcap_mask_event(PCAP_IRQ_TODA);
-		break;
-	default:
-		return -ENOIOCTLCMD;
-	}
+
 	return 0;
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
 	.read_time = pcap_rtc_read_time,
-	.set_time = pcap_rtc_set_time,
 	.read_alarm = pcap_rtc_read_alarm,
 	.set_alarm = pcap_rtc_set_alarm,
 	.set_mmss = pcap_rtc_set_mmss,
-	.ioctl = pcap_rtc_ioctl,
+	.alarm_irq_enable = pcap_rtc_alarm_irq_enable,
+	.update_irq_enable = pcap_rtc_update_irq_enable,
 };
 
 static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc;
-	int err;
 
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
-	if (IS_ERR(rtc)) {
-		err = PTR_ERR(rtc);
-		goto error;
-	}
+	if (IS_ERR(rtc))
+		return PTR_ERR(rtc);
 
 	platform_set_drvdata(plat_dev, rtc);
 
@@ -172,9 +152,6 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_rtc_irq, rtc, "RTC Alarm");
 
 	return 0;
-
-error:
-	return err;
 }
 
 static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
