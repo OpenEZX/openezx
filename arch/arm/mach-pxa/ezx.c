@@ -152,7 +152,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO13_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* WDI2 */
 	GPIO82_GPIO,				/* RESET */
-	GPIO99_GPIO | MFP_DIR_OUT,		/* TC_MM_EN */
+	GPIO99_GPIO,				/* TC_MM_EN */
 
 	/* sound */
 	GPIO52_SSP3_SCLK,
@@ -179,8 +179,8 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO94_CIF_DD_5,
 	GPIO17_CIF_DD_6,
 	GPIO108_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO19_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO19_GPIO,				/* CAM_RST */
 
 	/* EMU */
 	GPIO120_GPIO,				/* EMU_MUX1 */
@@ -236,8 +236,8 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO48_CIF_DD_5,
 	GPIO93_CIF_DD_6,
 	GPIO12_CIF_DD_7,
-	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-	GPIO28_GPIO | MFP_DIR_OUT,		/* CAM_RST */
+	GPIO50_GPIO,				/* CAM_EN */
+	GPIO28_GPIO,				/* CAM_RST */
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
@@ -287,8 +287,8 @@ static unsigned long e680_pin_config[] __initdata = {
 	GPIO18_GPIO,				/* MIDI_RDY */
 
 	/* leds */
-	GPIO46_GPIO | MFP_DIR_OUT,
-	GPIO47_GPIO | MFP_DIR_OUT,
+	GPIO46_GPIO,
+	GPIO47_GPIO,
 };
 #endif
 
@@ -389,7 +389,7 @@ MACHINE_START(EZX_A780, "Motorola EZX A780")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a780_init,
+	.init_machine   = a780_init,
 MACHINE_END
 #endif
 
@@ -414,7 +414,7 @@ MACHINE_START(EZX_E680, "Motorola EZX E680")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e680_init,
+	.init_machine   = e680_init,
 MACHINE_END
 #endif
 
@@ -439,7 +439,7 @@ MACHINE_START(EZX_A1200, "Motorola EZX A1200")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a1200_init,
+	.init_machine   = a1200_init,
 MACHINE_END
 #endif
 
@@ -464,7 +464,7 @@ MACHINE_START(EZX_A910, "Motorola EZX A910")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &a910_init,
+	.init_machine   = a910_init,
 MACHINE_END
 #endif
 
@@ -489,7 +489,7 @@ MACHINE_START(EZX_E6, "Motorola EZX E6")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e6_init,
+	.init_machine   = e6_init,
 MACHINE_END
 #endif
 
@@ -514,6 +514,6 @@ MACHINE_START(EZX_E2, "Motorola EZX E2")
 	.map_io         = pxa_map_io,
 	.init_irq       = pxa27x_init_irq,
 	.timer          = &pxa_timer,
-	.init_machine   = &e2_init,
+	.init_machine   = e2_init,
 MACHINE_END
 #endif
