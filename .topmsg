@@ -7,3 +7,4 @@ RTC driver based on the PCAP2 multi function device
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
 Signed-off-by: guiming zhuo <gmzhuo@gmail.com>
+Acked-by: Alessandro Zummo <a.zummo@towertech.it>
