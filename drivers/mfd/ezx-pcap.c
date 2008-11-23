@@ -455,7 +455,7 @@ fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
-static int ezx_pcap_remove(struct spi_device *spi)
+static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
@@ -533,7 +533,7 @@ ret:
 
 static struct spi_driver ezxpcap_driver = {
 	.probe  = ezx_pcap_probe,
-	.remove = ezx_pcap_remove,
+	.remove = __devexit_p(ezx_pcap_remove),
 	.driver = {
 		.name   = "ezx-pcap",
 		.owner  = THIS_MODULE,
