@@ -38,7 +38,7 @@ static int ezx_pcap_putget(u32 *data)
 	struct spi_transfer t;
 	struct spi_message m;
 	int status;
-	u8 *buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
+	u32 *buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
 
 	if (!buf)
 		return -ENOMEM;
@@ -48,14 +48,14 @@ static int ezx_pcap_putget(u32 *data)
 	t.len = PCAP_BUFSIZE;
 	spi_message_add_tail(&t, &m);
 
-	*(u32 *)buf = cpu_to_le32(*data);
-	t.tx_buf = buf;
-	t.rx_buf = buf;
+	*buf = *data;
+	t.tx_buf = (u8 *) buf;
+	t.rx_buf = (u8 *) buf;
 	t.bits_per_word = 32;
 	status = spi_sync(pcap.spi, &m);
 
 	if (status == 0)
-		*data = le32_to_cpu(*(u32 *)buf);
+		*data = *buf;
 	kfree(buf);
 
 	return status;
