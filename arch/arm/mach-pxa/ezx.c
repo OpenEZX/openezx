@@ -791,6 +791,12 @@ struct platform_device pcap_ts_device = {
 	.id   = -1,
 };
 
+/* PCAP_RTC */
+static struct platform_device pcap_rtc_device = {
+	.name = "rtc-pcap",
+	.id   = -1,
+};
+
 #ifdef CONFIG_MACH_EZX_A780
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
@@ -953,6 +959,7 @@ static void __init a1200_init(void)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1043,6 +1050,7 @@ static void __init a910_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1084,6 +1092,7 @@ static void __init e6_init(void)
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1123,6 +1132,7 @@ static void __init e2_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
