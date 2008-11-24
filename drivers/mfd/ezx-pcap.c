@@ -282,6 +282,27 @@ void ezx_pcap_do_general_adc(u8 bank, u8 ch, u32 *res)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_do_general_adc);
 
+void ezx_pcap_do_batt_adc(int pol, u32 res[])
+{
+	u32 tmp[7];
+	DECLARE_COMPLETION_ONSTACK(done);
+
+	ezx_pcap_start_adc(PCAP_ADC_BANK_0, PCAP_ADC_T_NOW,
+				PCAP_ADC_RAND | PCAP_ADC_BATT_I_ADC |
+				(PCAP_ADC_CH_BATT << PCAP_ADC_ADA1_SHIFT) |
+				(pol ? PCAP_ADC_BATT_I_POLARITY : 0),
+				adc_complete, &done);
+	wait_for_completion(&done);
+	ezx_pcap_get_adc_bank_result(tmp);
+	ezx_pcap_disable_adc();
+
+	/* average conversions and translate current value */
+	res[0] = (tmp[0] + tmp[2] + tmp[4]) / 3;
+	res[1] = (tmp[1] + tmp[3] + tmp[5]) / 3;
+	res[1] = (res[1] - 178) * 3165 / 1000;
+}
+EXPORT_SYMBOL_GPL(ezx_pcap_do_batt_adc);
+
 /* event handling */
 static irqreturn_t pcap_irq_handler(int irq, void *dev_id)
 {
@@ -375,6 +396,42 @@ int ezx_pcap_unregister_event(u32 events)
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
 /* sysfs interface */
+static ssize_t pcap_show_regs(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	unsigned int reg, val;
+	char *p = buf;
+
+	for (reg = 0; reg < 32; reg++) {
+		ezx_pcap_read(reg, &val);
+		p += sprintf(p, "%02d %08x\n", reg, val);
+	}
+	return p - buf;
+}
+
+static ssize_t pcap_store_regs(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	unsigned int reg, val;
+	char *p = (char *)buf;
+
+	while (p < (buf + size)) {
+		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
+			reg < 0 || reg >= 32)
+			return -EINVAL;
+		p = strchr(p, '\n') + 1;
+	}
+
+	p = (char *)buf;
+	while (p < (buf + size)) {
+		sscanf(p, "%u %x\n", &reg, &val);
+		ezx_pcap_write(reg, val);
+		p = strchr(p, '\n') + 1;
+	}
+
+	return size;
+}
+
 static ssize_t pcap_show_adc_coin(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -423,6 +480,15 @@ static ssize_t pcap_show_adc_chargerid(struct device *dev,
 	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_CHARGER_ID, &res);
 	return sprintf(buf, "%d\n", res);
 }
+static ssize_t pcap_show_adc_battcurr(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	u32 res[2];
+
+	/* FIXME: polarity may change depending on phone */
+	ezx_pcap_do_batt_adc(1, res);
+	return sprintf(buf, "voltage: %d\ncurrent: %d\n", res[0], res[1]);
+}
 
 static DEVICE_ATTR(adc_coin, 0400, pcap_show_adc_coin, NULL);
 static DEVICE_ATTR(adc_battery, 0400, pcap_show_adc_battery, NULL);
@@ -430,6 +496,8 @@ static DEVICE_ATTR(adc_bplus, 0400, pcap_show_adc_bplus, NULL);
 static DEVICE_ATTR(adc_mobportb, 0400, pcap_show_adc_mobportb, NULL);
 static DEVICE_ATTR(adc_temperature, 0400, pcap_show_adc_temperature, NULL);
 static DEVICE_ATTR(adc_chargerid, 0400, pcap_show_adc_chargerid, NULL);
+static DEVICE_ATTR(adc_battcurr, 0400, pcap_show_adc_battcurr, NULL);
+static DEVICE_ATTR(regs, 0600, pcap_show_regs, pcap_store_regs);
 
 static int ezx_pcap_setup_sysfs(int create)
 {
@@ -456,10 +524,18 @@ static int ezx_pcap_setup_sysfs(int create)
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
 	if (ret)
 		goto fail5;
+	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battcurr);
+	if (ret)
+		goto fail6;
+	ret = device_create_file(&pcap.spi->dev, &dev_attr_regs);
+	if (ret)
+		goto fail7;
 
 	goto ret;
 
 remove_all:
+fail7:	device_remove_file(&pcap.spi->dev, &dev_attr_regs);
+fail6:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
 fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
 fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
 fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
