@@ -32,19 +32,32 @@ static DEFINE_MUTEX(event_lock);
 static DEFINE_MUTEX(adc_lock);
 
 /* IO */
+#define PCAP_BUFSIZE	4
 static int ezx_pcap_putget(u32 *data)
 {
 	struct spi_transfer t;
 	struct spi_message m;
+	int status;
+	u32 *buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
+
+	if (!buf)
+		return -ENOMEM;
 
 	memset(&t, 0, sizeof t);
 	spi_message_init(&m);
-	t.len = 4;
-	t.tx_buf = (u8 *)data;
-	t.rx_buf = (u8 *)data;
-	t.bits_per_word = 32;
+	t.len = PCAP_BUFSIZE;
 	spi_message_add_tail(&t, &m);
-	return spi_sync(pcap.spi, &m);
+
+	*buf = *data;
+	t.tx_buf = (u8 *) buf;
+	t.rx_buf = (u8 *) buf;
+	status = spi_sync(pcap.spi, &m);
+
+	if (status == 0)
+		*data = *buf;
+	kfree(buf);
+
+	return status;
 }
 
 int ezx_pcap_write(u8 reg_num, u32 value)
@@ -362,42 +375,6 @@ int ezx_pcap_unregister_event(u32 events)
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
 /* sysfs interface */
-static ssize_t pcap_show_regs(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	unsigned int reg, val;
-	char *p = buf;
-
-	for (reg = 0; reg < 32; reg++) {
-		ezx_pcap_read(reg, &val);
-		p += sprintf(p, "%02d %08x\n", reg, val);
-	}
-	return p - buf;
-}
-
-static ssize_t pcap_store_regs(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	unsigned int reg, val;
-	char *p = (char *)buf;
-
-	while (p < (buf + size)) {
-		if ((sscanf(p, "%u %x\n", &reg, &val) != 2) ||
-			reg < 0 || reg >= 32)
-			return -EINVAL;
-		p = strchr(p, '\n') + 1;
-	}
-
-	p = (char *)buf;
-	while (p < (buf + size)) {
-		sscanf(p, "%u %x\n", &reg, &val);
-		ezx_pcap_write(reg, val);
-		p = strchr(p, '\n') + 1;
-	}
-
-	return size;
-}
-
 static ssize_t pcap_show_adc_coin(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
@@ -447,7 +424,6 @@ static ssize_t pcap_show_adc_chargerid(struct device *dev,
 	return sprintf(buf, "%d\n", res);
 }
 
-static DEVICE_ATTR(regs, 0600, pcap_show_regs, pcap_store_regs);
 static DEVICE_ATTR(adc_coin, 0400, pcap_show_adc_coin, NULL);
 static DEVICE_ATTR(adc_battery, 0400, pcap_show_adc_battery, NULL);
 static DEVICE_ATTR(adc_bplus, 0400, pcap_show_adc_bplus, NULL);
@@ -462,41 +438,37 @@ static int ezx_pcap_setup_sysfs(int create)
 	if (!create)
 		goto remove_all;
 
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_regs);
-	if (ret)
-		goto ret;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_coin);
 	if (ret)
-		goto fail1;
+		goto ret;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battery);
 	if (ret)
-		goto fail2;
+		goto fail1;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_bplus);
 	if (ret)
-		goto fail3;
+		goto fail2;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
 	if (ret)
-		goto fail4;
+		goto fail3;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_temperature);
 	if (ret)
-		goto fail5;
+		goto fail4;
 	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
 	if (ret)
-		goto fail6;
+		goto fail5;
 
 	goto ret;
 
 remove_all:
-fail6:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
-fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
-fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_regs);
+fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
+fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
+fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
+fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
+fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
-static int ezx_pcap_remove(struct spi_device *spi)
+static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
@@ -504,6 +476,7 @@ static int ezx_pcap_remove(struct spi_device *spi)
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
+	pcap.spi = NULL;
 
 	return 0;
 }
@@ -516,13 +489,24 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	if (!pdata)
 		goto ret;
 
+	if (pcap.spi) {
+		ret = -EBUSY;
+		goto ret;
+	}
+
+	spi->bits_per_word = 32;
+	spi->mode = SPI_MODE_0;
+	ret = spi_setup(spi);
+	if (ret)
+		goto ret;
+
 	pcap.spi = spi;
 
 	INIT_WORK(&pcap.work, pcap_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
 	if (!pcap.workqueue) {
 		dev_err(&spi->dev, "cant create pcap thread\n");
-		goto ret;
+		goto null_spi;
 	}
 
 	/* redirect interrupts to AP */
@@ -560,13 +544,15 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 wq_destroy:
 	destroy_workqueue(pcap.workqueue);
+null_spi:
+	pcap.spi = NULL;
 ret:
 	return ret;
 }
 
 static struct spi_driver ezxpcap_driver = {
 	.probe  = ezx_pcap_probe,
-	.remove = ezx_pcap_remove,
+	.remove = __devexit_p(ezx_pcap_remove),
 	.driver = {
 		.name   = "ezx-pcap",
 		.owner  = THIS_MODULE,
