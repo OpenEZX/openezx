@@ -1,5 +1,6 @@
-ezx/mach/bp
+ezx/mach/usb2.0
 ezx/asoc
 ezx/eoc
 ezx/defconfig
 pxa/sparsemem
+ezx/usb2.0
