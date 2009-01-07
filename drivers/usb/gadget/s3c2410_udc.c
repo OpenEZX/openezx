@@ -53,8 +53,8 @@
 #include <mach/hardware.h>
 #include <mach/regs-gpio.h>
 
-#include <asm/plat-s3c24xx/regs-udc.h>
-#include <asm/plat-s3c24xx/udc.h>
+#include <plat/regs-udc.h>
+#include <plat/udc.h>
 
 
 #include "s3c2410_udc.h"
@@ -1727,7 +1727,7 @@ static struct s3c2410_udc memory = {
 		.ep0		= &memory.ep[0].ep,
 		.name		= gadget_name,
 		.dev = {
-			.bus_id		= "gadget",
+			.init_name	= "gadget",
 		},
 	},
 

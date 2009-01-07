@@ -246,25 +246,6 @@ void add_page_to_unevictable_list(struct page *page)
 	spin_unlock_irq(&zone->lru_lock);
 }
 
-/**
- * lru_cache_add_active_or_unevictable
- * @page:  the page to be added to LRU
- * @vma:   vma in which page is mapped for determining reclaimability
- *
- * place @page on active or unevictable LRU list, depending on
- * page_evictable().  Note that if the page is not evictable,
- * it goes directly back onto it's zone's unevictable list.  It does
- * NOT use a per cpu pagevec.
- */
-void lru_cache_add_active_or_unevictable(struct page *page,
-					struct vm_area_struct *vma)
-{
-	if (page_evictable(page, vma))
-		lru_cache_add_lru(page, LRU_ACTIVE + page_is_file_cache(page));
-	else
-		add_page_to_unevictable_list(page);
-}
-
 /*
  * Drain pages out of the cpu's pagevecs.
  * Either "cpu" is the current CPU, and preemption has already been
@@ -299,7 +280,6 @@ void lru_add_drain(void)
 	put_cpu();
 }
 
-#if defined(CONFIG_NUMA) || defined(CONFIG_UNEVICTABLE_LRU)
 static void lru_add_drain_per_cpu(struct work_struct *dummy)
 {
 	lru_add_drain();
@@ -312,18 +292,6 @@ int lru_add_drain_all(void)
 {
 	return schedule_on_each_cpu(lru_add_drain_per_cpu);
 }
-
-#else
-
-/*
- * Returns 0 for success
- */
-int lru_add_drain_all(void)
-{
-	lru_add_drain();
-	return 0;
-}
-#endif
 
 /*
  * Batched page_cache_release().  Decrement the reference count on all the
@@ -411,28 +379,6 @@ void __pagevec_release(struct pagevec *pvec)
 EXPORT_SYMBOL(__pagevec_release);
 
 /*
- * pagevec_release() for pages which are known to not be on the LRU
- *
- * This function reinitialises the caller's pagevec.
- */
-void __pagevec_release_nonlru(struct pagevec *pvec)
-{
-	int i;
-	struct pagevec pages_to_free;
-
-	pagevec_init(&pages_to_free, pvec->cold);
-	for (i = 0; i < pagevec_count(pvec); i++) {
-		struct page *page = pvec->pages[i];
-
-		VM_BUG_ON(PageLRU(page));
-		if (put_page_testzero(page))
-			pagevec_add(&pages_to_free, page);
-	}
-	pagevec_free(&pages_to_free);
-	pagevec_reinit(pvec);
-}
-
-/*
  * Add the passed pages to the LRU, then drop the caller's refcount
  * on them.  Reinitialises the caller's pagevec.
  */
@@ -445,6 +391,7 @@ void ____pagevec_lru_add(struct pagevec *pvec, enum lru_list lru)
 	for (i = 0; i < pagevec_count(pvec); i++) {
 		struct page *page = pvec->pages[i];
 		struct zone *pagezone = page_zone(page);
+		int file;
 
 		if (pagezone != zone) {
 			if (zone)
@@ -456,8 +403,12 @@ void ____pagevec_lru_add(struct pagevec *pvec, enum lru_list lru)
 		VM_BUG_ON(PageUnevictable(page));
 		VM_BUG_ON(PageLRU(page));
 		SetPageLRU(page);
-		if (is_active_lru(lru))
+		file = is_file_lru(lru);
+		zone->recent_scanned[file]++;
+		if (is_active_lru(lru)) {
 			SetPageActive(page);
+			zone->recent_rotated[file]++;
+		}
 		add_page_to_lru_list(zone, page, lru);
 	}
 	if (zone)
@@ -503,8 +454,7 @@ void pagevec_swap_free(struct pagevec *pvec)
 		struct page *page = pvec->pages[i];
 
 		if (PageSwapCache(page) && trylock_page(page)) {
-			if (PageSwapCache(page))
-				remove_exclusive_swap_page_ref(page);
+			try_to_free_swap(page);
 			unlock_page(page);
 		}
 	}
