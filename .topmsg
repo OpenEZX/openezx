@@ -1,0 +1,6 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] tmp/fix-pxa_camera
+
+Fix pxa_camera build, to be removed once upstream fixes.
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
