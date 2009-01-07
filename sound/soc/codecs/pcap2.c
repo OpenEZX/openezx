@@ -305,7 +305,8 @@ static int pcap2_set_bias_level(struct snd_soc_codec *codec,
 }
 
 static int pcap2_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params)
+				struct snd_pcm_hw_params *params,
+				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
@@ -375,7 +376,8 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static int pcap2_hw_free(struct snd_pcm_substream *substream)
+static int pcap2_hw_free(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
@@ -572,9 +574,9 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-static int pcap2_prepare(struct snd_pcm_substream *substream)
+static int pcap2_prepare(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai)
 {
-
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
@@ -629,8 +631,6 @@ struct snd_soc_dai pcap2_dai[] = {
 		.prepare = pcap2_prepare,
 		.hw_params = pcap2_hw_params,
 		.hw_free = pcap2_hw_free,
-	},
-	.dai_ops = {
 //		.digital_mute = pcap2_mute,
 		.set_fmt = pcap2_set_dai_fmt,
 		.set_sysclk = pcap2_set_dai_sysclk,
@@ -685,7 +685,7 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 	pcap2_codec_add_controls(codec);
 	pcap2_codec_add_widgets(codec);
-	ret = snd_soc_register_card(socdev);
+	ret = snd_soc_init_card(socdev);
 	if (ret < 0) {
 		snd_soc_free_pcms(socdev);
 		snd_soc_dapm_free(socdev);
