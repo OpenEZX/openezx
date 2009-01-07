@@ -1,0 +1,11 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] Fix rtc-pxa build failure
+
+Fix these errors:
+
+  CC      drivers/rtc/rtc-pxa.o
+drivers/rtc/rtc-pxa.c: In function `pxa_rtc_init':
+drivers/rtc/rtc-pxa.c:472: error: implicit declaration of function `cpu_is_pxa27x'
+drivers/rtc/rtc-pxa.c:472: error: implicit declaration of function `cpu_is_pxa3xx'
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
