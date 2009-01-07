@@ -29,6 +29,7 @@
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
 #include <mach/i2c.h>
+#include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
@@ -191,6 +192,10 @@ static unsigned long ezx_pin_config[] __initdata = {
 	GPIO43_BTUART_TXD,
 	GPIO44_BTUART_CTS,
 	GPIO45_BTUART_RTS,
+
+	/* I2C */
+	GPIO117_I2C_SCL,
+	GPIO118_I2C_SDA,
 
 	/* PCAP SSP */
 	GPIO29_SSP1_SCLK,
