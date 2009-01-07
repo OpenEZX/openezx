@@ -1,0 +1,7 @@
+From: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+Subject: [PATCH] tmp/fix-clear_user_page-usage
+
+Not all architectures provide clear_user_page(), but clear_user_highpage() 
+is available everywhere at least via the compatibility inline function.
+
+Signed-off-by: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
