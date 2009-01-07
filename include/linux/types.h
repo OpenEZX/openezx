@@ -135,19 +135,14 @@ typedef		__s64		int64_t;
  *
  * Linux always considers sectors to be 512 bytes long independently
  * of the devices real block size.
+ *
+ * blkcnt_t is the type of the inode's block count.
  */
 #ifdef CONFIG_LBD
 typedef u64 sector_t;
-#else
-typedef unsigned long sector_t;
-#endif
-
-/*
- * The type of the inode's block count.
- */
-#ifdef CONFIG_LSF
 typedef u64 blkcnt_t;
 #else
+typedef unsigned long sector_t;
 typedef unsigned long blkcnt_t;
 #endif
 
@@ -199,6 +194,16 @@ typedef u32 phys_addr_t;
 #endif
 
 typedef phys_addr_t resource_size_t;
+
+typedef struct {
+	volatile int counter;
+} atomic_t;
+
+#ifdef CONFIG_64BIT
+typedef struct {
+	volatile long counter;
+} atomic64_t;
+#endif
 
 struct ustat {
 	__kernel_daddr_t	f_tfree;
