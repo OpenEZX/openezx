@@ -11,6 +11,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/device.h>
+#include <linux/workqueue.h>
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
 #include <linux/gpio.h>
