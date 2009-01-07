@@ -2363,6 +2363,9 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 		nuke(loop_ep, -ESHUTDOWN);
 	spin_unlock_irqrestore(&udc_controller->lock, flags);
 
+	/* report disconnect; the controller is already quiesced */
+	driver->disconnect(&udc_controller->gadget);
+
 	/* unbind gadget and unhook driver. */
 	driver->unbind(&udc_controller->gadget);
 	udc_controller->gadget.dev.driver = NULL;
@@ -2542,7 +2545,7 @@ static int __devinit qe_udc_probe(struct of_device *ofdev,
 
 	device_initialize(&udc_controller->gadget.dev);
 
-	strcpy(udc_controller->gadget.dev.bus_id, "gadget");
+	dev_set_name(&udc_controller->gadget.dev, "gadget");
 
 	udc_controller->gadget.dev.release = qe_udc_release;
 	udc_controller->gadget.dev.parent = &ofdev->dev;
