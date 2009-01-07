@@ -2162,7 +2162,7 @@ static struct pxa_udc memory = {
 		.ep0		= &memory.udc_usb_ep[0].usb_ep,
 		.name		= driver_name,
 		.dev = {
-			.bus_id		= "gadget",
+			.init_name	= "gadget",
 		},
 	},
 
@@ -2226,7 +2226,7 @@ static int __init pxa_udc_probe(struct platform_device *pdev)
 	udc->dev = &pdev->dev;
 	udc->mach = pdev->dev.platform_data;
 
-	udc->clk = clk_get(&pdev->dev, "UDCCLK");
+	udc->clk = clk_get(&pdev->dev, NULL);
 	if (IS_ERR(udc->clk)) {
 		retval = PTR_ERR(udc->clk);
 		goto err_clk;
