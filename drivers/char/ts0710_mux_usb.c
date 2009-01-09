@@ -429,7 +429,7 @@ static void ipcusb_xmit_data(void)
 		//printk("%s: clear write_finished_flag:%d\n", __FUNCTION__, bvd_ipc->write_finished_flag);
 		bvd_ipc->writeurb_mux.dev = bvd_ipc->ipc_dev;
 		if ((result = usb_submit_urb(&bvd_ipc->writeurb_mux, GFP_ATOMIC)))
-			warn("ipcusb_xmit_data: funky result! result=%d\n", result);
+			printk("ipcusb_xmit_data: funky result! result=%d\n", result);
 
 		bvd_dbg("ipcusb_xmit_data: usb_submit_urb finished! result:%d", result);
 
