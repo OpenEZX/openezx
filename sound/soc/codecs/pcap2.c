@@ -741,6 +741,19 @@ struct snd_soc_codec_device soc_codec_dev_pcap2 = {
 	.resume =	pcap2_codec_resume,
 };
 
+static int __devinit pcap2_init(void)
+{
+	return snd_soc_register_dai(&pcap2_dai[0]);
+}
+
+static void __exit pcap2_exit(void)
+{
+	snd_soc_unregister_dai(&pcap2_dai[0]);
+}
+
+module_init(pcap2_init);
+module_exit(pcap2_exit);
+
 EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
 
 MODULE_DESCRIPTION("ASoC PCAP2 codec");
