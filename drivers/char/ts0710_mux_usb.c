@@ -563,13 +563,13 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	/* After this point we can be a little noisy about what we are trying
 	 * to configure, hehe.  */
 	if (usbdev->descriptor.bNumConfigurations != 1) {
-		info("usb_ipc_probe: Only one device configuration "
+		printk("usb_ipc_probe: Only one device configuration "
 		     "is supported.");
 		return -1;
 	}
 
 	if (usbdev->config[0].desc.bNumInterfaces != 3) {
-		info("usb_ipc_probe: Only three device interfaces are "
+		printk("usb_ipc_probe: Only three device interfaces are "
 		     "supported.");
 		return -1;
 	}
@@ -580,7 +580,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	bvd_dbg("usb_ipc_probe: Number of Endpoints:%d",
 		(int) interface->bNumEndpoints);
 	if (interface->bNumEndpoints != 2) {
-		info("usb_ipc_probe: Only two endpoints supported.");
+		printk("usb_ipc_probe: Only two endpoints supported.");
 		return -1;
 	}
 
@@ -612,7 +612,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 			continue;
 		}
 
-		info("usb_ipc_probe: Undetected endpoint ^_^ ");
+		printk("usb_ipc_probe: Undetected endpoint ^_^ ");
 		/* Shouldn't ever get here unless we have something weird */
 		return -1;
 	}
@@ -623,12 +623,12 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	switch (interface->bNumEndpoints) {
 	case 2:
 		if (!have_bulk_in_mux || !have_bulk_out_mux) {
-			info("usb_ipc_probe: Two bulk endpoints required.");
+			printk("usb_ipc_probe: Two bulk endpoints required.");
 			return -1;
 		}
 		break;
 	default:
-		info("usb_ipc_probe: Endpoint determination failed ^_^ ");
+		printk("usb_ipc_probe: Endpoint determination failed ^_^ ");
 		return -1;
 	}
 
@@ -813,8 +813,8 @@ static int __init usb_ipc_init(void)
 	init_timer(&wakeup_timer);
 	wakeup_timer.function = wakeup_timeout;
 
-	info("USB Host(Bulverde) IPC driver registered.");
-	info(DRIVER_VERSION ":" DRIVER_DESC);
+	printk("USB Host(Bulverde) IPC driver registered.");
+	printk(DRIVER_VERSION ":" DRIVER_DESC);
 
 	return 0;
 }
@@ -828,7 +828,7 @@ static void __exit usb_ipc_exit(void)
 	iounmap(__iobase);
 	usb_deregister(&usb_ipc_driver);
 
-	info("USB Host(Bulverde) IPC driver deregistered.");
+	printk("USB Host(Bulverde) IPC driver deregistered.");
 }
 
 module_init(usb_ipc_init);
