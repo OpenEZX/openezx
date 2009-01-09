@@ -67,7 +67,7 @@
 #define IPC_USB_PROBE_NOT_READY	4
 #define DBG_MAX_BUF_SIZE	1024
 #define ICL_EVENT_INTERVAL	(HZ)
-#define BVD_DEBUG
+//#define BVD_DEBUG
 
 #define IS_EP_BULK(ep)  ((ep).bmAttributes == USB_ENDPOINT_XFER_BULK ? 1 : 0)
 #define IS_EP_BULK_IN(ep) (IS_EP_BULK(ep) && ((ep).bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN)
