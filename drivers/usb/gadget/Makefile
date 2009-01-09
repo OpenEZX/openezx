@@ -20,8 +20,8 @@ obj-$(CONFIG_USB_ATMEL_USBA)	+= atmel_usba_udc.o
 obj-$(CONFIG_USB_FSL_USB2)	+= fsl_usb2_udc.o
 obj-$(CONFIG_USB_M66592)	+= m66592-udc.o
 obj-$(CONFIG_USB_FSL_QE)	+= fsl_qe_udc.o
-obj-$(CONFIG_USB_ISP1583)	+= isp1583_udc.o
 obj-$(CONFIG_USB_CI13XXX)	+= ci13xxx_udc.o
+obj-$(CONFIG_USB_ISP1583)	+= isp1583_udc.o
 
 #
 # USB gadget drivers
