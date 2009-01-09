@@ -20,6 +20,7 @@ obj-$(CONFIG_PCF8575)		+= pcf8575.o
 obj-$(CONFIG_SENSORS_PCF8591)	+= pcf8591.o
 obj-$(CONFIG_SENSORS_TSL2550)	+= tsl2550.o
 obj-$(CONFIG_MCU_MPC8349EMITX)	+= mcu_mpc8349emitx.o
+obj-$(CONFIG_EZX_EOC)		+= ezx-eoc.o
 
 ifeq ($(CONFIG_I2C_DEBUG_CHIP),y)
 EXTRA_CFLAGS += -DDEBUG

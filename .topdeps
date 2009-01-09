@@ -1,0 +1,9 @@
+ezx/mach/usb2.0
+ezx/asoc
+ezx/eoc
+ezx/defconfig
+pxa/sparsemem
+ezx/usb2.0
+tmp/fix-clear_user_page-usage
+tmp/fix-pxa_camera
+tmp/fix-rtc-pxa

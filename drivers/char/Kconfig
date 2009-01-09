@@ -1100,6 +1100,18 @@ config DEVPORT
 	default y
 
 source "drivers/s390/char/Kconfig"
+config TS0710_MUX
+	tristate "GSM TS 07.10 Multiplex driver"
+	help
+	  This implements the GSM 07.10 multiplex.
+
+config TS0710_MUX_USB
+	tristate "Motorola USB support for TS 07.10 Multiplex driver"
+	depends on TS0710_MUX
+	help
+	  This ads support for TS 07.10 over USB, as found in motorola
+	  Smartphones.
+
 
 endmenu
 

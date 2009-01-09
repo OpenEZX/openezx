@@ -480,6 +480,7 @@ config ARCH_PXA
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
 	select TICK_ONESHOT
+	select ARCH_SPARSEMEM_ENABLE
 	help
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 

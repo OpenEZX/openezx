@@ -165,6 +165,12 @@ config LEDS_DA903X
 	  This option enables support for on-chip LED drivers found
 	  on Dialog Semiconductor DA9030/DA9034 PMICs.
 
+config LEDS_PCAP
+	tristate "LED Support for PCAP2 ASIC"
+	depends on EZX_PCAP
+	help
+	  This option enables support for the led controller on PCAP2.
+
 comment "LED Triggers"
 
 config LEDS_TRIGGERS
