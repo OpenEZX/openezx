@@ -658,6 +658,9 @@ again:			remove_next = 1 + (end > next->vm_end);
 	validate_mm(mm);
 }
 
+/* Flags that can be inherited from an existing mapping when merging */
+#define VM_MERGEABLE_FLAGS (VM_CAN_NONLINEAR)
+
 /*
  * If the vma has a ->close operation then the driver probably needs to release
  * per-vma resources, so we don't attempt to merge those.
@@ -665,7 +668,7 @@ again:			remove_next = 1 + (end > next->vm_end);
 static inline int is_mergeable_vma(struct vm_area_struct *vma,
 			struct file *file, unsigned long vm_flags)
 {
-	if (vma->vm_flags != vm_flags)
+	if ((vma->vm_flags ^ vm_flags) & ~VM_MERGEABLE_FLAGS)
 		return 0;
 	if (vma->vm_file != file)
 		return 0;
@@ -1134,16 +1137,11 @@ munmap_back:
 	}
 
 	/*
-	 * Can we just expand an old private anonymous mapping?
-	 * The VM_SHARED test is necessary because shmem_zero_setup
-	 * will create the file object for a shared anonymous map below.
+	 * Can we just expand an old mapping?
 	 */
-	if (!file && !(vm_flags & VM_SHARED)) {
-		vma = vma_merge(mm, prev, addr, addr + len, vm_flags,
-					NULL, NULL, pgoff, NULL);
-		if (vma)
-			goto out;
-	}
+	vma = vma_merge(mm, prev, addr, addr + len, vm_flags, NULL, file, pgoff, NULL);
+	if (vma)
+		goto out;
 
 	/*
 	 * Determine the object being mapped and call the appropriate
@@ -1206,17 +1204,8 @@ munmap_back:
 	if (vma_wants_writenotify(vma))
 		vma->vm_page_prot = vm_get_page_prot(vm_flags & ~VM_SHARED);
 
-	if (file && vma_merge(mm, prev, addr, vma->vm_end,
-			vma->vm_flags, NULL, file, pgoff, vma_policy(vma))) {
-		mpol_put(vma_policy(vma));
-		kmem_cache_free(vm_area_cachep, vma);
-		fput(file);
-		if (vm_flags & VM_EXECUTABLE)
-			removed_exe_file_vma(mm);
-	} else {
-		vma_link(mm, vma, prev, rb_link, rb_parent);
-		file = vma->vm_file;
-	}
+	vma_link(mm, vma, prev, rb_link, rb_parent);
+	file = vma->vm_file;
 
 	/* Once vma denies write, undo our temporary denial count */
 	if (correct_wcount)
