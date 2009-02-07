@@ -1,0 +1,19 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] driver for National Semiconductor LP3944 Funlight Chip
+
+I2C driver for National Semiconductor LP3944 Funlight Chip
+http://www.national.com/pf/LP/LP3944.html
+
+This helper chip can drive up to 8 leds, with two programmable DIM
+modes; it could even be used as a gpio expander but this driver assumes
+it is used as a led controller.
+
+The DIM modes are used to set _blink_ patterns for leds, the pattern is
+specified supplying two parameters:
+  - period: from 0s to 1.6s
+  - duty cycle: percentage of the period the led is on, from 0 to 100
+
+LP3944 can be found on Motorola A910 smartphone, where it drives the rgb
+leds, the camera flash light and the displays backlights.
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
