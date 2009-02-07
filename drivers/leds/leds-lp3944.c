@@ -303,7 +303,8 @@ static int __devinit lp3944_probe(struct i2c_client *client,
 	}
 
 	/* Let's see whether this adapter can support what we need. */
-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
+	if (!i2c_check_functionality(client->adapter,
+				I2C_FUNC_SMBUS_BYTE_DATA)) {
 		printk(KERN_ERR "%s: insufficient functionality!\n", __func__);
 		return -ENODEV;
 	}
