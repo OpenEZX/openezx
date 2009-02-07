@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29-rc3
-# Sat Jan 31 13:32:55 2009
+# Sat Feb  7 15:34:57 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -886,7 +886,6 @@ CONFIG_LEGACY_PTYS=y
 CONFIG_LEGACY_PTY_COUNT=8
 # CONFIG_IPMI_HANDLER is not set
 # CONFIG_HW_RANDOM is not set
-# CONFIG_NVRAM is not set
 # CONFIG_R3964 is not set
 # CONFIG_RAW_DRIVER is not set
 # CONFIG_TCG_TPM is not set
@@ -1350,6 +1349,7 @@ CONFIG_LEDS_CLASS=y
 # CONFIG_LEDS_PCA9532 is not set
 # CONFIG_LEDS_GPIO is not set
 # CONFIG_LEDS_PCA955X is not set
+CONFIG_LEDS_LP3944=m
 CONFIG_LEDS_PCAP=y
 
 #
