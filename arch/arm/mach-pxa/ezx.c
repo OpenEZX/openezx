@@ -1227,8 +1227,8 @@ static struct soc_camera_link a910_iclink = {
 };
 
 static struct lp3944_platform_data a910_lp3944_leds = {
-	.dims_size = LP3944_DIMS_MAX;
-	.leds_size = LP3944_LEDS_MAX;
+	.dims_size = LP3944_DIMS_MAX,
+	.leds_size = LP3944_LEDS_MAX,
 
 	/* set two default dim modes, a fast one and a slow one.
 	 * they will be used when brightness == {2,3}
