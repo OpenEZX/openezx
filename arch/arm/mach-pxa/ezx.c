@@ -51,6 +51,7 @@
 #include "generic.h"
 
 #define GPIO12_A780_FLIP_LID 12
+#define GPIO15_A1200_FLIP_LID 15
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -1136,6 +1137,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+/* gpio_keys */
+static struct gpio_keys_button a1200_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO15_A1200_FLIP_LID,
+		.active_low = 0,
+		.desc = "A1200 flip lid",
+		.type = EV_SW,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data a1200_gpio_keys_platform_data = {
+	.buttons  = a1200_buttons,
+	.nbuttons = ARRAY_SIZE(a1200_buttons),
+};
+
+static struct platform_device a1200_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a1200_gpio_keys_platform_data,
+	},
+};
+
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1165,6 +1193,7 @@ static void __init a1200_init(void)
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
+	platform_device_register(&a1200_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&pcap_rtc_device);
 
