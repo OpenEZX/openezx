@@ -812,11 +812,10 @@ static struct gpio_keys_button a780_buttons[] = {
 		.gpio = GPIO12_A780_FLIP_LID,
 		.active_low = 0,
 		.desc = "A780 flip lid",
+		.type = EV_SW,
 		/*
-		 .type = EV_SW,
-		 .wakeup = 1,
-		 .debounce_interval = ??,
-		 */
+		.wakeup = 1,
+		*/
 	},
 };
 
