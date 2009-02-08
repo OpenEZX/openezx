@@ -45,6 +45,7 @@
 #define GPIO12_A780_FLIP_LID 12
 #define GPIO15_A1200_FLIP_LID 15
 #define GPIO15_A910_FLIP_LID 15
+#define GPIO12_E680_LOCK_SWITCH 12
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -863,6 +864,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+/* gpio_keys */
+static struct gpio_keys_button e680_buttons[] = {
+	[0] = {
+		.code = KEY_SCREENLOCK,
+		.gpio = GPIO12_E680_LOCK_SWITCH,
+		.active_low = 0,
+		.desc = "E680 lock switch",
+		.type = EV_KEY,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data e680_gpio_keys_platform_data = {
+	.buttons  = e680_buttons,
+	.nbuttons = ARRAY_SIZE(e680_buttons),
+};
+
+static struct platform_device e680_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &e680_gpio_keys_platform_data,
+	},
+};
+
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -888,6 +916,7 @@ static void __init e680_init(void)
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
+	platform_device_register(&e680_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
