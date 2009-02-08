@@ -17,6 +17,7 @@
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
+#include <linux/gpio_keys.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
@@ -49,6 +50,7 @@
 #include "devices.h"
 #include "generic.h"
 
+#define GPIO12_A780_FLIP_LID 12
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -889,6 +891,36 @@ static struct platform_device gen2_bp_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
+/* gpio_keys */
+static struct gpio_keys_button a780_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO12_A780_FLIP_LID,
+		.active_low = 0,
+		.desc = "A780 flip lid",
+		/*
+		 .type = EV_SW,
+		 .wakeup = 1,
+		 .debounce_interval = ??,
+		 */
+	},
+};
+
+static struct gpio_keys_platform_data a780_gpio_keys_platform_data = {
+	.buttons  = a780_buttons,
+	.nbuttons = ARRAY_SIZE(a780_buttons),
+};
+
+static struct platform_device a780_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a780_gpio_keys_platform_data,
+	},
+};
+
+
+/* pcap-leds */
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -910,6 +942,7 @@ struct platform_device a780_leds_device = {
 	},
 };
 
+/* camera */
 static int a780_pxacamera_init(struct device *dev)
 {
 	/* 
@@ -970,6 +1003,7 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 	},
 };
 
+
 static void __init a780_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -996,6 +1030,7 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
+	platform_device_register(&a780_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a780_leds_device);
 
