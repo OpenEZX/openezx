@@ -1435,6 +1435,7 @@ static void __init a910_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
+
 	platform_device_register(&a910_gpio_keys);
 	platform_device_register(&pcap_rtc_device);
 
