@@ -46,6 +46,7 @@
 
 #define GPIO12_A780_FLIP_LID 12
 #define GPIO15_A1200_FLIP_LID 15
+#define GPIO15_A910_FLIP_LID 15
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -1043,6 +1044,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+/* gpio_keys */
+static struct gpio_keys_button a910_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO15_A910_FLIP_LID,
+		.active_low = 0,
+		.desc = "A910 flip lid",
+		.type = EV_SW,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data a910_gpio_keys_platform_data = {
+	.buttons  = a910_buttons,
+	.nbuttons = ARRAY_SIZE(a910_buttons),
+};
+
+static struct platform_device a910_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a910_gpio_keys_platform_data,
+	},
+};
+
 /* A910 SPI/MMC */
 static void a910_mmc_cs_control(u32 command)
 {
@@ -1099,6 +1127,7 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 	},
 };
 
+
 static void __init a910_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -1118,6 +1147,8 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 	platform_device_register(&pcap_rtc_device);
+
+	platform_device_register(&a910_gpio_keys);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
