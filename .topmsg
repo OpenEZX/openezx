@@ -1,0 +1,6 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] ezx/mach/gpio-keys
+
+Add gpio-keys handling to ezx phones
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
