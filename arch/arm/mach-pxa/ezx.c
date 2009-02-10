@@ -43,6 +43,7 @@
 #define GPIO15_A1200_FLIP_LID 15
 #define GPIO15_A910_FLIP_LID 15
 #define GPIO12_E680_LOCK_SWITCH 12
+#define GPIO15_E6_LOCK_SWITCH 15
 #define GPIO1_PCAP_IRQ			1
 #define GPIO24_PCAP_CS			24
 #define GPIO28_PCAP_CS			28
@@ -976,6 +977,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+/* gpio_keys */
+static struct gpio_keys_button e6_buttons[] = {
+	[0] = {
+		.code = KEY_SCREENLOCK,
+		.gpio = GPIO15_E6_LOCK_SWITCH,
+		.active_low = 0,
+		.desc = "E6 lock switch",
+		.type = EV_KEY,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data e6_gpio_keys_platform_data = {
+	.buttons  = e6_buttons,
+	.nbuttons = ARRAY_SIZE(e6_buttons),
+};
+
+static struct platform_device e6_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &e6_gpio_keys_platform_data,
+	},
+};
+
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -997,6 +1025,8 @@ static void __init e6_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
+	
+	platform_device_register(&e6_gpio_keys);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
