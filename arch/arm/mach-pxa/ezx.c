@@ -1291,7 +1291,7 @@ static void __init e6_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
-	
+
 	platform_device_register(&e6_gpio_keys);
 
 	platform_device_register(&pcap_ts_device);
