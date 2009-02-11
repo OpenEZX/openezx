@@ -1,6 +1,6 @@
 From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/gpio-keys
+Subject: [PATCH] ezx/mach/pxa2xx-flash
 
-Add gpio-keys handling to ezx phones
+Add support for mtd partitions on internal NOR flash.
 
 Signed-off-by: Antonio Ospite <ao2@openezx.org>
