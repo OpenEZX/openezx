@@ -18,6 +18,8 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
@@ -40,6 +42,7 @@
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/mach/flash.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -830,6 +833,59 @@ static struct platform_device a780_gpio_keys = {
 	},
 };
 
+/* mtd partitions on NOR flash */
+static struct resource flash_resource = {
+	.start = PXA_CS0_PHYS,
+	.end   = PXA_CS0_PHYS + SZ_32M - 1,
+	.flags = IORESOURCE_MEM,
+};
+
+static struct mtd_partition a780_partitions[] = {
+	{
+		.name       = "Bootloader",
+		.size       = 0x00020000,
+		.offset     = 0x0,
+		.mask_flags = MTD_WRITEABLE, /* force read-only */
+	}, {
+		.name       = "Kernel",
+		.size       = 0x000e0000,
+		.offset     = 0x00020000,
+	} , {
+		.name       = "rootfs",
+		.size       = 0x018e0000,
+		.offset     = 0x00120000,
+	} , {
+		.name       = "VFM_Filesystem",
+		.size       = 0x00580000,
+		.offset     = 0x01a00000,
+	} , {
+		.name       = "setup",
+		.size       = 0x00020000,
+		.offset     = 0x01fa0000,
+	} , {
+		.name       = "Logo",
+		.size       = 0x00020000,
+		.offset     = 0x01fc0000,
+	},
+};
+
+static struct flash_platform_data a780_flash_data = {
+	.map_name = "cfi_probe",
+	.name     = "A780 NOR flash",
+	.parts    = a780_partitions,
+	.nr_parts = ARRAY_SIZE(a780_partitions),
+};
+
+static struct platform_device a780_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &a780_flash_data,
+	},
+	.resource      = &flash_resource,
+	.num_resources = 1,
+};
+
 
 /* pcap-leds */
 static struct pcap_leds_platform_data a780_leds = {
@@ -877,6 +933,10 @@ static void __init a780_init(void)
 	platform_device_register(&a780_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a780_leds_device);
+
+	/* FIXME: Could this be simplified to just 2 ? */
+	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
+	platform_device_register(&a780_flash_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
