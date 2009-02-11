@@ -18,6 +18,8 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
