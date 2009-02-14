@@ -234,6 +234,9 @@ struct pcap_platform_data {
 #define PCAP_LED0_C_SHIFT	15
 #define PCAP_LED1_C_SHIFT	17
 #define PCAP_BL1_SHIFT		20
+#define PCAP_VIB_MASK		0x3
+#define PCAP_VIB_SHIFT		20
+#define PCAP_VIB_EN		(1 << 19)
 
 /* RTC */
 #define PCAP_RTC_DAY_MASK	0x3fff
