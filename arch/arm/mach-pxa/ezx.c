@@ -1022,9 +1022,12 @@ static struct pcap_leds_platform_data a780_leds = {
 		}, {
 			.type = PCAP_BL1,
 			.name = "a780:aux",
+		}, {
+			.type = PCAP_VIB,
+			.name = "a780:vibrator",
 		},
 	},
-	.num_leds = 2,
+	.num_leds = 3,
 };
 
 struct platform_device a780_leds_device = {
