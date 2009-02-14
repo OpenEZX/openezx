@@ -1131,6 +1131,25 @@ static struct platform_device a1200_gpio_keys = {
 	},
 };
 
+/* pcap-leds */
+static struct pcap_leds_platform_data a1200_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a1200:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device a1200_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a1200_leds,
+	},
+};
+
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1160,6 +1179,7 @@ static void __init a1200_init(void)
 
 	platform_device_register(&a1200_gpio_keys);
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&a1200_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -1260,6 +1280,25 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* pcap-leds */
+static struct pcap_leds_platform_data a910_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a910:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device a910_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a910_leds,
+	},
+};
+
 
 static void __init a910_init(void)
 {
@@ -1284,6 +1323,7 @@ static void __init a910_init(void)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
 	platform_device_register(&a910_gpio_keys);
+	platform_device_register(&a910_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -1328,6 +1368,25 @@ static struct platform_device e6_gpio_keys = {
 	},
 };
 
+/* pcap-leds */
+static struct pcap_leds_platform_data e6_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e6:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device e6_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e6_leds,
+	},
+};
+
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1358,6 +1417,7 @@ static void __init e6_init(void)
 	platform_device_register(&e6_gpio_keys);
 
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&e6_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
@@ -1375,6 +1435,25 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
+/* pcap-leds */
+static struct pcap_leds_platform_data e2_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e2:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device e2_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e2_leds,
+	},
+};
+
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1401,6 +1480,8 @@ static void __init e2_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
+
+	platform_device_register(&e2_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
