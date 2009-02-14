@@ -64,6 +64,25 @@ static void pcap_led_work(struct work_struct *work)
 		tmp |= led->brightness << PCAP_BL1_SHIFT;
 		ezx_pcap_write(PCAP_REG_PERIPH, tmp);
 		return;
+	case PCAP_VIB:
+		ezx_pcap_read(PCAP_REG_AUXVREG, &tmp);
+
+		/* turn off */
+		tmp &= ~PCAP_VIB_EN;
+
+		/* 0 means off,
+		 * so map the 0..3 vibration levels to brightness 1..4
+		 */
+		if (led->brightness > 0) {
+			if (led->brightness > PCAP_VIB_MASK + 1)
+				led->brightness = PCAP_VIB_MASK + 1;
+			tmp &= ~(PCAP_VIB_MASK << PCAP_VIB_SHIFT);
+			tmp |= (led->brightness - 1) << PCAP_VIB_SHIFT;
+			/* turn on */
+			tmp |= PCAP_VIB_EN;
+		}
+		ezx_pcap_write(PCAP_REG_AUXVREG, tmp);
+		return;
 	default:
 		return;
 	}
