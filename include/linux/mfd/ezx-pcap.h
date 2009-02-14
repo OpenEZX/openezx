@@ -215,6 +215,7 @@ struct pcap_platform_data {
 #define PCAP_LED1		1
 #define PCAP_BL0		2
 #define PCAP_BL1		3
+#define PCAP_VIB		4
 #define PCAP_LED_3MA		0
 #define PCAP_LED_4MA		1
 #define PCAP_LED_5MA		2
