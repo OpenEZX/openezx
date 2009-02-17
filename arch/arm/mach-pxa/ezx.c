@@ -1046,8 +1046,10 @@ static int a780_pxacamera_init(struct device *dev)
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO19, 1);
 
 	return 0;
 }
@@ -1056,6 +1058,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 {
 	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 
+#if 0
 	/* 
 	 * This is reported to resolve the vertical line in view finder issue
 	 * (LIBff11930), is this still needed?
@@ -1067,6 +1070,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	 * BP can sleep itself.
 	 */
 	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+#endif
 
 	return 0;
 }
@@ -1083,14 +1087,15 @@ static int a780_pxacamera_reset(struct device *dev)
 struct pxacamera_platform_data a780_pxacamera_platform_data = {
 	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
-	.mclk_10khz = 1000,
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a780_iclink = {
 	.bus_id	= 0,
 	.power = a780_pxacamera_power,
 	.reset = a780_pxacamera_reset,
+	.flags = SOCAM_SENSOR_INVERT_PCLK,
 };
 
 static struct i2c_board_info __initdata a780_i2c_board_info[] = {
@@ -1398,8 +1403,10 @@ static int a910_pxacamera_init(struct device *dev)
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO28, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO28, 1);
 
 	return 0;
 }
@@ -1423,7 +1430,7 @@ struct pxacamera_platform_data a910_pxacamera_platform_data = {
 	.init	= a910_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 1000,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a910_iclink = {
