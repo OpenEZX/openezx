@@ -958,8 +958,10 @@ static int a780_pxacamera_init(struct device *dev)
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO19, 1);
 
 	return 0;
 }
@@ -968,6 +970,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 {
 	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 
+#if 0
 	/* 
 	 * This is reported to resolve the vertical line in view finder issue
 	 * (LIBff11930), is this still needed?
@@ -979,6 +982,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	 * BP can sleep itself.
 	 */
 	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+#endif
 
 	return 0;
 }
@@ -1298,8 +1302,10 @@ static int a910_pxacamera_init(struct device *dev)
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO28, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO28, 1);
 
 	return 0;
 }
