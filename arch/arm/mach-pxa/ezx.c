@@ -999,7 +999,7 @@ static int a780_pxacamera_reset(struct device *dev)
 struct pxacamera_platform_data a780_pxacamera_platform_data = {
 	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
 	.mclk_10khz = 1000,
 };
 
@@ -1007,6 +1007,7 @@ static struct soc_camera_link a780_iclink = {
 	.bus_id	= 0,
 	.power = a780_pxacamera_power,
 	.reset = a780_pxacamera_reset,
+	.flags = SOCAM_SENSOR_INVERT_PCLK,
 };
 
 static struct i2c_board_info __initdata a780_i2c_board_info[] = {
