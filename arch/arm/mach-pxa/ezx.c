@@ -1000,7 +1000,7 @@ struct pxacamera_platform_data a780_pxacamera_platform_data = {
 	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 1000,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a780_iclink = {
@@ -1330,7 +1330,7 @@ struct pxacamera_platform_data a910_pxacamera_platform_data = {
 	.init	= a910_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 1000,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a910_iclink = {
