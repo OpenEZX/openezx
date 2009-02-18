@@ -20,6 +20,9 @@
 #include <linux/gpio_keys.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/gpio.h>
+#include <linux/spi/spi.h>
+#include <linux/mfd/ezx-pcap.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
@@ -27,6 +30,7 @@
 #include <mach/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/pxa2xx_spi.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -43,6 +47,9 @@
 #define GPIO15_A910_FLIP_LID 15
 #define GPIO12_E680_LOCK_SWITCH 12
 #define GPIO15_E6_LOCK_SWITCH 15
+#define GPIO1_PCAP_IRQ			1
+#define GPIO24_PCAP_CS			24
+#define GPIO28_PCAP_CS			28
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -662,6 +669,58 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
+/* PCAP */
+static void ezx_pcap_init(void)
+{
+	/* set SW1 sleep to keep SW1 1.3v in sync mode */
+	/* SW1 active in sync mode */
+	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
+
+	/* set core voltage */
+	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+}
+
+static struct pcap_platform_data ezx_pcap_platform_data = {
+	.irq    = gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config = 0,
+	.init   = ezx_pcap_init,
+};
+
+static void pcap_cs_control(u32 command)
+{
+	int i = machine_is_ezx_a780() || machine_is_ezx_e680();
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO24_PCAP_CS, on ^ i);
+}
+
+static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
+	.tx_threshold   = 1,
+	.rx_threshold   = 1,
+	.dma_burst_size = 0,
+	.timeout        = 100,
+	.cs_control     = pcap_cs_control,
+};
+
+static struct pxa2xx_spi_master ezx_spi_masterinfo = {
+	.clock_enable   = CKEN_SSP1,
+	.num_chipselect = 1,
+	.enable_dma     = 1,
+};
+
+static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &ezx_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
+
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
@@ -752,6 +811,12 @@ static void __init a780_init(void)
 
 	pxa_set_i2c_info(NULL);
 
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
+	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
@@ -817,6 +882,12 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 1);
+	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
@@ -878,6 +949,11 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
@@ -934,6 +1010,11 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	pxa_set_i2c_info(NULL);
+
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -996,6 +1077,11 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
@@ -1029,6 +1115,11 @@ static void __init e2_init(void)
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
+
+	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
+	gpio_direction_output(GPIO24_PCAP_CS, 0);
+	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
