@@ -122,6 +122,26 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
 };
 
+static struct resource ezx_usb20_resources[] = {
+	[0] = {
+		.start      = PXA_CS3_PHYS,
+		.end        = PXA_CS3_PHYS+0x400,
+		.flags      = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start      = IRQ_GPIO(19),
+		.end        = IRQ_GPIO(19),
+		.flags      = IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device ezx_usb20_device = {
+	.name       = "isp1583-udc",
+	.id     = -1,
+	.num_resources  = ARRAY_SIZE(ezx_usb20_resources),
+	.resource   = ezx_usb20_resources,
+};
+
 /* MMC */
 static int ezx_mci_init(struct device *dev,
 		irqreturn_t (*detect_int)(int, void *), void *data)
@@ -457,6 +477,13 @@ static unsigned long e2_pin_config[] __initdata = {
 	GPIO106_KP_MKOUT_3,
 	GPIO107_KP_MKOUT_4,
 	GPIO108_KP_MKOUT_5,
+
+	GPIO79_USB20_NCS3,
+	GPIO18_HDD_USB20_READY,
+	GPIO49_NPWE,
+	GPIO20_USB20_DREQ0,
+	GPIO19_USB20_INT,
+	GPIO94_USB20_SWITCH,
 };
 #endif
 
@@ -474,6 +501,13 @@ static unsigned long e6_pin_config[] __initdata = {
 	GPIO106_KP_MKOUT_3,
 	GPIO107_KP_MKOUT_4,
 	GPIO108_KP_MKOUT_5,
+
+	GPIO79_USB20_NCS3,
+	GPIO18_HDD_USB20_READY,
+	GPIO49_NPWE,
+	GPIO20_USB20_DREQ0,
+	GPIO19_USB20_INT,
+	GPIO94_USB20_SWITCH,
 };
 #endif
 
@@ -1617,6 +1651,7 @@ static void __init e6_init(void)
 	platform_device_register(&pcap_rtc_device);
 
 	platform_device_register(&gen2_bp_device);
+	platform_device_register(&ezx_usb20_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1685,6 +1720,7 @@ static void __init e2_init(void)
 	platform_device_register(&pcap_rtc_device);
 
 	platform_device_register(&gen2_bp_device);
+	platform_device_register(&ezx_usb20_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }

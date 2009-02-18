@@ -1,8 +1,6 @@
-From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: EZX: PCAP2 RTC setup
-To: linux-arm-kernel@lists.arm.linux.org.uk
-Cc: eric.y.miao@gmail.com
+From: gmzhuo <gmzhuo@gmail.com>
+Subject: [PATCH] ezx/mach/usb2.0
 
-AP2 RTC driver board setup.
+add isp1583 usb2.0 chip support
 
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: gmzhuo <gmzhuo@gmail.com>
