@@ -32,6 +32,7 @@
 #include <linux/module.h>
 #include <linux/kallsyms.h>
 #include <linux/fs.h>
+#include <linux/rbtree.h>
 #include <asm/traps.h>
 #include <asm/cacheflush.h>
 #include <asm/cplb.h>
@@ -83,6 +84,7 @@ static void decode_address(char *buf, unsigned long address)
 	struct mm_struct *mm;
 	unsigned long flags, offset;
 	unsigned char in_atomic = (bfin_read_IPEND() & 0x10) || in_atomic();
+	struct rb_node *n;
 
 #ifdef CONFIG_KALLSYMS
 	unsigned long symsize;
@@ -128,9 +130,10 @@ static void decode_address(char *buf, unsigned long address)
 		if (!mm)
 			continue;
 
-		vml = mm->context.vmlist;
-		while (vml) {
-			struct vm_area_struct *vma = vml->vma;
+		for (n = rb_first(&mm->mm_rb); n; n = rb_next(n)) {
+			struct vm_area_struct *vma;
+
+			vma = rb_entry(n, struct vm_area_struct, vm_rb);
 
 			if (address >= vma->vm_start && address < vma->vm_end) {
 				char _tmpbuf[256];
@@ -176,8 +179,6 @@ static void decode_address(char *buf, unsigned long address)
 
 				goto done;
 			}
-
-			vml = vml->next;
 		}
 		if (!in_atomic)
 			mmput(mm);
@@ -672,6 +673,14 @@ static void decode_instruction(unsigned short *address)
 			verbose_printk("RTI");
 		else if (opcode == 0x0012)
 			verbose_printk("RTX");
+		else if (opcode == 0x0013)
+			verbose_printk("RTN");
+		else if (opcode == 0x0014)
+			verbose_printk("RTE");
+		else if (opcode == 0x0025)
+			verbose_printk("EMUEXCPT");
+		else if (opcode == 0x0040 && opcode <= 0x0047)
+			verbose_printk("STI R%i", opcode & 7);
 		else if (opcode >= 0x0050 && opcode <= 0x0057)
 			verbose_printk("JUMP (P%i)", opcode & 7);
 		else if (opcode >= 0x0060 && opcode <= 0x0067)
@@ -680,6 +689,10 @@ static void decode_instruction(unsigned short *address)
 			verbose_printk("CALL (PC+P%i)", opcode & 7);
 		else if (opcode >= 0x0080 && opcode <= 0x0087)
 			verbose_printk("JUMP (PC+P%i)", opcode & 7);
+		else if (opcode >= 0x0090 && opcode <= 0x009F)
+			verbose_printk("RAISE 0x%x", opcode & 0xF);
+		else if (opcode >= 0x00A0 && opcode <= 0x00AF)
+			verbose_printk("EXCPT 0x%x", opcode & 0xF);
 		else if ((opcode >= 0x1000 && opcode <= 0x13FF) || (opcode >= 0x1800 && opcode <= 0x1BFF))
 			verbose_printk("IF !CC JUMP");
 		else if ((opcode >= 0x1400 && opcode <= 0x17ff) || (opcode >= 0x1c00 && opcode <= 0x1fff))
@@ -819,11 +832,8 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 	decode_address(buf, (unsigned int)stack);
 	printk(KERN_NOTICE " SP: [0x%p] %s\n", stack, buf);
 
-	addr = (unsigned int *)((unsigned int)stack & ~0x3F);
-
 	/* First thing is to look for a frame pointer */
-	for (addr = (unsigned int *)((unsigned int)stack & ~0xF), i = 0;
-		addr < endstack; addr++, i++) {
+	for (addr = (unsigned int *)((unsigned int)stack & ~0xF); addr < endstack; addr++) {
 		if (*addr & 0x1)
 			continue;
 		ins_addr = (unsigned short *)*addr;
@@ -833,7 +843,8 @@ void show_stack(struct task_struct *task, unsigned long *stack)
 
 		if (fp) {
 			/* Let's check to see if it is a frame pointer */
-			while (fp >= (addr - 1) && fp < endstack && fp)
+			while (fp >= (addr - 1) && fp < endstack
+			       && fp && ((unsigned int) fp & 0x3) == 0)
 				fp = (unsigned int *)*fp;
 			if (fp == 0 || fp == endstack) {
 				fp = addr - 1;
@@ -1051,8 +1062,9 @@ void show_regs(struct pt_regs *fp)
 	char buf [150];
 	struct irqaction *action;
 	unsigned int i;
-	unsigned long flags;
+	unsigned long flags = 0;
 	unsigned int cpu = smp_processor_id();
+	unsigned char in_atomic = (bfin_read_IPEND() & 0x10) || in_atomic();
 
 	verbose_printk(KERN_NOTICE "\n" KERN_NOTICE "SEQUENCER STATUS:\t\t%s\n", print_tainted());
 	verbose_printk(KERN_NOTICE " SEQSTAT: %08lx  IPEND: %04lx  SYSCFG: %04lx\n",
@@ -1072,17 +1084,22 @@ void show_regs(struct pt_regs *fp)
 	}
 	verbose_printk(KERN_NOTICE "  EXCAUSE   : 0x%lx\n",
 		fp->seqstat & SEQSTAT_EXCAUSE);
-	for (i = 6; i <= 15 ; i++) {
+	for (i = 2; i <= 15 ; i++) {
 		if (fp->ipend & (1 << i)) {
-			decode_address(buf, bfin_read32(EVT0 + 4*i));
-			verbose_printk(KERN_NOTICE "  physical IVG%i asserted : %s\n", i, buf);
+			if (i != 4) {
+				decode_address(buf, bfin_read32(EVT0 + 4*i));
+				verbose_printk(KERN_NOTICE "  physical IVG%i asserted : %s\n", i, buf);
+			} else
+				verbose_printk(KERN_NOTICE "  interrupts disabled\n");
 		}
 	}
 
 	/* if no interrupts are going off, don't print this out */
 	if (fp->ipend & ~0x3F) {
 		for (i = 0; i < (NR_IRQS - 1); i++) {
-			spin_lock_irqsave(&irq_desc[i].lock, flags);
+			if (!in_atomic)
+				spin_lock_irqsave(&irq_desc[i].lock, flags);
+
 			action = irq_desc[i].action;
 			if (!action)
 				goto unlock;
@@ -1095,7 +1112,8 @@ void show_regs(struct pt_regs *fp)
 			}
 			verbose_printk("\n");
 unlock:
-			spin_unlock_irqrestore(&irq_desc[i].lock, flags);
+			if (!in_atomic)
+				spin_unlock_irqrestore(&irq_desc[i].lock, flags);
 		}
 	}
 

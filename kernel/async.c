@@ -65,6 +65,8 @@ static LIST_HEAD(async_pending);
 static LIST_HEAD(async_running);
 static DEFINE_SPINLOCK(async_lock);
 
+static int async_enabled = 0;
+
 struct async_entry {
 	struct list_head list;
 	async_cookie_t   cookie;
@@ -88,12 +90,12 @@ extern int initcall_debug;
 static async_cookie_t  __lowest_in_progress(struct list_head *running)
 {
 	struct async_entry *entry;
-	if (!list_empty(&async_pending)) {
-		entry = list_first_entry(&async_pending,
+	if (!list_empty(running)) {
+		entry = list_first_entry(running,
 			struct async_entry, list);
 		return entry->cookie;
-	} else if (!list_empty(running)) {
-		entry = list_first_entry(running,
+	} else if (!list_empty(&async_pending)) {
+		entry = list_first_entry(&async_pending,
 			struct async_entry, list);
 		return entry->cookie;
 	} else {
@@ -101,6 +103,17 @@ static async_cookie_t  __lowest_in_progress(struct list_head *running)
 		return next_cookie;
 	}
 
+}
+
+static async_cookie_t  lowest_in_progress(struct list_head *running)
+{
+	unsigned long flags;
+	async_cookie_t ret;
+
+	spin_lock_irqsave(&async_lock, flags);
+	ret = __lowest_in_progress(running);
+	spin_unlock_irqrestore(&async_lock, flags);
+	return ret;
 }
 /*
  * pick the first pending entry and run it
@@ -125,15 +138,18 @@ static void run_one_entry(void)
 
 	/* 3) run it (and print duration)*/
 	if (initcall_debug && system_state == SYSTEM_BOOTING) {
-		printk("calling  %lli_%pF @ %i\n", entry->cookie, entry->func, task_pid_nr(current));
+		printk("calling  %lli_%pF @ %i\n", (long long)entry->cookie,
+			entry->func, task_pid_nr(current));
 		calltime = ktime_get();
 	}
 	entry->func(entry->data, entry->cookie);
 	if (initcall_debug && system_state == SYSTEM_BOOTING) {
 		rettime = ktime_get();
 		delta = ktime_sub(rettime, calltime);
-		printk("initcall %lli_%pF returned 0 after %lld usecs\n", entry->cookie,
-			entry->func, ktime_to_ns(delta) >> 10);
+		printk("initcall %lli_%pF returned 0 after %lld usecs\n",
+			(long long)entry->cookie,
+			entry->func,
+			(long long)ktime_to_ns(delta) >> 10);
 	}
 
 	/* 4) remove it from the running queue */
@@ -169,7 +185,7 @@ static async_cookie_t __async_schedule(async_func_ptr *ptr, void *data, struct l
 	 * If we're out of memory or if there's too much work
 	 * pending already, we execute synchronously.
 	 */
-	if (!entry || atomic_read(&entry_count) > MAX_WORK) {
+	if (!async_enabled || !entry || atomic_read(&entry_count) > MAX_WORK) {
 		kfree(entry);
 		spin_lock_irqsave(&async_lock, flags);
 		newcookie = next_cookie++;
@@ -227,14 +243,15 @@ void async_synchronize_cookie_special(async_cookie_t cookie, struct list_head *r
 		starttime = ktime_get();
 	}
 
-	wait_event(async_done, __lowest_in_progress(running) >= cookie);
+	wait_event(async_done, lowest_in_progress(running) >= cookie);
 
 	if (initcall_debug && system_state == SYSTEM_BOOTING) {
 		endtime = ktime_get();
 		delta = ktime_sub(endtime, starttime);
 
 		printk("async_continuing @ %i after %lli usec\n",
-			task_pid_nr(current), ktime_to_ns(delta) >> 10);
+			task_pid_nr(current),
+			(long long)ktime_to_ns(delta) >> 10);
 	}
 }
 EXPORT_SYMBOL_GPL(async_synchronize_cookie_special);
@@ -316,8 +333,18 @@ static int async_manager_thread(void *unused)
 
 static int __init async_init(void)
 {
-	kthread_run(async_manager_thread, NULL, "async/mgr");
+	if (async_enabled)
+		kthread_run(async_manager_thread, NULL, "async/mgr");
 	return 0;
 }
+
+static int __init setup_async(char *str)
+{
+	async_enabled = 1;
+	return 1;
+}
+
+__setup("fastboot", setup_async);
+
 
 core_initcall(async_init);

@@ -17,6 +17,9 @@
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
+#include <linux/gpio_keys.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
@@ -24,6 +27,7 @@
 #include <linux/irq.h>
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
+#include <linux/leds-lp3944.h>
 
 #include <media/soc_camera.h>
 
@@ -44,11 +48,17 @@
 #include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/mach/flash.h>
 #include <asm/io.h>
 
 #include "devices.h"
 #include "generic.h"
 
+#define GPIO12_A780_FLIP_LID 12
+#define GPIO15_A1200_FLIP_LID 15
+#define GPIO15_A910_FLIP_LID 15
+#define GPIO12_E680_LOCK_SWITCH 12
+#define GPIO15_E6_LOCK_SWITCH 15
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -923,6 +933,88 @@ static struct platform_device gen2_bp_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
+/* gpio_keys */
+static struct gpio_keys_button a780_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO12_A780_FLIP_LID,
+		.active_low = 0,
+		.desc = "A780 flip lid",
+		.type = EV_SW,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data a780_gpio_keys_platform_data = {
+	.buttons  = a780_buttons,
+	.nbuttons = ARRAY_SIZE(a780_buttons),
+};
+
+static struct platform_device a780_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a780_gpio_keys_platform_data,
+	},
+};
+
+/* mtd partitions on NOR flash */
+static struct resource flash_resource = {
+	.start = PXA_CS0_PHYS,
+	.end   = PXA_CS0_PHYS + SZ_32M - 1,
+	.flags = IORESOURCE_MEM,
+};
+
+static struct mtd_partition a780_partitions[] = {
+	{
+		.name       = "Bootloader",
+		.size       = 0x00020000,
+		.offset     = 0x0,
+		.mask_flags = MTD_WRITEABLE, /* force read-only */
+	}, {
+		.name       = "Kernel",
+		.size       = 0x000e0000,
+		.offset     = 0x00020000,
+	} , {
+		.name       = "rootfs",
+		.size       = 0x018e0000,
+		.offset     = 0x00120000,
+	} , {
+		.name       = "VFM_Filesystem",
+		.size       = 0x00580000,
+		.offset     = 0x01a00000,
+	} , {
+		.name       = "setup",
+		.size       = 0x00020000,
+		.offset     = 0x01fa0000,
+	} , {
+		.name       = "Logo",
+		.size       = 0x00020000,
+		.offset     = 0x01fc0000,
+	},
+};
+
+static struct flash_platform_data a780_flash_data = {
+	.map_name = "cfi_probe",
+	.name     = "A780 NOR flash",
+	.parts    = a780_partitions,
+	.nr_parts = ARRAY_SIZE(a780_partitions),
+};
+
+static struct platform_device a780_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &a780_flash_data,
+	},
+	.resource      = &flash_resource,
+	.num_resources = 1,
+};
+
+
+/* pcap-leds */
 static struct pcap_leds_platform_data a780_leds = {
 	.leds = {
 		{
@@ -931,9 +1023,12 @@ static struct pcap_leds_platform_data a780_leds = {
 		}, {
 			.type = PCAP_BL1,
 			.name = "a780:aux",
+		}, {
+			.type = PCAP_VIB,
+			.name = "a780:vibrator",
 		},
 	},
-	.num_leds = 2,
+	.num_leds = 3,
 };
 
 struct platform_device a780_leds_device = {
@@ -944,14 +1039,17 @@ struct platform_device a780_leds_device = {
 	},
 };
 
+/* camera */
 static int a780_pxacamera_init(struct device *dev)
 {
 	/* 
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO19, 1);
 
 	return 0;
 }
@@ -960,6 +1058,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 {
 	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 
+#if 0
 	/* 
 	 * This is reported to resolve the vertical line in view finder issue
 	 * (LIBff11930), is this still needed?
@@ -971,6 +1070,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	 * BP can sleep itself.
 	 */
 	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+#endif
 
 	return 0;
 }
@@ -987,14 +1087,15 @@ static int a780_pxacamera_reset(struct device *dev)
 struct pxacamera_platform_data a780_pxacamera_platform_data = {
 	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
-	.mclk_10khz = 1000,
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a780_iclink = {
 	.bus_id	= 0,
 	.power = a780_pxacamera_power,
 	.reset = a780_pxacamera_reset,
+	.flags = SOCAM_SENSOR_INVERT_PCLK,
 };
 
 static struct i2c_board_info __initdata a780_i2c_board_info[] = {
@@ -1003,6 +1104,7 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 		.platform_data = &a780_iclink,
 	},
 };
+
 
 static void __init a780_init(void)
 {
@@ -1030,8 +1132,13 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
+	platform_device_register(&a780_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a780_leds_device);
+
+	/* FIXME: Could this be simplified to just 2 ? */
+	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
+	platform_device_register(&a780_flash_device);
 
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 
@@ -1052,6 +1159,34 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+/* gpio_keys */
+static struct gpio_keys_button e680_buttons[] = {
+	[0] = {
+		.code = KEY_SCREENLOCK,
+		.gpio = GPIO12_E680_LOCK_SWITCH,
+		.active_low = 0,
+		.desc = "E680 lock switch",
+		.type = EV_KEY,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data e680_gpio_keys_platform_data = {
+	.buttons  = e680_buttons,
+	.nbuttons = ARRAY_SIZE(e680_buttons),
+};
+
+static struct platform_device e680_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &e680_gpio_keys_platform_data,
+	},
+};
+
+/* pcap-leds */
 static struct pcap_leds_platform_data e680_leds = {
 	.leds = {
 		{
@@ -1116,6 +1251,7 @@ static void __init e680_init(void)
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
+	platform_device_register(&e680_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&e680_leds_device);
 
@@ -1136,6 +1272,52 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+/* gpio_keys */
+static struct gpio_keys_button a1200_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO15_A1200_FLIP_LID,
+		.active_low = 0,
+		.desc = "A1200 flip lid",
+		.type = EV_SW,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data a1200_gpio_keys_platform_data = {
+	.buttons  = a1200_buttons,
+	.nbuttons = ARRAY_SIZE(a1200_buttons),
+};
+
+static struct platform_device a1200_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a1200_gpio_keys_platform_data,
+	},
+};
+
+/* pcap-leds */
+static struct pcap_leds_platform_data a1200_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a1200:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device a1200_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a1200_leds,
+	},
+};
+
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1165,7 +1347,9 @@ static void __init a1200_init(void)
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
+	platform_device_register(&a1200_gpio_keys);
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&a1200_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_device_register(&gen2_bp_device);
@@ -1185,14 +1369,44 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+/* gpio_keys */
+static struct gpio_keys_button a910_buttons[] = {
+	[0] = {
+		.code = SW_LID,
+		.gpio = GPIO15_A910_FLIP_LID,
+		.active_low = 0,
+		.desc = "A910 flip lid",
+		.type = EV_SW,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data a910_gpio_keys_platform_data = {
+	.buttons  = a910_buttons,
+	.nbuttons = ARRAY_SIZE(a910_buttons),
+};
+
+static struct platform_device a910_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a910_gpio_keys_platform_data,
+	},
+};
+
+/* camera */
 static int a910_pxacamera_init(struct device *dev)
 {
 	/* 
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO28, 1);
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO28, 1);
 
 	return 0;
 }
@@ -1216,7 +1430,7 @@ struct pxacamera_platform_data a910_pxacamera_platform_data = {
 	.init	= a910_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 1000,
+	.mclk_10khz = 5000,
 };
 
 static struct soc_camera_link a910_iclink = {
@@ -1225,10 +1439,72 @@ static struct soc_camera_link a910_iclink = {
 	.reset = a910_pxacamera_reset,
 };
 
+static struct lp3944_platform_data a910_lp3944_leds = {
+	.dims_size = LP3944_DIMS_MAX,
+	.leds_size = LP3944_LEDS_MAX,
+
+	/* set two default dim modes, a fast one and a slow one.
+	 * they will be used when brightness == {2,3}
+	 */
+	.dims = {
+		[0] = {
+			.period = 5,
+			.dutycycle = 5,
+		},
+		[1] = {
+			.period = 10,
+			.dutycycle = 50,
+		},
+	},
+	.leds = {
+		[0] = {
+			.name = "a910:red",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[1] = {
+			.name = "a910:green",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[2] {
+			.name = "a910:blue",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		/* Leds 3 and 4 are displays backlights */
+		[3] = {
+			.name = "a910:cli_backlight",
+			.status = LP3944_LED_STATUS_ON,
+			.type = LP3944_LED_TYPE_LED
+		},
+		[4] = {
+			.name = "a910:main_backlight",
+			.status = LP3944_LED_STATUS_ON,
+			.type = LP3944_LED_TYPE_LED
+		},
+		[5] = { .type = LP3944_LED_TYPE_NONE },
+		[6] = {
+			.name = "a910:torch",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[7] = {
+			.name = "a910:flash",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+	},
+};
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("mt9m111", 0x5d),
 		.platform_data = &a910_iclink,
+	},
+	{
+		I2C_BOARD_INFO("lp3944", 0x60),
+		.platform_data = &a910_lp3944_leds,
 	},
 };
 
@@ -1288,6 +1564,26 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* pcap-leds */
+static struct pcap_leds_platform_data a910_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a910:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device a910_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &a910_leds,
+	},
+};
+
+
 static void __init a910_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -1312,6 +1608,9 @@ static void __init a910_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
+
+	platform_device_register(&a910_gpio_keys);
+	platform_device_register(&a910_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
@@ -1333,6 +1632,52 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+/* gpio_keys */
+static struct gpio_keys_button e6_buttons[] = {
+	[0] = {
+		.code = KEY_SCREENLOCK,
+		.gpio = GPIO15_E6_LOCK_SWITCH,
+		.active_low = 0,
+		.desc = "E6 lock switch",
+		.type = EV_KEY,
+		/*
+		.wakeup = 1,
+		*/
+	},
+};
+
+static struct gpio_keys_platform_data e6_gpio_keys_platform_data = {
+	.buttons  = e6_buttons,
+	.nbuttons = ARRAY_SIZE(e6_buttons),
+};
+
+static struct platform_device e6_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &e6_gpio_keys_platform_data,
+	},
+};
+
+/* pcap-leds */
+static struct pcap_leds_platform_data e6_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e6:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device e6_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e6_leds,
+	},
+};
+
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1362,7 +1707,10 @@ static void __init e6_init(void)
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
+	platform_device_register(&e6_gpio_keys);
+
 	platform_device_register(&pcap_ts_device);
+	platform_device_register(&e6_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_device_register(&gen2_bp_device);
@@ -1383,6 +1731,25 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
+/* pcap-leds */
+static struct pcap_leds_platform_data e2_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e2:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+struct platform_device e2_leds_device = {
+	.name           = "pcap-leds",
+	.id             = -1,
+	.dev = {
+		.platform_data = &e2_leds,
+	},
+};
+
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1411,6 +1778,8 @@ static void __init e2_init(void)
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
+
+	platform_device_register(&e2_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
 	platform_device_register(&gen2_bp_device);
