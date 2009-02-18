@@ -240,6 +240,13 @@ config PCF50633_GPIO
 	 Say yes here if you want to include support GPIO for pins on
 	 the PCF50633 chip.
 
+config EZX_PCAP
+	bool "PCAP Support"
+	depends on SPI_MASTER
+	help
+	  This enables the PCAP ASIC present on EZX Phones. This is
+	  needed for MMC, TouchScreen, Sound, USB, etc..
+
 endmenu
 
 menu "Multimedia Capabilities Port drivers"

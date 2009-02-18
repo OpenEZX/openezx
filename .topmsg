@@ -1,0 +1,14 @@
+From: Daniel Ribeiro <drwyrm@gmail.com>
+Subject: mfd: PCAP driver
+To: sameo@openedhand.com
+Cc: linux-arm-kernel@lists.arm.linux.org.uk, eric.y.miao@gmail.com, linux-kernel@vger.kernel.org, spi-devel-general@lists.sourceforge.net
+
+The PCAP Asic as present on EZX phones is a multi function device with
+voltage regulators, irq expander, touch screen controller and audio
+codec. It is connected to the processor via SPI, this driver provides
+read/write functions to its registers.
+
+Since the last submission we are also using the spi subsystem and
+pxa2xx-spi instead of ssp.c directly as before.
+
+Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
