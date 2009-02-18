@@ -1,6 +1,10 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] rtc/0day-patches
+Subject: PCAP2 RTC driver
+To: a.zummo@towertech.it
+Cc: eric.y.miao@gmail.com, rtc-linux@googlegroups.com, linux-arm-kernel@lists.arm.linux.org.uk
 
-<patch description>
+RTC driver based on the PCAP2 multi function device
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: guiming zhuo <gmzhuo@gmail.com>
+Acked-by: Alessandro Zummo <a.zummo@towertech.it>
