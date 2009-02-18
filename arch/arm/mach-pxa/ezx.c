@@ -23,6 +23,8 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
+#include <linux/spi/mmc_spi.h>
+#include <linux/irq.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
@@ -31,6 +33,7 @@
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
+#include <mach/mmc.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -48,6 +51,8 @@
 #define GPIO12_E680_LOCK_SWITCH 12
 #define GPIO15_E6_LOCK_SWITCH 15
 #define GPIO1_PCAP_IRQ			1
+#define GPIO11_MMC_DETECT		11
+#define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
 #define GPIO28_PCAP_CS			28
 
@@ -105,6 +110,76 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.modes		= &mode_72r89803y01,
 	.num_modes	= 1,
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
+};
+
+/* MMC */
+static int ezx_mci_init(struct device *dev,
+		irqreturn_t (*detect_int)(int, void *), void *data)
+{
+	int err = 0;
+
+	/* A1200 slot is not hot-plug */
+	if (!machine_is_ezx_a1200()) {
+		err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_int,
+			IRQF_DISABLED | IRQF_SAMPLE_RANDOM |
+			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
+			"MMC card detect", data);
+	}
+
+	return err;
+}
+
+static int ezx_pcap_mmcsd_voltage(unsigned int vdd)
+{
+	/* 7 is the active bit in MMC_VDD_165_195 */
+	int val = (vdd == 7) ? 6 : (vdd + 1) / 2 + 3;
+
+	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
+			machine_is_ezx_e2())
+		return ezx_pcap_set_vreg(VAUX2, V_VAL, 3);
+	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
+			machine_is_ezx_a910())
+		return ezx_pcap_set_vreg(VAUX3, V_VAL, val);
+	else
+		return -ENODEV;
+}
+
+static int ezx_pcap_mmcsd_power(int on)
+{
+	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
+			machine_is_ezx_e2())
+		return ezx_pcap_set_vreg(VAUX2, V_EN, on);
+	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
+			machine_is_ezx_a910())
+		return ezx_pcap_set_vreg(VAUX3, V_EN, on);
+	else
+		return -ENODEV;
+}
+
+static void ezx_mci_setpower(struct device *dev, unsigned int vdd)
+{
+	ezx_pcap_mmcsd_voltage(vdd);
+	ezx_pcap_mmcsd_power(1);
+}
+
+static void ezx_mci_exit(struct device *dev, void *data)
+{
+	ezx_pcap_mmcsd_power(0);
+	if (!machine_is_ezx_a1200())
+		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
+}
+
+static struct pxamci_platform_data ezx_mci_platform_data = {
+	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
+				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
+				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
+				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
+				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
+				|MMC_VDD_34_35|MMC_VDD_35_36,
+	.init           = ezx_mci_init,
+	.setpower       = ezx_mci_setpower,
+	.exit           = ezx_mci_exit,
+	.detect_delay   = 150 / (1000 / HZ),
 };
 
 static struct platform_device *devices[] __initdata = {
@@ -817,6 +892,8 @@ static void __init a780_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
@@ -888,6 +965,8 @@ static void __init e680_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
@@ -954,6 +1033,8 @@ static void __init a1200_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
@@ -1002,6 +1083,62 @@ static struct platform_device a910_gpio_keys = {
 	},
 };
 
+/* A910 SPI/MMC */
+static void a910_mmc_cs_control(u32 command)
+{
+	int on = (command & PXA2XX_CS_ASSERT);
+
+	gpio_set_value(GPIO20_A910_MMC_CS, !on);
+}
+
+static struct pxa2xx_spi_master a910_spi_masterinfo = {
+	.clock_enable = CKEN_SSP1,
+	.num_chipselect = 2,
+	.enable_dma = 1,
+};
+
+static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
+	.tx_threshold = 8,
+	.rx_threshold = 8,
+	.dma_burst_size = 8,
+	.timeout = 10000,
+	.cs_control = a910_mmc_cs_control,
+};
+
+static struct mmc_spi_platform_data a910_mci_platform_data = {
+	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
+				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
+				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
+				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
+				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
+				|MMC_VDD_34_35|MMC_VDD_35_36,
+	.init           = ezx_mci_init,
+	.setpower       = ezx_mci_setpower,
+	.exit           = ezx_mci_exit,
+	.detect_delay   = 150 / (1000 / HZ),
+};
+
+static struct spi_board_info a910_spi_boardinfo[] __initdata = {
+	{
+		.modalias = "ezx-pcap",
+		.bus_num = 1,
+		.chip_select = 0,
+		.max_speed_hz = 13000000,
+		.platform_data = &ezx_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode = SPI_MODE_0,
+	},
+	{
+		.modalias = "mmc_spi",
+		.bus_num = 1,
+		.chip_select = 1,
+		.max_speed_hz = 13000000,
+		.platform_data = &a910_mci_platform_data,
+		.controller_data = &a910_mmcspi_chip_info,
+		.mode = SPI_MODE_0,
+	},
+};
+
 
 static void __init a910_init(void)
 {
@@ -1013,8 +1150,10 @@ static void __init a910_init(void)
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
+	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
+	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
+	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1082,6 +1221,8 @@ static void __init e6_init(void)
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
@@ -1120,6 +1261,8 @@ static void __init e2_init(void)
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+
+	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 

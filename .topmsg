@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 06/14] EZX: PCAP2 platform data
+Subject: EZX: MCI configuration
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-setup spi and add pcap2 platform data
+MCI board info configuration.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
