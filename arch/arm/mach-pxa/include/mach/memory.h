@@ -28,6 +28,8 @@
  * This needs a node mem size of 26 bits.
  */
 #define NODE_MEM_SIZE_BITS	26
+#define MAX_PHYSMEM_BITS	32
+#define SECTION_SIZE_BITS	26
 
 #if !defined(__ASSEMBLY__) && defined(CONFIG_MACH_ARMCORE) && defined(CONFIG_PCI)
 void cmx2xx_pci_adjust_zones(int node, unsigned long *size,
