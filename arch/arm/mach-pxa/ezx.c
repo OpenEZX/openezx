@@ -795,6 +795,11 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* PCAP_TS */
+struct platform_device pcap_ts_device = {
+	.name = "pcap-ts",
+	.id   = -1,
+};
 
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
@@ -899,6 +904,7 @@ static void __init a780_init(void)
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
 	platform_device_register(&a780_gpio_keys);
+	platform_device_register(&pcap_ts_device);
 
 	/* FIXME: Could this be simplified to just 2 ? */
 	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
@@ -972,6 +978,7 @@ static void __init e680_init(void)
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
 	platform_device_register(&e680_gpio_keys);
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1040,6 +1047,7 @@ static void __init a1200_init(void)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
 	platform_device_register(&a1200_gpio_keys);
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1228,6 +1236,8 @@ static void __init e6_init(void)
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
 	platform_device_register(&e6_gpio_keys);
+
+	platform_device_register(&pcap_ts_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
