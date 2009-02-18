@@ -1,7 +1,6 @@
-ezx/mach/usb2.0
+ezx/mach/leds-lp3944
 ezx/asoc
 ezx/eoc
 ezx/defconfig
 pxa/sparsemem
 ezx/usb2.0
-tmp/fix-rtc-pxa

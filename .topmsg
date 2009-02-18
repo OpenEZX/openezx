@@ -1,6 +1,6 @@
 From: gmzhuo <gmzhuo@gmail.com>
-Subject: [PATCH] ezx/mach/usb2.0
+Subject: [PATCH] ezx/current
 
-add isp1583 usb2.0 chip support
+placeholder to checkout all the ezx patches
 
 Signed-off-by: gmzhuo <gmzhuo@gmail.com>
