@@ -805,6 +805,12 @@ struct platform_device pcap_ts_device = {
 	.id   = -1,
 };
 
+/* PCAP_RTC */
+static struct platform_device pcap_rtc_device = {
+	.name = "rtc-pcap",
+	.id   = -1,
+};
+
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
@@ -1135,6 +1141,7 @@ static void __init a1200_init(void)
 	platform_device_register(&a1200_gpio_keys);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a1200_leds_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1275,6 +1282,7 @@ static void __init a910_init(void)
 
 	platform_device_register(&a910_gpio_keys);
 	platform_device_register(&a910_leds_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1365,6 +1373,7 @@ static void __init e6_init(void)
 
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&e6_leds_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
@@ -1425,6 +1434,7 @@ static void __init e2_init(void)
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
 	platform_device_register(&e2_leds_device);
+	platform_device_register(&pcap_rtc_device);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 }
