@@ -17,7 +17,7 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
-#include <linux/regulator/driver.h>
+#include <linux/rfkill.h>
 
 struct pcap_chip {
 	struct spi_device *spi;
