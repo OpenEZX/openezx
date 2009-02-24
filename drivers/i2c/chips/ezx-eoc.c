@@ -17,6 +17,8 @@
 #include <linux/interrupt.h>
 #include <linux/workqueue.h>
 #include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
+#include <linux/err.h>
 
 #define EOC_REG_ADDR_SIZE		1
 #define EOC_REG_DATA_SIZE		3
@@ -252,7 +254,23 @@ static struct regulator_desc eoc_regulator_desc = {
 	.type  = REGULATOR_CURRENT,
 };
 
-static struct regulator_dev *eoc_charger;
+static struct regulator_init_data eoc_regulator_data = {
+	.constraints = {
+		.min_uV = 3300000,
+		.max_uV = 3300000,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = 0,
+	.consumer_supplies = 0,
+};
+
+static struct platform_device eoc_regulator_device = {
+	.name = "eoc-regulator",
+	.id = -1,
+	.dev = {
+		.platform_data = &eoc_regulator_data,
+	},
+};
 
 static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
@@ -287,8 +305,8 @@ static int __devinit eoc_probe(struct i2c_client *client,
 								"EOC", NULL);
 	eoc_reg_write(EOC_REG_INT_STATUS, 0xffffff);
 
-	eoc_charger = regulator_register(&eoc_regulator_desc,
-				&client->dev, NULL);
+	platform_device_register(&eoc_regulator_device);
+
 ret:
 	return ret;
 }
@@ -298,10 +316,7 @@ static int __devexit eoc_remove(struct i2c_client *client)
 	free_irq(gpio_to_irq(10), NULL);
 	flush_scheduled_work();
 	kfree(i2c_get_clientdata(client));
-	if (eoc_charger) {
-		regulator_unregister(eoc_charger);
-		eoc_charger = 0;
-	}
+	platform_device_unregister(&eoc_regulator_device);
 	return 0;
 }
 
@@ -315,14 +330,47 @@ static struct i2c_driver eoc_driver = {
 	.id_table = eoc_id,
 };
 
+static int eoc_regulator_probe(struct platform_device *pdev)
+{
+	struct regulator_dev *rdev;
+
+	/* register regulator */
+	rdev = regulator_register(&eoc_regulator_desc, &pdev->dev,
+				  dev_get_drvdata(&pdev->dev));
+	if (IS_ERR(rdev)) {
+		return PTR_ERR(rdev);
+	}
+
+	return 0;
+}
+
+static int eoc_regulator_remove(struct platform_device *pdev)
+{
+	struct regulator_dev *rdev = platform_get_drvdata(pdev);
+	regulator_unregister(rdev);
+	return 0;
+}
+
+
+static struct platform_driver eoc_regulator_driver = {
+	.probe = eoc_regulator_probe,
+	.remove = eoc_regulator_remove,
+	.driver		= {
+		.name	= "eoc-regulator",
+	},
+};
+
+
 static int __init eoc_init(void)
 {
+	platform_driver_register(&eoc_regulator_driver);
 	return i2c_add_driver(&eoc_driver);
 }
 
 static void __exit eoc_exit(void)
 {
 	i2c_del_driver(&eoc_driver);
+	platform_driver_unregister(&eoc_regulator_driver);
 }
 
 MODULE_AUTHOR("Alex Zhang <celeber2@gmail.com>");
