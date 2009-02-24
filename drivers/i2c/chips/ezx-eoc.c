@@ -16,6 +16,7 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/workqueue.h>
+#include <linux/regulator/driver.h>
 
 #define EOC_REG_ADDR_SIZE		1
 #define EOC_REG_DATA_SIZE		3
@@ -56,6 +57,15 @@
 /* c00 10, 11 */
 #define EOC_POWER0_VBUS_5K_PD		(1 << 19)
 #define EOC_POWER0_REVERSE_MODE		(1 << 13)
+
+/* Bits in EMU one-chip's power control register 0. */
+#define EMU_VCHRG_MASK              0x00000007
+#define EMU_ICHRG_MASK              0x00000078
+#define EMU_ICHRG_SHIFT             3
+#define EMU_ICHRG_TR_MASK           0x00000380
+#define EMU_ICHRG_TR_SHIFT          7
+#define EMU_FET_OVRD_MASK           0x00000400
+#define EMU_FET_CTRL_MASK           0x00000800
 
 static struct i2c_client *eoc_i2c_client;
 static const struct i2c_device_id eoc_id[] = {
@@ -177,6 +187,73 @@ static irqreturn_t eoc_irq(int irq, void *arg)
 	return IRQ_HANDLED;
 }
 
+static int eoc_set_current_limit(struct regulator_dev *rdev,
+					int min_uA, int max_uA)
+{
+	int mask;
+	int charge_current, setup;
+	if (max_uA < 5000)
+		charge_current = 5;
+	else if (max_uA > 13000)
+		charge_current = 13;
+	else
+		charge_current = max_uA / 1000;
+
+	setup = (charge_current << EMU_ICHRG_SHIFT) & EMU_ICHRG_MASK;
+	if (charge_current != 0)
+		mask = EMU_ICHRG_MASK | EMU_ICHRG_TR_MASK;
+	else
+		mask = EMU_ICHRG_MASK;
+
+	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0, mask, setup);
+}
+
+static int eoc_get_current_limit(struct regulator_dev *rdev)
+{
+	int value;
+	eoc_reg_read(EOC_REG_POWER_CONTROL_0, &value);
+	value &= EMU_ICHRG_MASK;
+	value >>= EMU_ICHRG_SHIFT;
+	return value * 1000;
+}
+
+static int eoc_charger_enable(struct regulator_dev *rdev)
+{
+	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0,
+				EMU_VCHRG_MASK, 3);
+}
+
+static int eoc_charger_disable(struct regulator_dev *rdev)
+{
+	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0,
+				EMU_VCHRG_MASK, 0);
+}
+
+static int eoc_charger_is_enabled(struct regulator_dev *rdev)
+{	int value;
+	eoc_reg_read(EOC_REG_POWER_CONTROL_0, &value);
+	value &= EMU_ICHRG_MASK;
+	value >>= EMU_ICHRG_SHIFT;
+
+	return value >= 3;
+}
+
+static struct regulator_ops eoc_regulator_ops = {
+	.set_current_limit = eoc_set_current_limit,
+	.get_current_limit = eoc_get_current_limit,
+	.enable            = eoc_charger_enable,
+	.disable           = eoc_charger_disable,
+	.is_enabled        = eoc_charger_is_enabled,
+};
+
+static struct regulator_desc eoc_regulator_desc = {
+	.name  = "eoc_charger",
+	.ops   = &eoc_regulator_ops,
+	.type  = REGULATOR_CURRENT,
+};
+
+static struct regulator_dev *eoc_charger;
+
 static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
@@ -209,6 +286,9 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	ret = request_irq(gpio_to_irq(10), eoc_irq, IRQF_TRIGGER_RISING,
 								"EOC", NULL);
 	eoc_reg_write(EOC_REG_INT_STATUS, 0xffffff);
+
+	eoc_charger = regulator_register(&eoc_regulator_desc,
+				&client->dev, NULL);
 ret:
 	return ret;
 }
@@ -218,6 +298,10 @@ static int __devexit eoc_remove(struct i2c_client *client)
 	free_irq(gpio_to_irq(10), NULL);
 	flush_scheduled_work();
 	kfree(i2c_get_clientdata(client));
+	if (eoc_charger) {
+		regulator_unregister(eoc_charger);
+		eoc_charger = 0;
+	}
 	return 0;
 }
 
