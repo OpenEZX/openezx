@@ -17,9 +17,12 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
+#include <linux/rfkill.h>
 
 struct pcap_chip {
 	struct spi_device *spi;
+	struct rfkill *rf_kill;
+	char rf_kill_name[60];
 	struct work_struct work;
 	struct workqueue_struct *workqueue;
 	void (*adc_done)(void *);
@@ -544,6 +547,60 @@ fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
+static int pcap_bt_toggle_radio(void *data, enum rfkill_state state)
+{
+
+	switch (state) {
+	case RFKILL_STATE_SOFT_BLOCKED:
+		ezx_pcap_set_vreg(V6, V_EN, 0);
+		return 0;
+	case RFKILL_STATE_UNBLOCKED:
+		ezx_pcap_set_vreg(V6, V_EN, 1);
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
+static int pcap_bt_getstate(void *data, enum rfkill_state *state)
+{
+	unsigned int val;
+
+	ezx_pcap_read(PCAP_REG_VREG2, &val);
+
+	val &= 2;
+
+
+	if (val)
+		*state = RFKILL_STATE_UNBLOCKED;
+	else
+		*state = RFKILL_STATE_SOFT_BLOCKED;
+	return 0;
+}
+
+static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
+{
+	if (pdata->config & PCAP_SECOND_PORT)
+		return -ENODEV;
+
+	pcap.rf_kill = rfkill_allocate(&pcap.spi->dev, RFKILL_TYPE_BLUETOOTH);
+	if (!pcap.rf_kill)
+		return -ENOMEM;
+
+	snprintf(pcap.rf_kill_name, sizeof(pcap.rf_kill_name),
+		 "pcap_bt:rfkill");
+	pcap.rf_kill->name = pcap.rf_kill_name;
+	pcap.rf_kill->data = &pcap;
+	pcap.rf_kill->toggle_radio = pcap_bt_toggle_radio;
+	pcap.rf_kill->get_state = pcap_bt_getstate;
+	pcap.rf_kill->state = RFKILL_STATE_SOFT_BLOCKED;
+	pcap.rf_kill->user_claim_unsupported = 1;
+	rfkill_register(pcap.rf_kill);
+
+	return 0;
+}
+
+
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
@@ -553,6 +610,11 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
 	pcap.spi = NULL;
+	if (pcap.rf_kill) {
+		rfkill_unregister(pcap.rf_kill);
+		pcap.rf_kill = NULL;
+	}
+
 
 	return 0;
 }
@@ -616,6 +678,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
 			PCAP_IRQ_ADCDONE2 : PCAP_IRQ_ADCDONE,
 			ezx_pcap_adc_event, NULL, "ADC");
+	pcap_init_rfkill(pdata);
 	return 0;
 
 wq_destroy:
