@@ -98,6 +98,25 @@ int eoc_reg_write(char reg, unsigned int val)
 	return 0;
 }
 
+int eoc_reg_write_mask(char reg, int mask, int value)
+{
+	unsigned int old_value;
+	int ret;
+
+	ret = eoc_reg_read(reg, &old_value);
+	if (!ret)
+		return ret;
+
+	old_value &= ~mask;
+	old_value |= value & mask;
+	ret = eoc_reg_write(reg, old_value);
+	if (!ret)
+		return ret;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(eoc_reg_write_mask);
+
 static void eoc_work(struct work_struct *_eoc)
 {
 	unsigned int isr, msr, i, x;
