@@ -506,7 +506,7 @@ static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
 {
 	if (pdata->config & PCAP_SECOND_PORT)
 		return -ENODEV;
-
+#ifdef CONFIG_RFKILL
 	pcap.rf_kill = rfkill_allocate(&pcap.spi->dev, RFKILL_TYPE_BLUETOOTH);
 	if (!pcap.rf_kill)
 		return -ENOMEM;
@@ -520,7 +520,7 @@ static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
 	pcap.rf_kill->state = RFKILL_STATE_SOFT_BLOCKED;
 	pcap.rf_kill->user_claim_unsupported = 1;
 	rfkill_register(pcap.rf_kill);
-
+#endif
 	return 0;
 }
 
@@ -534,10 +534,12 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
 	pcap.spi = NULL;
+#ifdef CONFIG_RFKILL
 	if (pcap.rf_kill) {
 		rfkill_unregister(pcap.rf_kill);
 		pcap.rf_kill = NULL;
 	}
+#endif
 
 
 	return 0;
