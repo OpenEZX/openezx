@@ -333,21 +333,24 @@ static struct i2c_driver eoc_driver = {
 static int eoc_regulator_probe(struct platform_device *pdev)
 {
 	struct regulator_dev *rdev;
-
+#ifdef CONFIG_REGULATOR
 	/* register regulator */
 	rdev = regulator_register(&eoc_regulator_desc, &pdev->dev,
 				  dev_get_drvdata(&pdev->dev));
 	if (IS_ERR(rdev)) {
 		return PTR_ERR(rdev);
 	}
+#endif
 
 	return 0;
 }
 
 static int eoc_regulator_remove(struct platform_device *pdev)
 {
+#ifdef CONFIG_REGULATOR
 	struct regulator_dev *rdev = platform_get_drvdata(pdev);
 	regulator_unregister(rdev);
+#endif
 	return 0;
 }
 
