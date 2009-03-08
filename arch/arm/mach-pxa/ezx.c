@@ -1501,8 +1501,7 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("mt9m111", 0x5d),
 		.platform_data = &a910_iclink,
-	},
-	{
+	}, {
 		I2C_BOARD_INFO("lp3944", 0x60),
 		.platform_data = &a910_lp3944_leds,
 	},
