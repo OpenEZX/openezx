@@ -1,0 +1,6 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] asoc/pxa-ssp-fix-SSPSP_SCMODE
+
+Fix SSPSP_SCMODE for ezx.
+
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
