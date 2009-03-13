@@ -880,6 +880,8 @@ static struct platform_device a780_flash_device = {
 
 static void __init a780_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
@@ -889,7 +891,9 @@ static void __init a780_init(void)
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -952,6 +956,8 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 
 static void __init e680_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
@@ -962,7 +968,9 @@ static void __init e680_init(void)
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1021,6 +1029,8 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 
 static void __init a1200_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
@@ -1030,7 +1040,9 @@ static void __init a1200_init(void)
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1142,6 +1154,8 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 
 static void __init a910_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
@@ -1152,8 +1166,10 @@ static void __init a910_init(void)
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
 	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
-	pxa2xx_set_spi_info(1, &a910_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1209,6 +1225,8 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 
 static void __init e6_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
@@ -1218,7 +1236,9 @@ static void __init e6_init(void)
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1250,6 +1270,8 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 
 static void __init e2_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
@@ -1259,7 +1281,9 @@ static void __init e2_init(void)
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_mci_info(&ezx_mci_platform_data);
