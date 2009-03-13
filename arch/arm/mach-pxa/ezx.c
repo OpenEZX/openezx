@@ -1557,7 +1557,7 @@ static void __init a910_init(void)
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
