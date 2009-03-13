@@ -67,6 +67,11 @@ struct platform_device pxa_device_mci = {
 	.resource	= pxamci_resources,
 };
 
+void __init pxa_set_mci_parent(struct device *parent_dev)
+{
+	pxa_device_mci.dev.parent = parent_dev;
+}
+
 void __init pxa_set_mci_info(struct pxamci_platform_data *info)
 {
 	pxa_register_device(&pxa_device_mci, info);
