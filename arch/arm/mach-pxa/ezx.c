@@ -937,6 +937,7 @@ static void __init a780_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
@@ -1051,6 +1052,7 @@ static void __init e680_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
@@ -1144,6 +1146,7 @@ static void __init a1200_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
@@ -1383,6 +1386,7 @@ static void __init e6_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
@@ -1451,6 +1455,7 @@ static void __init e2_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
