@@ -67,17 +67,28 @@ struct platform_device pxa_device_mci = {
 	.resource	= pxamci_resources,
 };
 
+void __init pxa_set_mci_parent(struct device *parent_dev)
+{
+	pxa_device_mci.dev.parent = parent_dev;
+}
+
 void __init pxa_set_mci_info(struct pxamci_platform_data *info)
 {
 	pxa_register_device(&pxa_device_mci, info);
 }
 
-
-static struct pxa2xx_udc_mach_info pxa_udc_info;
+void __init pxa_set_udc_parent(struct device *parent_dev)
+{
+	pxa25x_device_udc.dev.parent = parent_dev;
+	pxa27x_device_udc.dev.parent = parent_dev;
+}
 
 void __init pxa_set_udc_info(struct pxa2xx_udc_mach_info *info)
 {
-	memcpy(&pxa_udc_info, info, sizeof *info);
+	if (cpu_is_pxa27x())
+		pxa_register_device(&pxa27x_device_udc, info);
+	else if (cpu_is_pxa25x())
+		pxa_register_device(&pxa25x_device_udc, info);
 }
 
 static struct resource pxa2xx_udc_resources[] = {
@@ -101,7 +112,6 @@ struct platform_device pxa25x_device_udc = {
 	.resource	= pxa2xx_udc_resources,
 	.num_resources	= ARRAY_SIZE(pxa2xx_udc_resources),
 	.dev		=  {
-		.platform_data	= &pxa_udc_info,
 		.dma_mask	= &udc_dma_mask,
 	}
 };
@@ -112,7 +122,6 @@ struct platform_device pxa27x_device_udc = {
 	.resource	= pxa2xx_udc_resources,
 	.num_resources	= ARRAY_SIZE(pxa2xx_udc_resources),
 	.dev		=  {
-		.platform_data	= &pxa_udc_info,
 		.dma_mask	= &udc_dma_mask,
 	}
 };
