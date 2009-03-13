@@ -971,6 +971,7 @@ static void __init a780_init(void)
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
@@ -1089,6 +1090,7 @@ static void __init e680_init(void)
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
@@ -1186,6 +1188,7 @@ static void __init a1200_init(void)
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
@@ -1335,6 +1338,7 @@ static void __init a910_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
@@ -1432,6 +1436,7 @@ static void __init e6_init(void)
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
@@ -1504,6 +1509,7 @@ static void __init e2_init(void)
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
