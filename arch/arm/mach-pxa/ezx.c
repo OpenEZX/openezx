@@ -1291,7 +1291,7 @@ static void __init a910_init(void)
 	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
 	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
-	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	spi_pd->dev.platform_data = &a910_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
