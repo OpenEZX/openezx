@@ -269,7 +269,7 @@ static unsigned long ezx_pin_config[] __initdata = {
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static unsigned long gen1_pin_config[] __initdata = {
 	/* flip / lockswitch */
-	GPIO12_GPIO,
+	GPIO12_GPIO | WAKEUP_ON_EDGE_BOTH,
 
 	/* bluetooth (bcm2035) */
 	GPIO14_GPIO | WAKEUP_ON_LEVEL_HIGH,	/* HOSTWAKE */
@@ -324,7 +324,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
 static unsigned long gen2_pin_config[] __initdata = {
 	/* flip / lockswitch */
-	GPIO15_GPIO,
+	GPIO15_GPIO | WAKEUP_ON_EDGE_BOTH,
 
 	/* EOC */
 	GPIO10_GPIO,
