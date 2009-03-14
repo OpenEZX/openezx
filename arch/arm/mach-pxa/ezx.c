@@ -814,9 +814,7 @@ static struct gpio_keys_button a780_buttons[] = {
 		.active_low = 0,
 		.desc = "A780 flip lid",
 		.type = EV_SW,
-		/*
 		.wakeup = 1,
-		*/
 	},
 };
 
@@ -969,9 +967,7 @@ static struct gpio_keys_button e680_buttons[] = {
 		.active_low = 0,
 		.desc = "E680 lock switch",
 		.type = EV_KEY,
-		/*
 		.wakeup = 1,
-		*/
 	},
 };
 
@@ -1080,9 +1076,7 @@ static struct gpio_keys_button a1200_buttons[] = {
 		.active_low = 0,
 		.desc = "A1200 flip lid",
 		.type = EV_SW,
-		/*
 		.wakeup = 1,
-		*/
 	},
 };
 
@@ -1174,9 +1168,7 @@ static struct gpio_keys_button a910_buttons[] = {
 		.active_low = 0,
 		.desc = "A910 flip lid",
 		.type = EV_SW,
-		/*
 		.wakeup = 1,
-		*/
 	},
 };
 
@@ -1318,9 +1310,7 @@ static struct gpio_keys_button e6_buttons[] = {
 		.active_low = 0,
 		.desc = "E6 lock switch",
 		.type = EV_KEY,
-		/*
 		.wakeup = 1,
-		*/
 	},
 };
 
