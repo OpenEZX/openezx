@@ -1,6 +1,7 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] spi/pxa2xx_spi-fix-dma-resume
-
-<patch description>
-
+Subject: [PATCH] pxa2xx_spi: restore DRCMR on resume
+TO: spi-devel-general@lists.sourceforge.net
+CC: Eric Miao <eric.y.miao@gmail.com>
+CC: Ned Forrester <nforrester@whoi.edu>
+CC: David Brownell <david-b@pacbell.net>
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
