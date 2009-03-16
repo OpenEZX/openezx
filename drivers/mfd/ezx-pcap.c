@@ -471,6 +471,8 @@ fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
 ret:	return ret;
 }
 
+#ifdef CONFIG_RFKILL
+
 static int pcap_bt_toggle_radio(void *data, enum rfkill_state state)
 {
 
@@ -506,7 +508,7 @@ static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
 {
 	if (pdata->config & PCAP_SECOND_PORT)
 		return -ENODEV;
-#ifdef CONFIG_RFKILL
+
 	pcap.rf_kill = rfkill_allocate(&pcap.spi->dev, RFKILL_TYPE_BLUETOOTH);
 	if (!pcap.rf_kill)
 		return -ENOMEM;
@@ -519,10 +521,12 @@ static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
 	pcap.rf_kill->get_state = pcap_bt_getstate;
 	pcap.rf_kill->state = RFKILL_STATE_SOFT_BLOCKED;
 	pcap.rf_kill->user_claim_unsupported = 1;
+
 	rfkill_register(pcap.rf_kill);
-#endif
 	return 0;
 }
+
+#endif
 
 
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
@@ -604,7 +608,9 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
 			PCAP_IRQ_ADCDONE2 : PCAP_IRQ_ADCDONE,
 			ezx_pcap_adc_event, NULL, "ADC");
+#ifdef CONFIG_RFKILL
 	pcap_init_rfkill(pdata);
+#endif
 	return 0;
 
 wq_destroy:
