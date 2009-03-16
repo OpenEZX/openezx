@@ -36,6 +36,8 @@
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
+#include <mach/udc.h>
+#include <mach/pxa27x-udc.h>
 
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -757,6 +759,12 @@ static void ezx_pcap_init(void)
 
 	/* set core voltage */
 	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+
+	/* FIXME: EMU driver */
+	ezx_pcap_write(PCAP_REG_BUSCTRL,
+			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	gpio_direction_output(120, 0);
+	gpio_direction_output(119, 0);
 }
 
 static struct pcap_platform_data ezx_pcap_platform_data = {
@@ -809,6 +817,28 @@ struct platform_device pcap_ts_device = {
 static struct platform_device pcap_rtc_device = {
 	.name = "rtc-pcap",
 	.id   = -1,
+};
+
+/* UDC */
+static void ezx_udc_command(int cmd)
+{
+	unsigned int tmp;
+	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+	switch (cmd) {
+	case PXA2XX_UDC_CMD_DISCONNECT:
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp &= ~PCAP_BUSCTRL_USB_PU;
+		break;
+	case PXA2XX_UDC_CMD_CONNECT:
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp |= PCAP_BUSCTRL_USB_PU;
+		break;
+	}
+	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+}
+
+static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
+	.udc_command = ezx_udc_command,
 };
 
 #ifdef CONFIG_MACH_EZX_A780
@@ -938,6 +968,10 @@ static void __init a780_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
@@ -1051,6 +1085,10 @@ static void __init e680_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
@@ -1142,6 +1180,10 @@ static void __init a1200_init(void)
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1287,6 +1329,10 @@ static void __init a910_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
@@ -1379,6 +1425,10 @@ static void __init e6_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
@@ -1447,6 +1497,10 @@ static void __init e2_init(void)
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	UP2OCR = UP2OCR_SEOS(2);
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
