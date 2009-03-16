@@ -1,6 +1,6 @@
-From: gmzhuo <gmzhuo@gmail.com>
-Subject: [PATCH] ezx/mach/usb2.0
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] ezx/mach/leds-lp3944
 
-add isp1583 usb2.0 chip support
+Add support for leds-lp3944 to ezx phones
 
-Signed-off-by: gmzhuo <gmzhuo@gmail.com>
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
