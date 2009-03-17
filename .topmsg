@@ -1,6 +1,6 @@
 From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/pxa2xx-flash
+Subject: [PATCH] ezx/mach/camera
 
-Add support for mtd partitions on internal NOR flash.
+Add camera support for A780 and A910
 
 Signed-off-by: Antonio Ospite <ao2@openezx.org>
