@@ -21,7 +21,6 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 
-
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
