@@ -29,8 +29,6 @@
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 
-#include <media/soc_camera.h>
-
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
@@ -41,7 +39,6 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
-#include <mach/camera.h>
 #include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -1037,72 +1034,6 @@ struct platform_device a780_leds_device = {
 	},
 };
 
-/* camera */
-static int a780_pxacamera_init(struct device *dev)
-{
-	/* 
-	 * GPIO50_GPIO is CAM_EN: active low
-	 * GPIO19_GPIO is CAM_RST: active high
-	 */
-	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
-	gpio_direction_output(MFP_PIN_GPIO50, 0);
-	gpio_direction_output(MFP_PIN_GPIO19, 1);
-
-	return 0;
-}
-
-static int a780_pxacamera_power(struct device *dev, int on)
-{
-	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
-
-#if 0
-	/* 
-	 * This is reported to resolve the vertical line in view finder issue
-	 * (LIBff11930), is this still needed?
-	 *
-	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
-	 * and TC_MM_EN to high when camera stops.
-	 *
-	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
-	 * BP can sleep itself.
-	 */
-	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
-#endif
-
-	return 0;
-}
-
-static int a780_pxacamera_reset(struct device *dev)
-{
-	gpio_set_value(MFP_PIN_GPIO19, 0);
-	msleep(10);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
-
-	return 0;
-}
-
-struct pxacamera_platform_data a780_pxacamera_platform_data = {
-	.init	= a780_pxacamera_init,
-	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 5000,
-};
-
-static struct soc_camera_link a780_iclink = {
-	.bus_id	= 0,
-	.power = a780_pxacamera_power,
-	.reset = a780_pxacamera_reset,
-	.flags = SOCAM_SENSOR_INVERT_PCLK,
-};
-
-static struct i2c_board_info __initdata a780_i2c_board_info[] = {
-	{
-		I2C_BOARD_INFO("mt9m111", 0x5d),
-		.platform_data = &a780_iclink,
-	},
-};
-
 
 static void __init a780_init(void)
 {
@@ -1113,7 +1044,6 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
-	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 1);
@@ -1143,8 +1073,6 @@ static void __init a780_init(void)
 	/* FIXME: Could this be simplified to just 2 ? */
 	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
 	platform_device_register(&a780_flash_device);
-
-	pxa_set_camera_info(&a780_pxacamera_platform_data);
 
 	platform_device_register(&gen1_bp_device);
 
@@ -1406,49 +1334,6 @@ static struct platform_device a910_gpio_keys = {
 	},
 };
 
-/* camera */
-static int a910_pxacamera_init(struct device *dev)
-{
-	/* 
-	 * GPIO50_GPIO is CAM_EN: active low
-	 * GPIO28_GPIO is CAM_RST: active high
-	 */
-	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
-	gpio_direction_output(MFP_PIN_GPIO50, 0);
-	gpio_direction_output(MFP_PIN_GPIO28, 1);
-
-	return 0;
-}
-
-static int a910_pxacamera_power(struct device *dev, int on)
-{
-	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
-	return 0;
-}
-
-static int a910_pxacamera_reset(struct device *dev)
-{
-	gpio_set_value(MFP_PIN_GPIO28, 0);
-	msleep(10);
-	gpio_set_value(MFP_PIN_GPIO28, 1);
-
-	return 0;
-}
-
-struct pxacamera_platform_data a910_pxacamera_platform_data = {
-	.init	= a910_pxacamera_init,
-	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
-	.mclk_10khz = 5000,
-};
-
-static struct soc_camera_link a910_iclink = {
-	.bus_id	= 0,
-	.power = a910_pxacamera_power,
-	.reset = a910_pxacamera_reset,
-};
-
 static struct lp3944_platform_data a910_lp3944_leds = {
 	.dims_size = LP3944_DIMS_MAX,
 	.leds_size = LP3944_LEDS_MAX,
@@ -1509,9 +1394,6 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("mt9m111", 0x5d),
-		.platform_data = &a910_iclink,
-	}, {
 		I2C_BOARD_INFO("lp3944", 0x60),
 		.platform_data = &a910_lp3944_leds,
 	},
@@ -1602,7 +1484,6 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	pxa_set_i2c_info(NULL);
-	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
 	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
 	gpio_direction_output(GPIO24_PCAP_CS, 0);
@@ -1626,8 +1507,6 @@ static void __init a910_init(void)
 	platform_device_register(&a910_gpio_keys);
 	platform_device_register(&a910_leds_device);
 	platform_device_register(&pcap_rtc_device);
-
-	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
 	platform_device_register(&gen2_bp_device);
 
