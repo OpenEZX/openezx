@@ -1,0 +1,6 @@
+From: gmzhuo <gmzhuo@localhost.localdomain>
+Subject: [PATCH] usb/isp1583
+
+isp1582 usb2.0 tranceiver driver
+
+Signed-off-by: gmzhuo <gmzhuo@localhost.localdomain>
