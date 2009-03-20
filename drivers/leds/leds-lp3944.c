@@ -176,7 +176,7 @@ static int lp3944_led_set(struct lp3944_led *led, unsigned status)
 	val &= ~(LP3944_LED_STATUS_MASK << (id << 1));
 	val |= (status << (id << 1));
 
-	pr_debug("%s: led %d, status %d, val: 0x%02x\n",
+	dev_dbg(&led->client->dev, "%s: led %d, status %d, val: 0x%02x\n",
 		 __func__, id, status, val);
 
 	/* set led status */
@@ -224,7 +224,7 @@ static void lp3944_led_set_brightness(struct led_classdev *led_cdev,
 	if (led->type == LP3944_LED_TYPE_LED_INVERTED && value < 2)
 		led->status = 1 - value;
 
-	pr_debug("%s: %d\n", led_cdev->name, led->status);
+	dev_dbg(&led->client->dev, "%s: %d\n", led_cdev->name, led->status);
 	schedule_work(&led->work);
 }
 
