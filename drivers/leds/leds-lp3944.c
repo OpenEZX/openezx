@@ -1,7 +1,7 @@
 /*
  * leds-lp3944.c - driver for National Semiconductor LP3944 Funlight Chip
  *
- * Copyright (C) 2008 Antonio Ospite <ao2@openezx.org>
+ * Copyright (C) 2009 Antonio Ospite <ao2@openezx.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -33,20 +33,19 @@
 #include <linux/workqueue.h>
 #include <linux/leds-lp3944.h>
 
-#if 0
 /* Read Only Registers */
-#define LP3944_REG_INPUT1	0x00	/* LEDs 0-7 InputRegister (Read Only) */
-#define LP3944_REG_REGISTER1	0x01	/* None (Read Only) */
-#endif
+#define LP3944_REG_INPUT1     0x00 /* LEDs 0-7 InputRegister (Read Only) */
+#define LP3944_REG_REGISTER1  0x01 /* None (Read Only) */
 
-#define LP3944_REG_PSC0		0x02	/* Frequency Prescaler 0 (R/W) */
-#define LP3944_REG_PWM0		0x03	/* PWM Register 0 (R/W) */
-#define LP3944_REG_PSC1		0x04	/* Frequency Prescaler 1 (R/W) */
-#define LP3944_REG_PWM1		0x05	/* PWM Register 1 (R/W) */
-#define LP3944_REG_LS0		0x06	/* LEDs 0-3 Selector (R/W) */
-#define LP3944_REG_LS1		0x07	/* LEDs 4-7 Selector (R/W) */
+#define LP3944_REG_PSC0       0x02 /* Frequency Prescaler 0 (R/W) */
+#define LP3944_REG_PWM0       0x03 /* PWM Register 0 (R/W) */
+#define LP3944_REG_PSC1       0x04 /* Frequency Prescaler 1 (R/W) */
+#define LP3944_REG_PWM1       0x05 /* PWM Register 1 (R/W) */
+#define LP3944_REG_LS0        0x06 /* LEDs 0-3 Selector (R/W) */
+#define LP3944_REG_LS1        0x07 /* LEDs 4-7 Selector (R/W) */
 
-/* These registers are not used to control leds in LP3944
+/* These registers are not used to control leds in LP3944, they can store
+ * arbitrary values which the chip will ignore.
 #define LP3944_REG_REGISTER8	0x08
 #define LP3944_REG_REGISTER9	0x09
 */
@@ -70,7 +69,7 @@ static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
 			    unsigned value);
 
 /**
- * Set the period in DIM status
+ * Set the period for DIM status
  *
  * @client: the i2c client
  * @dim: either LP3944_DIM0 or LP3944_DIM1
@@ -102,10 +101,10 @@ static int lp3944_dim_set_period(struct i2c_client *client, unsigned dim,
 }
 
 /**
- * Set the duty cycle in DIM status
+ * Set the duty cycle for DIM status
  *
  * @client: the i2c client
- * @dim: LP3944_DIM0 | LP3944_DIM1
+ * @dim: either LP3944_DIM0 or LP3944_DIM1
  * @duty_cycle: percentage of a period in which a led is ON
  */
 static int lp3944_dim_set_dutycycle(struct i2c_client *client, unsigned dim,

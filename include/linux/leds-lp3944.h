@@ -1,7 +1,7 @@
 /*
- * lp3944.h - platform data structure for lp3944 led controller
+ * leds-lp3944.h - platform data structure for lp3944 led controller
  *
- * Copyright (C) 2008 Antonio Ospite <ao2@openezx.org>
+ * Copyright (C) 2009 Antonio Ospite <ao2@openezx.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef __LINUX_I2C_LP3944_H
-#define __LINUX_I2C_LP3944_H
+#ifndef __LINUX_LEDS_LP3944_H
+#define __LINUX_LEDS_LP3944_H
 
 #include <linux/leds.h>
 #include <linux/workqueue.h>
@@ -72,4 +72,4 @@ struct lp3944_platform_data {
 	unsigned leds_size;
 };
 
-#endif /* __LINUX_I2C_LP3944_H */
+#endif /* __LINUX_LEDS_LP3944_H */
