@@ -13,6 +13,7 @@
 #define __LINUX_I2C_LP3944_H
 
 #include <linux/leds.h>
+#include <linux/workqueue.h>
 
 #define LP3944_LED0 0
 #define LP3944_LED1 1
@@ -59,6 +60,7 @@ struct lp3944_led {
 	struct i2c_client *client;
 	char *name;
 	struct led_classdev ldev;
+	struct work_struct work;
 	enum lp3944_type type;
 	enum lp3944_status status;
 };
