@@ -606,6 +606,16 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 /*
  * Define codec DAI.
  */
+
+static struct snd_soc_dai_ops pcap2_dai_ops = {
+	.prepare = pcap2_prepare,
+	.hw_params = pcap2_hw_params,
+	.hw_free = pcap2_hw_free,
+//	.digital_mute = pcap2_mute,
+	.set_fmt = pcap2_set_dai_fmt,
+	.set_sysclk = pcap2_set_dai_sysclk,
+};
+
 struct snd_soc_dai pcap2_dai[] = {
 {
 	.name = "PCAP2",
@@ -627,14 +637,7 @@ struct snd_soc_dai pcap2_dai[] = {
 		.rates = (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000),
 		.formats = SNDRV_PCM_FMTBIT_S16_LE,
 	},
-	.ops = {
-		.prepare = pcap2_prepare,
-		.hw_params = pcap2_hw_params,
-		.hw_free = pcap2_hw_free,
-//		.digital_mute = pcap2_mute,
-		.set_fmt = pcap2_set_dai_fmt,
-		.set_sysclk = pcap2_set_dai_sysclk,
-	},
+	.ops = &pcap2_dai_ops,
 },
 };
 EXPORT_SYMBOL_GPL(pcap2_dai);
@@ -642,7 +645,7 @@ EXPORT_SYMBOL_GPL(pcap2_dai);
 static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
@@ -651,7 +654,7 @@ static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
 static int pcap2_codec_resume(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 	pcap2_set_bias_level(codec, codec->suspend_bias_level);
@@ -664,7 +667,7 @@ static int pcap2_codec_resume(struct platform_device *pdev)
  */
 static int pcap2_codec_init(struct snd_soc_device *socdev)
 {
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 	int ret = 0;
 
 	codec->name = "PCAP2 Audio";
@@ -709,7 +712,7 @@ static int pcap2_codec_probe(struct platform_device *pdev)
 	if (codec == NULL)
 		return -ENOMEM;
 
-	socdev->codec = codec;
+	socdev->card->codec = codec;
 	mutex_init(&codec->mutex);
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
@@ -722,7 +725,7 @@ static int pcap2_codec_probe(struct platform_device *pdev)
 static int pcap2_codec_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->codec;
+	struct snd_soc_codec *codec = socdev->card->codec;
 	if (codec->control_data)
 		pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	snd_soc_free_pcms(socdev);
