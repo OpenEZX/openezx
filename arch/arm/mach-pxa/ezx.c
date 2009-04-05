@@ -26,6 +26,7 @@
 #include <asm/setup.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/mach/flash.h>
 
 #include <mach/pxa27x.h>
 #include <mach/pxafb.h>
@@ -33,7 +34,6 @@
 #include <mach/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
-#include <mach/flash.h>
 #include <mach/camera.h>
 
 #include "devices.h"
