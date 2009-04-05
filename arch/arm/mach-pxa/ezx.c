@@ -1176,6 +1176,11 @@ static struct platform_device a1200_gpio_keys = {
 	},
 };
 
+static struct platform_device pcap_keys_device = {
+	.name = "pcap-keys",
+	.id   = -1,
+};
+
 /* pcap-leds */
 static struct pcap_leds_platform_data a1200_leds = {
 	.leds = {
@@ -1225,6 +1230,7 @@ static void __init a1200_init(void)
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
 	platform_device_register(&a1200_gpio_keys);
+	platform_device_register(&pcap_keys_device);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&a1200_leds_device);
 	platform_device_register(&pcap_rtc_device);
@@ -1481,6 +1487,7 @@ static void __init a910_init(void)
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
 	platform_device_register(&a910_gpio_keys);
+	platform_device_register(&pcap_keys_device);
 	platform_device_register(&a910_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
@@ -1575,7 +1582,7 @@ static void __init e6_init(void)
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
 	platform_device_register(&e6_gpio_keys);
-
+	platform_device_register(&pcap_keys_device);
 	platform_device_register(&pcap_ts_device);
 	platform_device_register(&e6_leds_device);
 	platform_device_register(&pcap_rtc_device);
@@ -1643,6 +1650,7 @@ static void __init e2_init(void)
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
+	platform_device_register(&pcap_keys_device);
 	platform_device_register(&e2_leds_device);
 	platform_device_register(&pcap_rtc_device);
 
