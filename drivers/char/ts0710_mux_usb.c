@@ -36,7 +36,7 @@
 #include <linux/errno.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
-#include <mach/pxa-regs.h>
+#include <mach/pxa27x.h>
 #include <mach/ezx-bp.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
