@@ -37,6 +37,7 @@
 #include <mach/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/flash.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/camera.h>
 
