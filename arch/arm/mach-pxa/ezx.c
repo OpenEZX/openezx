@@ -22,6 +22,10 @@
 #include <linux/mtd/partitions.h>
 
 #include <asm/setup.h>
+#include <asm/mach-types.h>
+#include <asm/mach/arch.h>
+
+#include <mach/pxa27x.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
 #include <mach/i2c.h>
