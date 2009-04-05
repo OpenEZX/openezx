@@ -15,6 +15,7 @@
 #include <mach/camera.h>
 #include <mach/audio.h>
 #include <mach/pxa3xx_nand.h>
+#include <mach/hardware.h>
 
 #include "devices.h"
 #include "generic.h"
