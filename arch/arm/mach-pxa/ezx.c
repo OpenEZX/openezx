@@ -46,13 +46,6 @@
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
 #include <mach/ezx-bp.h>
-#include <mach/mfp-pxa27x.h>
-#include <mach/pxa-regs.h>
-#include <mach/pxa2xx-regs.h>
-#include <asm/mach-types.h>
-#include <asm/mach/arch.h>
-#include <asm/mach/flash.h>
-#include <asm/io.h>
 #include <mach/camera.h>
 
 #include "devices.h"
