@@ -6,7 +6,6 @@ struct ezxbp_config {
 	int bp_rdy;
 	int ap_rdy;
 	int first_step;
-	void (*init)(void);
 };
 
 int ezx_wake_bp(void);
