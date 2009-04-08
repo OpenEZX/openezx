@@ -846,14 +846,10 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 
 /* OHCI Controller */
 static struct pxaohci_platform_data ezx_ohci_platform_data = {
-	.port_mode	= PMM_NPS_MODE,
+	.port_mode	= PMM_PERPORT_MODE,
+	.flags		= ENABLE_PORT3,
+	.power_on_delay	= 400,
 };
-
-/* BP */
-static void ezx_bp_init (void)
-{
-	UP3OCR = 2;
-}
 
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
@@ -1087,6 +1083,7 @@ static void __init a780_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
@@ -1210,6 +1207,7 @@ static void __init e680_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
@@ -1319,6 +1317,7 @@ static void __init a1200_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
@@ -1589,6 +1588,7 @@ static void __init a910_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	UP2OCR = UP2OCR_SEOS(2);
@@ -1693,6 +1693,7 @@ static void __init e6_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
@@ -1770,6 +1771,7 @@ static void __init e2_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
+	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
