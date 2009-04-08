@@ -846,7 +846,9 @@ static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
 
 /* OHCI Controller */
 static struct pxaohci_platform_data ezx_ohci_platform_data = {
-	.port_mode	= PMM_NPS_MODE,
+	.port_mode	= PMM_PERPORT_MODE,
+	.flags		= ENABLE_PORT3,
+	.power_on_delay	= 400,
 };
 
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
