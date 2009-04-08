@@ -849,12 +849,6 @@ static struct pxaohci_platform_data ezx_ohci_platform_data = {
 	.port_mode	= PMM_NPS_MODE,
 };
 
-/* BP */
-static void ezx_bp_init (void)
-{
-	UP3OCR = 2;
-}
-
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
 static struct ezxbp_config gen1_bp_data = {
 	.bp_reset = 82,
