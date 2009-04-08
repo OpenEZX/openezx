@@ -800,6 +800,8 @@ static void ezx_pcap_init(void)
 	/* FIXME: EMU driver */
 	ezx_pcap_write(PCAP_REG_BUSCTRL,
 			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	gpio_request(120, "EMU mux1");
+	gpio_request(119, "EMU mux2");
 	gpio_direction_output(120, 0);
 	gpio_direction_output(119, 0);
 }
