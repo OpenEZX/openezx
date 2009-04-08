@@ -168,6 +168,8 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
 				IRQF_DISABLED, "bp wdi2", bp);
 	}
+	gpio_request(bp->bp_reset, "BP reset");
+	gpio_request(bp->ap_rdy, "AP rdy");
 
 	if (bp->bp_reset >= 0)
 		gpio_direction_output(bp->bp_reset, 1);
