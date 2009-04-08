@@ -893,7 +893,6 @@ static struct ezxbp_config gen1_bp_data = {
 	.bp_rdy = 0,
 	.ap_rdy = 57,
 	.first_step = 2,
-	.init = ezx_bp_init,
 };
 
 static struct platform_device gen1_bp_device = {
@@ -914,7 +913,6 @@ static struct ezxbp_config gen2_bp_data = {
 	.bp_rdy = 0,
 	.ap_rdy = 96,
 	.first_step = 3,
-	.init = ezx_bp_init,
 };
 
 static struct platform_device gen2_bp_device = {
