@@ -1,0 +1,10 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] tmp/fix_CONFIG_OABI_COMPAT
+
+Fix compilation break if CONFIG_OABI_COMPAT=y
+
+Fixes compilation break for various ARM platforms if CONFIG_OABI_COMPAT=y.
+
+This was exposed by commit 47788c58e6
+
+Signed-off-by: Anand Gadiyar <gadiyar@xxxxxx>
