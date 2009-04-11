@@ -2,3 +2,4 @@ ezx/mach/isp1583
 ezx/asoc
 ezx/defconfig
 pxa/sparsemem
+tmp/pxa2xx-spi_fix_PXA2XX_CS_ASSERT
