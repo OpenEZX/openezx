@@ -155,20 +155,15 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	bp = pdev->dev.platform_data;
 	step = bp->first_step;
 
-	set_irq_type(gpio_to_irq(bp->bp_wdi), IRQ_TYPE_EDGE_FALLING);
-	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler, IRQF_DISABLED,
-		    "bp wdi", bp);
-
-	set_irq_type(gpio_to_irq(bp->bp_rdy), IRQ_TYPE_EDGE_RISING);
-	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler, IRQF_DISABLED,
-			"bp rdy", bp);
+	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler,
+			IRQF_TRIGGER_FALLING, "bp wdi", bp);
+	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
+			IRQF_TRIGGER_RISING, "bp rdy", bp);
 
 	if (bp->bp_wdi2 >= 0) {
-		set_irq_type(gpio_to_irq(bp->bp_wdi2), IRQ_TYPE_EDGE_FALLING);
 		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
-				IRQF_DISABLED, "bp wdi2", bp);
+				IRQF_TRIGGER_FALLING, "bp wdi2", bp);
 	}
-
 	if (bp->bp_reset >= 0)
 		gpio_direction_output(bp->bp_reset, 1);
 
