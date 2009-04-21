@@ -672,13 +672,12 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
 
 	/* register irq for pcap */
-	ret = request_irq(pdata->irq, pcap_irq_handler, IRQF_DISABLED,
+	ret = request_irq(pdata->irq, pcap_irq_handler, IRQF_TRIGGER_RISING,
 		"PCAP", NULL);
 	if (ret) {
 		dev_err(&spi->dev, "cant request IRQ\n");
 		goto wq_destroy;
 	}
-	set_irq_type(pdata->irq, IRQ_TYPE_EDGE_RISING);
 	set_irq_wake(pdata->irq, 1);
 
 	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
