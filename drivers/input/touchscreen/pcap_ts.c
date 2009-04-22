@@ -57,8 +57,12 @@ static void pcap_ts_read_xy(void)
 
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
-		/* save pressure, start xy read */
-		pcap_ts->pressure = res[0];
+		/* 
+		 * pressure reading is unreliable, case it fails use the last
+		 * valid pressure.
+		 */
+		if (res[0] > PRESSURE_MIN && res[0] < PRESSURE_MAX)
+			pcap_ts->pressure = res[0];
 		pcap_ts->read_state = PCAP_ADC_TS_M_XY;
 		schedule_work(&pcap_ts->work);
 		break;
@@ -66,13 +70,10 @@ static void pcap_ts_read_xy(void)
 		pcap_ts->y = res[0];
 		pcap_ts->x = res[1];
 		if (pcap_ts->x <= X_AXIS_MIN || pcap_ts->x >= X_AXIS_MAX ||
-		    pcap_ts->y <= Y_AXIS_MIN || pcap_ts->y >= Y_AXIS_MAX ||
-		    pcap_ts->pressure <= PRESSURE_MIN ||
-		    pcap_ts->pressure >= PRESSURE_MAX) {
+		    pcap_ts->y <= Y_AXIS_MIN || pcap_ts->y >= Y_AXIS_MAX) {
 			/* pen has been released */
-			input_report_key(pcap_ts->input, BTN_TOUCH, 0);
 			input_report_abs(pcap_ts->input, ABS_PRESSURE, 0);
-
+			input_report_key(pcap_ts->input, BTN_TOUCH, 0);
 			/* no need for timer, we'll get interrupted with
 			 * next touch down event */
 			del_timer(&pcap_ts->timer);
@@ -80,7 +81,6 @@ static void pcap_ts_read_xy(void)
 			/* ask PCAP2 to interrupt us if touch event happens
 			 * again */
 			pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
-			ezx_pcap_unmask_event(PCAP_IRQ_TS);
 			schedule_work(&pcap_ts->work);
 		} else {
 			/* pen is touching the screen*/
@@ -113,6 +113,7 @@ static void pcap_ts_work(struct work_struct *unused)
 		tmp &= ~PCAP_ADC_TS_M_MASK;
 		tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
 		ezx_pcap_write(PCAP_REG_ADC, tmp);
+		ezx_pcap_unmask_event(PCAP_IRQ_TS);
 		break;
 	case PCAP_ADC_TS_M_PRESSURE:
 	case PCAP_ADC_TS_M_XY:
