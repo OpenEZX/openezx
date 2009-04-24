@@ -835,6 +835,8 @@ static void ezx_udc_command(int cmd)
 			tmp &= ~PCAP_BUSCTRL_USB_PU;
 		break;
 	case PXA2XX_UDC_CMD_CONNECT:
+		/* temp. set UP2OCR here until we have a transceiver driver */
+		UP2OCR = UP2OCR_SEOS(2);
 		if (machine_is_ezx_a780() || machine_is_ezx_e680())
 			tmp |= PCAP_BUSCTRL_USB_PU;
 		break;
@@ -1083,13 +1085,11 @@ static void __init a780_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1207,13 +1207,11 @@ static void __init e680_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1313,13 +1311,11 @@ static void __init a1200_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1582,10 +1578,8 @@ static void __init a910_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1683,13 +1677,11 @@ static void __init e6_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
@@ -1761,13 +1753,11 @@ static void __init e2_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
-	UP3OCR = 2;
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
-	UP2OCR = UP2OCR_SEOS(2);
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
