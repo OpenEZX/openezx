@@ -167,6 +167,9 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	gpio_request(bp->bp_reset, "BP reset");
 	gpio_request(bp->ap_rdy, "AP rdy");
 
+	/* configure usb port 3 for BP */
+	UP3OCR = 2;
+
 	if (bp->bp_reset >= 0)
 		gpio_direction_output(bp->bp_reset, 1);
 
@@ -190,14 +193,16 @@ static int ezxbp_remove(struct platform_device *dev)
 static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
 {
 	DEBUGP("bp suspend!\n");
-	gpio_set_value(bp->ap_rdy, 0);
+//	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
 static int ezxbp_resume(struct platform_device *dev)
 {
 	DEBUGP("bp resume!\n");
-	gpio_set_value(bp->ap_rdy, 1);
+//	gpio_set_value(bp->ap_rdy, 1);
+	/* restore usb port 3 configuration */
+	UP3OCR = 2;
 	return 0;
 }
 
