@@ -157,12 +157,16 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 
 	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler,
 			IRQF_TRIGGER_FALLING, "bp wdi", bp);
+	set_irq_wake(gpio_to_irq(bp->bp_wdi), 1);
+
 	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
 			IRQF_TRIGGER_RISING, "bp rdy", bp);
+	set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 
 	if (bp->bp_wdi2 >= 0) {
 		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
 				IRQF_TRIGGER_FALLING, "bp wdi2", bp);
+		set_irq_wake(gpio_to_irq(bp->bp_wdi2), 1);
 	}
 	gpio_request(bp->bp_reset, "BP reset");
 	gpio_request(bp->ap_rdy, "AP rdy");
