@@ -141,8 +141,13 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 
 	if (!bp_handshake_passed()) {
 		handshake();
-		if (bp_handshake_passed() && bp->bp_wdi2 >= 0)
-			disable_irq(gpio_to_irq(bp->bp_wdi2));
+		if (bp_handshake_passed()) {
+			set_irq_type(gpio_to_irq(bp->bp_rdy),
+					IRQ_TYPE_EDGE_FALLING);
+			set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
+			if (bp->bp_wdi2 >= 0) 
+				disable_irq(gpio_to_irq(bp->bp_wdi2));
+		}
 	}
 #ifdef CONFIG_TS0710_MUX_USB
 	else usb_send_readurb();
