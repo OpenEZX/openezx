@@ -844,8 +844,10 @@ static void ezx_udc_command(int cmd)
 	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
 }
 
-static struct pxa2xx_udc_mach_info ezx_udc_info __initdata = {
-	.udc_command = ezx_udc_command,
+static struct pxa2xx_udc_mach_info ezx_udc_info = {
+	.udc_command	= ezx_udc_command,
+	.gpio_pullup	= -1,
+	.gpio_vbus	= -1,
 };
 
 /* OHCI Controller */
