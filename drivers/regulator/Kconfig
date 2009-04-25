@@ -91,4 +91,11 @@ config REGULATOR_PCF50633
 	 Say Y here to support the voltage regulators and convertors
 	 on PCF50633
 
+config REGULATOR_PCAP
+	tristate "PCAP regulator driver"
+        depends on EZX_PCAP
+	help
+	 Say Y here to support the voltage regulators and convertors
+	 on PCAP
+
 endif
