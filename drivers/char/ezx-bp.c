@@ -141,8 +141,13 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 
 	if (!bp_handshake_passed()) {
 		handshake();
-		if (bp_handshake_passed() && bp->bp_wdi2 >= 0)
-			disable_irq(gpio_to_irq(bp->bp_wdi2));
+		if (bp_handshake_passed()) {
+			set_irq_type(gpio_to_irq(bp->bp_rdy),
+					IRQ_TYPE_EDGE_FALLING);
+			set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
+			if (bp->bp_wdi2 >= 0) 
+				disable_irq(gpio_to_irq(bp->bp_wdi2));
+		}
 	}
 #ifdef CONFIG_TS0710_MUX_USB
 	else usb_send_readurb();
@@ -157,15 +162,22 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 
 	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler,
 			IRQF_TRIGGER_FALLING, "bp wdi", bp);
+	set_irq_wake(gpio_to_irq(bp->bp_wdi), 1);
+
 	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
 			IRQF_TRIGGER_RISING, "bp rdy", bp);
+	set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 
 	if (bp->bp_wdi2 >= 0) {
 		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
 				IRQF_TRIGGER_FALLING, "bp wdi2", bp);
+		set_irq_wake(gpio_to_irq(bp->bp_wdi2), 1);
 	}
 	gpio_request(bp->bp_reset, "BP reset");
 	gpio_request(bp->ap_rdy, "AP rdy");
+
+	/* configure usb port 3 for BP */
+	UP3OCR = 2;
 
 	if (bp->bp_reset >= 0)
 		gpio_direction_output(bp->bp_reset, 1);
@@ -190,14 +202,16 @@ static int ezxbp_remove(struct platform_device *dev)
 static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
 {
 	DEBUGP("bp suspend!\n");
-	gpio_set_value(bp->ap_rdy, 0);
+//	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
 static int ezxbp_resume(struct platform_device *dev)
 {
 	DEBUGP("bp resume!\n");
-	gpio_set_value(bp->ap_rdy, 1);
+//	gpio_set_value(bp->ap_rdy, 1);
+	/* restore usb port 3 configuration */
+	UP3OCR = 2;
 	return 0;
 }
 
