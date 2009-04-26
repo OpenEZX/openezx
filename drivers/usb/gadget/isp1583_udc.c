@@ -1698,7 +1698,7 @@ static struct isp1583_udc memory = {
 		   .name = gadget_name,
 		   .is_dualspeed = 1,
 		   .dev = {
-			   .bus_id = "gadget",
+			   .init_name = "gadget",
 			   },
 		   },
 
