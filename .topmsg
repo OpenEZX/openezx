@@ -1,6 +1,6 @@
-From: guiming zhuo <gmzhuo@gbsoft.localdomain>
-Subject: [PATCH] ezx/mach/eoc
+From: gmzhuo <gmzhuo@gmail.com>
+Subject: [PATCH] ezx/mach/usb2.0
 
-add eoc board info for gen2
+add isp1583 usb2.0 chip support
 
-Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Signed-off-by: gmzhuo <gmzhuo@gmail.com>
