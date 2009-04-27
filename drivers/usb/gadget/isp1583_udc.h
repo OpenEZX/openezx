@@ -154,7 +154,6 @@
 
 #define STANDARD_INIT_MODE          (INIT_MODE_CLKAON | INIT_MODE_GLINTENA)
 
-
 /*
   * Definitions of the bit fields in the EndpointControl register.
   */
@@ -163,7 +162,6 @@
 #define USB_EPCONTROL_DSEN		        0x00000004
 #define USB_EPCONTROL_STATUS_ACK                0x00000002
 #define USB_EPCONTROL_STALL                     0x00000001
-
 
 /*
   * Definitions of the bit fields in the EndpointIndex register.
@@ -203,8 +201,6 @@
 #define ISP_DMA_DATA_PORT_OFFSET   0x440
 
 #define MAX_DMA_SIZE  4096
-
-
 
 #define ISP1583_ADDR_REG	0X00
 #define ISP1583_MODE_REG	0X0C
@@ -271,26 +267,23 @@
   */
 #define DEF_LANG 0x0409
 
-
-
 struct isp1583_ep {
-	struct list_head		queue;
-	unsigned long			last_io;	/* jiffies timestamp */
-	struct usb_gadget		*gadget;
-	struct isp1583_udc		*dev;
+	struct list_head queue;
+	unsigned long last_io;	/* jiffies timestamp */
+	struct usb_gadget *gadget;
+	struct isp1583_udc *dev;
 	const struct usb_endpoint_descriptor *desc;
-	struct usb_ep			ep;
-	u8				num;
+	struct usb_ep ep;
+	u8 num;
 
-	unsigned short			fifo_size;
-	u8				bEndpointAddress;
-	u8				bmAttributes;
+	unsigned short fifo_size;
+	u8 bEndpointAddress;
+	u8 bmAttributes;
 
-	unsigned			halted:1;
-	unsigned			already_seen:1;
-	unsigned			setup_stage:1;
+	unsigned halted:1;
+	unsigned already_seen:1;
+	unsigned setup_stage:1;
 };
-
 
 #define EP_FIFO_SIZE		64
 #define DEFAULT_POWER_STATE	0x00
@@ -304,7 +297,7 @@ struct isp1583_ep {
 static const char ep0name[] = "ep0";
 
 static const char *const ep_name[] = {
-	ep0name,                                /* everyone has ep0 */
+	ep0name,		/* everyone has ep0 */
 	/* isp1583 four bidirectional bulk endpoints */
 	"ep1in-", "ep1out-", "ep2in-", "ep2out-",
 	"ep3in-", "ep3out-", "ep4in-", "ep4out-",
@@ -315,8 +308,9 @@ static const char *const ep_name[] = {
 #define ISP1583_ENDPOINTS       ARRAY_SIZE(ep_name)
 
 struct isp1583_request {
-	struct list_head		queue;		/* ep's requests */
-	struct usb_request		req;
+	struct list_head queue;	/* ep's requests */
+	struct usb_request req;
+	int isIn;
 };
 
 enum ep0_state {
@@ -329,7 +323,6 @@ enum ep0_state {
 	EP0_STALL,
 };
 
-
 #pragma pack(1)
 
 /* ISP1583 register definition */
@@ -337,9 +330,9 @@ union ADDRESS_REG {
 	struct ADDRESS_BITS {
 		u8 DEVADDR:7;
 		u8 DEVEN:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union USB_MODE {
 	struct USB_MODE_BITS {
@@ -357,9 +350,9 @@ union USB_MODE {
 		u8 BUS_CONFIG:1;
 		u8 MODE0:1;
 		u8 MODE1:1;
-	} __attribute__((packed)) BITS;
-	u16     VALUE;
-} __attribute__((packed));
+	} __attribute__ ((packed)) BITS;
+	u16 VALUE;
+} __attribute__ ((packed));
 
 #define ISP_MODE_GLINTENA           0x0008
 #define ISP_MODE_MASK_GLINTENA      0xFFF7
@@ -371,9 +364,9 @@ union INT_CONFIG {
 		u8 DDBGMODOUT:2;
 		u8 DDBGMODIN:2;
 		u8 CDBGMOD:2;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union OTG_MODE {
 	struct OTG_MODE_BITS {
@@ -383,11 +376,11 @@ union OTG_MODE {
 		u8 INIT:1;
 		u8 BSESSVALID:1;
 		u8 DP:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
-union INT_ENABLE_LSB  {
+union INT_ENABLE_LSB {
 	struct INT_ENABLE_BITS_LSB {
 		u8 IERST:1;
 		u8 IESOF:1;
@@ -405,12 +398,12 @@ union INT_ENABLE_LSB  {
 		u8 IEP1TX:1;
 		u8 IEP2RX:1;
 		u8 IEP2TX:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
-union INT_ENABLE_MSB  {
-	struct INT_ENABLE_BITS_MSB    {
+union INT_ENABLE_MSB {
+	struct INT_ENABLE_BITS_MSB {
 		u8 IEP3RX:1;
 		u8 IEP3TX:1;
 		u8 IEP4RX:1;
@@ -422,9 +415,9 @@ union INT_ENABLE_MSB  {
 		u8 IEP7RX:1;
 		u8 IEP7TX:1;
 		u8 RESERVED1:6;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union CONTROL_REG {
 	struct CONTROL_BITS {
@@ -434,29 +427,28 @@ union CONTROL_REG {
 		u8 VENDP:1;
 		u8 CLBUF:1;
 		u8 RESERVED1:3;
-	} __attribute__((packed)) BITS;
-	u16      VALUE;
-} __attribute__((packed));
-
+	} __attribute__ ((packed)) BITS;
+	u16 VALUE;
+} __attribute__ ((packed));
 
 union BUFFER_STATUS {
 	struct BUFFER_STATUS_BIT {
 		u8 BUF0:1;
 		u8 BUF1:1;
 		u8 RES:6;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union ENDPT_MAXSIZE {
-	struct ENDPT_MAXSIZE_BITS   {
+	struct ENDPT_MAXSIZE_BITS {
 		u8 FFOSZ7_0:8;
 		u8 FFOSZ10_8:3;
 		u8 NTRANS:2;
 		u8 RESERVED2:3;
-	} __attribute__((packed)) BITS;
-	u16     VALUE;
-} __attribute__((packed));
+	} __attribute__ ((packed)) BITS;
+	u16 VALUE;
+} __attribute__ ((packed));
 
 union ENDPT_TYPE {
 	struct ENDPT_TYPE_BITS {
@@ -466,9 +458,9 @@ union ENDPT_TYPE {
 		u8 NOEMPKT:1;
 		u8 RESERVED1:3;
 		u8 RESRVED2:8;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 #define ISP_EPT_NOEMPKT    0x10
 #define ISP_EPT_ENABLE     0x08
@@ -486,9 +478,9 @@ union DMA_CONFIG {
 		u8 ATA_MODE:1;
 		u8 IGNORE_IORDY:1;
 		u8 STREAMING:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union DMA_HARDWARE {
 	struct DMA_HARDWARE_BITS {
@@ -499,18 +491,17 @@ union DMA_HARDWARE {
 		u8 MASTER:1;
 		u8 EOT_POL:1;
 		u8 ENDIAN:2;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union DMA_STROBE {
 	struct DMA_STROBE_BITS {
 		u8 DMA_STROBE:5;
 		u8 RES:3;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
-
+} __attribute__ ((packed));
 
 union DMA_INT {
 	struct DMA_INT_BITS {
@@ -528,9 +519,9 @@ union DMA_INT {
 		u8 EXT_EOT:1;
 		u8 RES1:3;
 		u8 TEST3:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union DMA_INT_ENABLE {
 	struct DMA_INT_ENABLE_BITS {
@@ -548,9 +539,9 @@ union DMA_INT_ENABLE {
 		u8 IE_EXT_EOT:1;
 		u8 RES1:3;
 		u8 TEST4:1;
-	} __attribute__((packed)) BITS;
-    u16     VALUE;
-} __attribute__((packed));
+	} __attribute__ ((packed)) BITS;
+	u16 VALUE;
+} __attribute__ ((packed));
 
 union INTERRUPT_STATUS_LSB {
 	struct INTERRUPT_STATUS_BITS_LSB {
@@ -570,12 +561,12 @@ union INTERRUPT_STATUS_LSB {
 		u8 EP1TX:1;
 		u8 EP2RX:1;
 		u8 EP2TX:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 union INTERRUPT_STATUS_MSB {
-	struct INTERRUPT_STATUS_BITS_MSB     {
+	struct INTERRUPT_STATUS_BITS_MSB {
 		u8 EP3RX:1;
 		u8 EP3TX:1;
 		u8 EP4RX:1;
@@ -587,19 +578,19 @@ union INTERRUPT_STATUS_MSB {
 		u8 EP7RX:1;
 		u8 EP7TX:1;
 		u8 RESERVED1:6;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
-union FRAME_NO   {
-	struct FRAME_NO_BITS    {
+union FRAME_NO {
+	struct FRAME_NO_BITS {
 		u8 SOFL:8;
 		u8 SOFH:3;
 		u8 USOFP:3;
 		u8 RESERVED:2;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 #define ISP_FNO_MASK		0x07FF
 #define ISP_FNO_MICRMASK	0x3800
@@ -615,9 +606,9 @@ union TESTMODE {
 		u8 LPBK:1;
 		u8 PHYTEST:1;
 		u8 FORCEHS:1;
-	} __attribute__((packed)) BITS;
+	} __attribute__ ((packed)) BITS;
 	u16 VALUE;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 #define ISP_DMA_RESET		0x11
 #define ISP_DMA_CLEAR_BUFFER    0x0F
@@ -625,38 +616,38 @@ union TESTMODE {
 #define ISP_GDMA_Read_Command	0x00
 
 struct isp1583_udc {
-	spinlock_t			lock;
+	spinlock_t lock;
 
-	struct isp1583_ep		ep[ISP1583_ENDPOINTS];
-	int				address;
-	struct usb_gadget		gadget;
-	struct usb_gadget_driver	*driver;
-	struct isp1583_request		fifo_req;
-	u8				fifo_buf[EP_FIFO_SIZE];
-	u16				devstatus;
+	struct isp1583_ep ep[ISP1583_ENDPOINTS];
+	int address;
+	struct usb_gadget gadget;
+	struct usb_gadget_driver *driver;
+	struct isp1583_request fifo_req;
+	u8 fifo_buf[EP_FIFO_SIZE];
+	u16 devstatus;
 
-	u32				port_status;
-	int				ep0state;
+	u32 port_status;
+	int ep0state;
 
-	unsigned			got_irq:1;
+	unsigned got_irq:1;
 
-	unsigned			req_std:1;
-	unsigned			req_config:1;
-	unsigned			req_pending:1;
-	u8				vbus;
-	struct dentry			*regs_info;
-	unsigned short		*regs;
-	int				irq;
-	int				disabled;
-	int				hiSpeed;
+	unsigned req_std:1;
+	unsigned req_config:1;
+	unsigned req_pending:1;
+	u8 vbus;
+	struct dentry *regs_info;
+	unsigned short *regs;
+	int irq;
+	int disabled;
+	int hiSpeed;
 
-	int				dma_channel;
-	int				isp_dma_flag;
-	int				isp_dma_index;
-	int				isp_dma_len;
-	int				isp_dma_index_len;
-	struct isp1583_ep		*dma_ep;
-	unsigned long			phy_base;
+	int dma_channel;
+	int isp_dma_flag;
+	int isp_dma_index;
+	int isp_dma_len;
+	int isp_dma_index_len;
+	struct isp1583_ep *dma_ep;
+	unsigned long phy_base;
 
 };
 
@@ -666,18 +657,17 @@ int check_vbus(void);
 
 static inline int ep_index(int n, bool dir)
 {
-    return (n << 1) | dir;
+	return (n << 1) | dir;
 }
 
 static inline bool epidx_dir(int idx)
 {
-    return idx & 1;
+	return idx & 1;
 }
 
 static inline int epidx_n(int idx)
 {
-    return idx >> 1;
+	return idx >> 1;
 }
-
 
 #endif

@@ -415,10 +415,6 @@ int isp1583_send_control(const unsigned char *pData, unsigned long len)
 		the_controller->regs[ISP1583_EPDATA_REG] = ulData;
 	}
 
-	if (ulIdx < 64)
-		the_controller->regs[ISP1583_EPCFG_REG] |=
-		    USB_EPCONTROL_VALIDATE;
-
 	return ulIdx;
 
 }
@@ -534,40 +530,6 @@ static void isp1583_set_feature(struct usb_ctrlrequest *crq,
 				       &the_controller->ep[0]);
 		isp1583_stall_endpoint(USB_ENDPOINT_CONTROL_IN,
 				       &the_controller->ep[0]);
-	}
-}
-
-/*
- * USBSetConfiguration implements the USB Set_Configuration device request.
- */
-/*static void USBSetConfiguration(void)*/
-static void isp1583_set_configuration(struct usb_ctrlrequest *crq,
-				      struct isp1583_udc *dev)
-{
-	dev->ep0state = EP0_IN_STATUS_PHASE;
-	/*
-	 * If the requested configuration is zero, then go
-	 * into the unconfigured state.
-	 */
-	if (crq->wValue == 0) {
-		the_controller->regs[ISP1583_EPTYPE_REG] &= ~USB_EPTYPE_ENABLE;
-		the_controller->regs[ISP1583_EPTYPE_REG] &= ~USB_EPTYPE_ENABLE;
-
-		the_controller->regs[ISP1583_EPCFG_REG] |=
-		    USB_EPCONTROL_STATUS_ACK;
-	} else if (crq->wValue == 1) {
-		the_controller->regs[ISP1583_EPTYPE_REG] &= ~USB_EPTYPE_ENABLE;
-		the_controller->regs[ISP1583_EPTYPE_REG] &= ~USB_EPTYPE_ENABLE;
-
-		isp1583_unstall_endpoint(USB_ENDPOINT_CONTROL_OUT, &dev->ep[0]);
-		isp1583_unstall_endpoint(USB_ENDPOINT_CONTROL_IN, &dev->ep[0]);
-
-		the_controller->regs[ISP1583_EPCFG_REG] |=
-		    USB_EPCONTROL_STATUS_ACK;
-
-	} else {
-		isp1583_stall_endpoint(USB_ENDPOINT_CONTROL_OUT, &dev->ep[0]);
-		isp1583_stall_endpoint(USB_ENDPOINT_CONTROL_IN, &dev->ep[0]);
 	}
 }
 
@@ -949,20 +911,6 @@ static void isp1583_udc_handle_ep0_setup(struct isp1583_udc *dev,
 		return;
 	}
 
-	if (crq->bRequestType & USB_DIR_IN) {
-		dev->ep0state = EP0_IN_DATA_PHASE;
-		usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
-
-		the_controller->regs[ISP1583_EPCFG_REG] = USB_EPCONTROL_DSEN;
-	} else {
-		dev->ep0state = EP0_OUT_STATUS_PHASE;
-
-		usb_select_endpoint(USB_ENDPOINT_CONTROL_OUT);
-
-		the_controller->regs[ISP1583_EPCFG_REG] = USB_EPCONTROL_DSEN;
-
-	}
-
 	/* cope with automagic for some standard requests. */
 	dev->req_std = (crq->bRequestType & USB_TYPE_MASK)
 	    == USB_TYPE_STANDARD;
@@ -977,11 +925,6 @@ static void isp1583_udc_handle_ep0_setup(struct isp1583_udc *dev,
 	case USB_REQ_GET_STATUS:
 
 		isp1583_get_status(dev, crq);
-		break;
-
-	case USB_REQ_SET_CONFIGURATION:
-		dev->req_config = 1;
-		isp1583_set_configuration(crq, dev);
 		break;
 
 	case USB_REQ_SET_INTERFACE:
@@ -1014,6 +957,16 @@ static void isp1583_udc_handle_ep0_setup(struct isp1583_udc *dev,
 
 	default:
 		break;
+	}
+
+	if (crq->bRequestType & USB_DIR_IN) {
+		dev->ep0state = EP0_IN_DATA_PHASE;
+		usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
+		the_controller->regs[ISP1583_EPCFG_REG] = USB_EPCONTROL_DSEN;
+	} else {
+		dev->ep0state = EP0_OUT_DATA_PHASE;
+		usb_select_endpoint(USB_ENDPOINT_CONTROL_OUT);
+		the_controller->regs[ISP1583_EPCFG_REG] = USB_EPCONTROL_DSEN;
 	}
 
 	ret = dev->driver->setup(&dev->gadget, crq);
@@ -1083,7 +1036,6 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 	int_status_lsb.VALUE &= the_controller->regs[ISP1583_INTEN_L_REG];
 	int_status_msb.VALUE &= the_controller->regs[ISP1583_INTEN_M_REG];
 
-
 	/* clear interrupt status */
 	the_controller->regs[ISP1583_INTS_L_REG] = int_status_lsb.VALUE;
 	the_controller->regs[ISP1583_INTS_M_REG] = int_status_msb.VALUE;
@@ -1119,8 +1071,7 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 	if (int_status_lsb.BITS.DMA) {	/* DMA interrupt */
 		unsigned short dma_int;
 		printk(KERN_DEBUG "got dma int\n");
-		dma_int =
-		    the_controller->regs[ISP1583_DMAINTS_REG];
+		dma_int = the_controller->regs[ISP1583_DMAINTS_REG];
 		the_controller->regs[ISP1583_DMAINTS_REG] = dma_int;
 
 		isp1583_dev_dma_irq();
@@ -1143,10 +1094,13 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 	}
 
 	if (int_status_lsb.BITS.EP0TX) {
-		/*printk(KERN_DEBUG "EP0 TX DONE\n");*/
-		if (the_controller->ep0state == EP0_IN_STATUS_PHASE)
+		/*printk(KERN_DEBUG "EP0 TX DONE\n"); */
+		if (the_controller->ep0state == EP0_IN_STATUS_PHASE) {
 			the_controller->ep0state = EP0_IDLE;
-		else if (the_controller->ep0state == EP0_IN_DATA_PHASE) {
+			usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
+			the_controller->regs[ISP1583_EPCFG_REG] |=
+			    USB_EPCONTROL_STATUS_ACK;
+		} else if (the_controller->ep0state == EP0_IN_DATA_PHASE) {
 			struct isp1583_ep *ep = &the_controller->ep[0];
 			struct isp1583_request *req;
 			unsigned int leng;
@@ -1157,32 +1111,59 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 				req = list_entry(ep->queue.next,
 						 struct isp1583_request, queue);
 
-			if (req) {
-
+			if (req && req->isIn == 1) {
 				leng =
 				    isp1583_send_control(req->req.buf +
 							 req->req.actual,
 							 req->req.length -
 							 req->req.actual);
-				if (leng == req->req.length - req->req.actual)
+				req->req.actual += leng;
+				if (req->req.actual == req->req.length)
 					isp1583_udc_done(ep, req, 0);
-				else
-					req->req.actual += req->req.length;
-
 			} else {
-				the_controller->ep0state = EP0_OUT_STATUS_PHASE;
+				the_controller->ep0state = EP0_IDLE;
 				usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
 				the_controller->regs[ISP1583_EPCFG_REG] |=
 				    USB_EPCONTROL_STATUS_ACK;
 			}
-
 		} else
 			the_controller->ep0state = EP0_IDLE;
 
 	}
 
-	if (int_status_lsb.BITS.EP0RX)
-		printk(KERN_DEBUG "got ep0 rx\n");
+	if (int_status_lsb.BITS.EP0RX) {
+		struct isp1583_ep *ep = &the_controller->ep[0];
+		struct isp1583_request *req;
+		int len;
+		int ret;
+		int hasMore = 0;
+
+		if (list_empty(&ep->queue))
+			req = NULL;
+		else
+			req =
+			    list_entry(ep->queue.next, struct isp1583_request,
+				       queue);
+
+		if (req && req->isIn == 0) {
+
+			len = req->req.length - req->req.actual;
+
+			usb_select_endpoint(USB_ENDPOINT_CONTROL_OUT);
+			ret =
+			    usb_get_packet(req->req.buf + req->req.actual, len,
+					   &hasMore);
+			req->req.actual += ret;
+
+			if (ret < ep->fifo_size
+			    || req->req.length == req->req.actual) {
+				isp1583_udc_done(ep, req, 0);
+				usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
+				the_controller->regs[ISP1583_EPCFG_REG] |=
+				    USB_EPCONTROL_STATUS_ACK;
+			}
+		}
+	}
 
 	if (int_status_lsb.BITS.EP1RX)
 		isp1583_packet_recv(&the_controller->ep[1]);
@@ -1376,9 +1357,7 @@ static int isp1583_udc_queue(struct usb_ep *_ep, struct usb_request *_req,
 	local_irq_save(flags);
 
 	if (unlikely(!_req || !_req->complete
-		     || !_req->buf || !list_empty(&req->queue))) {
-		if (!list_empty(&req->queue))
-			printk(KERN_DEBUG "!empty\n");
+		     || !_req->buf)){
 		local_irq_restore(flags);
 		return -EINVAL;
 	}
@@ -1396,15 +1375,29 @@ static int isp1583_udc_queue(struct usb_ep *_ep, struct usb_request *_req,
 	else {
 		int len;
 		if ((_req == NULL) || (_req->length == 0)
-		    || (_req->buf == NULL))
+		    || (_req->buf == NULL)) {
+			usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
+			the_controller->regs[ISP1583_EPCFG_REG] =
+			    USB_EPCONTROL_STATUS_ACK;
+			local_irq_restore(flags);
 			return 0;
+		}
 
-		len = isp1583_send_control(_req->buf, _req->length);
-		_req->actual = len;
-		if (len < _req->length)
-			list_add_tail(&req->queue, &ep->queue);
-		else
-			isp1583_udc_done(ep, req, 0);
+		if (list_empty(&ep->queue)) {
+			if (dev->ep0state == EP0_OUT_DATA_PHASE) {
+				req->isIn = 0;
+				list_add_tail(&req->queue, &dev->ep[0].queue);
+			} else {
+				req->isIn = 1;
+				len = isp1583_send_control(_req->buf,
+							   _req->length);
+				_req->actual = len;
+				if (len < _req->length)
+					list_add_tail(&req->queue, &ep->queue);
+				else
+					isp1583_udc_done(ep, req, 0);
+			}
+		}
 
 	}
 
@@ -1641,7 +1634,6 @@ register_error:
 }
 EXPORT_SYMBOL(usb_gadget_register_driver);
 
-
 static void stop_activity(struct isp1583_udc *dev,
 			  struct usb_gadget_driver *driver)
 {
@@ -1688,6 +1680,7 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 
 	return 0;
 }
+
 EXPORT_SYMBOL(usb_gadget_unregister_driver);
 
 /*---------------------------------------------------------------------------*/
@@ -2003,11 +1996,13 @@ int check_vbus(void)
 
 	if (!vbus) {
 		the_controller->vbus = 0;
+		stop_activity(the_controller, the_controller->driver);
 		if (the_controller->gadget.speed != USB_SPEED_UNKNOWN) {
+			stop_activity(the_controller, the_controller->driver);
 			if (the_controller->driver
 			    && the_controller->driver->disconnect)
-				the_controller->driver->
-				    disconnect(&the_controller->gadget);
+				the_controller->
+				    driver->disconnect(&the_controller->gadget);
 			the_controller->gadget.speed = USB_SPEED_UNKNOWN;
 		}
 		gpio_set_value(94, 0);
@@ -2057,8 +2052,8 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	if (the_controller->irq < 0)
 		return the_controller->irq;
 	the_controller->regs =
-	    (unsigned short *)ioremap_nocache((unsigned long)mregs->
-						       start, 0x400);
+	    (unsigned short *)ioremap_nocache((unsigned long)mregs->start,
+					      0x400);
 	if (!the_controller->regs) {
 		dev_err(&pdev->dev,
 			"Unable to map the_controller I/O memory\n");
@@ -2176,9 +2171,6 @@ static void __exit isp1583_udc_exit(void)
 {
 	platform_driver_unregister(&udc_driver_isp1583);
 }
-
-
-
 
 module_init(isp1583_udc_init);
 module_exit(isp1583_udc_exit);
