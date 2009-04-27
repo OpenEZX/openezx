@@ -1680,7 +1680,6 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 
 	return 0;
 }
-
 EXPORT_SYMBOL(usb_gadget_unregister_driver);
 
 /*---------------------------------------------------------------------------*/
