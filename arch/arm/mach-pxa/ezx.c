@@ -1466,16 +1466,16 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 			.status = LP3944_LED_STATUS_OFF,
 			.type = LP3944_LED_TYPE_LED,
 		},
-		/* Leds 3 and 4 are displays backlights */
+		/* Leds 3 and 4 are used as display power switches */
 		[3] = {
-			.name = "a910:cli_backlight",
-			.status = LP3944_LED_STATUS_ON,
-			.type = LP3944_LED_TYPE_LED
+			.name = "a910:cli_display",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED
 		},
 		[4] = {
-			.name = "a910:main_backlight",
+			.name = "a910:main_display",
 			.status = LP3944_LED_STATUS_ON,
-			.type = LP3944_LED_TYPE_LED
+			.type = LP3944_LED_TYPE_LED_INVERTED
 		},
 		[5] = { .type = LP3944_LED_TYPE_NONE },
 		[6] = {
@@ -1486,7 +1486,7 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 		[7] = {
 			.name = "a910:flash",
 			.status = LP3944_LED_STATUS_OFF,
-			.type = LP3944_LED_TYPE_LED,
+			.type = LP3944_LED_TYPE_LED_INVERTED,
 		},
 	},
 };
