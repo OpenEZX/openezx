@@ -79,7 +79,22 @@ int ezx_wake_bp(void)
 }
 EXPORT_SYMBOL_GPL(ezx_wake_bp);
 
-inline int bp_handshake_passed(void)
+void ezx_reset_bp(void)
+{
+	DEBUGP("reset bp\n");
+	gpio_set_value(bp->bp_reset, 0);
+	mdelay(1);
+	gpio_set_value(bp->bp_reset, 1);
+}
+EXPORT_SYMBOL_GPL(ezx_reset_bp);
+
+int ezx_bp_is_on(void)
+{
+	return gpio_get_value(bp->bp_wdi);
+}
+EXPORT_SYMBOL_GPL(ezx_bp_is_on);
+
+static inline int bp_handshake_passed(void)
 {
 	return (step > 3);
 }
