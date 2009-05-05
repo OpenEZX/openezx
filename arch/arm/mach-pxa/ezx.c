@@ -52,6 +52,7 @@
 #include "devices.h"
 #include "generic.h"
 
+#define GPIO4_PCAP_WDI			4
 #define GPIO12_A780_FLIP_LID 		12
 #define GPIO15_A1200_FLIP_LID 		15
 #define GPIO15_A910_FLIP_LID 		15
@@ -1110,6 +1111,9 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
@@ -1232,6 +1236,9 @@ static void __init e680_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
 
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
@@ -1340,6 +1347,9 @@ static void __init a1200_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
+
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
@@ -1608,6 +1618,9 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
@@ -1713,6 +1726,9 @@ static void __init e6_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
 
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
@@ -1789,6 +1805,9 @@ static void __init e2_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
+
+	gpio_request(GPIO4_PCAP_WDI, "PCAP WDI");
+	gpio_direction_output(GPIO4_PCAP_WDI, 1);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
