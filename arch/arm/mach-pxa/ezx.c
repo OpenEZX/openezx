@@ -36,11 +36,11 @@
 #include "devices.h"
 #include "generic.h"
 
-#define GPIO12_A780_FLIP_LID 12
-#define GPIO15_A1200_FLIP_LID 15
-#define GPIO15_A910_FLIP_LID 15
-#define GPIO12_E680_LOCK_SWITCH 12
-#define GPIO15_E6_LOCK_SWITCH 15
+#define GPIO12_A780_FLIP_LID 		12
+#define GPIO15_A1200_FLIP_LID 		15
+#define GPIO15_A910_FLIP_LID 		15
+#define GPIO12_E680_LOCK_SWITCH 	12
+#define GPIO15_E6_LOCK_SWITCH 		15
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
