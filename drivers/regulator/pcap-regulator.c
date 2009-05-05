@@ -20,87 +20,124 @@
 
 #include <linux/mfd/ezx-pcap.h>
 
-#define PCAP_REGULATOR(_id)			\
-	{					\
-		.name	= "_id",		\
-		.id	= _id,			\
-		.ops	= &pcap_regulator_ops,	\
-		.type	= REGULATOR_VOLTAGE,	\
-		.owner	= THIS_MODULE,		\
+#define PCAP_REGULATOR(vreg)					\
+	{							\
+		.name		= "vreg",			\
+		.id		= vreg,				\
+		.ops		= &pcap_regulator_ops,		\
+		.type		= REGULATOR_VOLTAGE,		\
+		.owner		= THIS_MODULE,			\
 	}
 
-static u8 vreg_table[][6] = {
-/*	    REGISTER		EN	INDEX	MASK	STBY	LOWPWR*/
-[V1]	= { PCAP_REG_VREG1,	1,	2,	0x7,	18,	0,    },
-[V2]	= { PCAP_REG_VREG1,	5,	6,	0x1,	19,	22,   },
-[V3]	= { PCAP_REG_VREG1,	7,	8,	0x7,	20,	23,   },
-[V4]	= { PCAP_REG_VREG1,	11,     12,     0x7,    21,     24,   },
-[V5]	= { PCAP_REG_VREG1,	15,     16,     0x3,    0xff,   0xff, },
-[V6]	= { PCAP_REG_VREG2,	1,      0xff,   0x0,    0xff,   0xff, },
-/* FIXME: I have no idea of V7-V10 bits -WM */
-[V7]	= { PCAP_REG_VREG2,	0xff,   0xff,   0x0,    0xff,   0xff, },
-[V8]	= { PCAP_REG_VREG2,	0xff,   0xff,   0x0,    0xff,   0xff, },
-[V9]	= { PCAP_REG_VREG2,	0xff,   0xff,   0x0,    0xff,   0xff, },
-[V10]	= { PCAP_REG_VREG2,	0xff,   0xff,   0x0,    0xff,   0xff, },
-[VAUX1]	= { PCAP_REG_AUXVREG,	1,      2,      0x3,    22,     23,   },
-[VAUX2]	= { PCAP_REG_AUXVREG,	4,      5,      0x3,    0,      1,    },
-[VAUX3]	= { PCAP_REG_AUXVREG,	7,      8,      0xf,    2,      3,    },
-[VAUX4]	= { PCAP_REG_AUXVREG,	12,     13,     0x3,    4,      5,    },
-[VSIM]	= { PCAP_REG_AUXVREG,	17,     18,     0x1,    0xff,   6,    },
-[VSIM2]	= { PCAP_REG_AUXVREG,	16,     0xff,   0x0,    0xff,   7,    },
-[VVIB]	= { PCAP_REG_AUXVREG,	19,     20,     0x3,    0xff,   0xff, },
-[VC]	= { PCAP_REG_AUXVREG,	0xff,   0xff,   0x0,    24,     0xff, },
-[SW1]	= { PCAP_REG_SWCTRL,	1,	2,	0xf,	0xff,	0xff, },
-[SW2]	= { PCAP_REG_SWCTRL,	6,	7,	0xf,	0xff,	0xff, },
-[SW3]	= { PCAP_REG_SWCTRL,	11,	12,	0x3,	0xff,	0xff, },
-[SW1S]	= { PCAP_REG_LOWPWR,	0xff,	12,	0xf,	0xff,	0xff, },
-[SW2S]	= { PCAP_REG_LOWPWR,	0xff,	20,	0xf,	0xff,	0xff, },
+struct pcap_regulator_info {
+	u8 register;
+	u8 en;
+	u8 index;
+	u8 stby;
+	u8 lowpwr;
+	u16 *voltage_table;
+	u8 n_voltages;
 };
 
-static int pcap_sw1_to_mv(u8 sw)
-{
-	switch (sw) {
-	case 0 ... 0xa:
-		return 900 + (sw * 50);
-	case 0xb ... 0xc:
-		return 1500 + ((sw - 0xb) * 100);
-	case 0xd:
-		return 1875;
-	case 0xe:
-		return 2250;
-	case 0xf:
-		return 4400;
-}
+static u16 V1_table[] = {
+	2775, 1275, 1600, 1725, 1825, 1925, 2075, 2275,
+};
 
-static u8 pcap_mv_to_sw1(int mv)
-{
-	if (mv < 900)
-		return 0;
-	if (mv < 1500)
-		return (mv - 900) / 50;
-	if (mv < 1875)
-		return ((mv - 1500) / 100) + 0xb;
-	if (mv < 2250)
-		return 0xd;
-	if (mv < 4400)
-		return 0xe;
-	if (mv >= 4400)
-		return 0xf;
-}
+static u16 V2_table[] = {
+	2500, 2775,
+};
 
-static int pcap_vsim_to_mv(u8 vsim)
-{
-	if (vsim == 0)
-		return 1800;
-	return 3000;
-}
+static u16 V3_table[] = {
+	1075, 1275, 1550, 1725, 1876, 1950, 2075, 2275,
+};
 
-static u8 pcap_mv_to_vsim(int mv)
-{
-	if (mv < 3000)
-		return 0;
-	return 1;
-}
+static u16 V48_table[] = {
+	1275, 1550, 1725, 1875, 1950, 2075, 2275, 2775,
+};
+
+static u16 V5_table[] = {
+	1875, 2275, 2475, 2775,
+};
+
+static u16 V6_table[] = {
+	2475, 2775,
+};
+
+static u16 V7_table[] = {
+	1875, 2775,
+};
+
+static u16 V9_table[] = {
+	1575, 1875, 2475, 2775,
+};
+
+static u16 V10_table[] = {
+	5000,
+};
+
+static u16 VSIM_table[] = {
+	1875, 3000,
+};
+
+static u16 VSIM2_table[] = {
+	1875,
+};
+
+static u16 VAUX12_table[] = {
+	1875, 2475, 2775, 3000,
+};
+
+static u16 VAUX3_table[] = {
+	1200, 1200, 1200, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800,
+	3000, 3200, 3400, 3600,
+};
+
+static u16 VAUX4_table[] = {
+	1800, 1800, 3000, 5000,
+};
+
+static u16 SW12_table[] = {
+	900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450,
+	1500, 1600, 1875, 2250,
+};
+
+static u16 SW3_table[] = {
+	4000, 4500, 5000, 5500,
+};
+
+#define NA 0xff
+
+static pcap_regulator_info vreg_table[] = {
+	/*	    REGISTER	      EN  LEV  STBY LOWP NV  V.TABLE       */
+	[V1]	= { PCAP_REG_VREG1,   1,  2,   18,  0,   8,  V1_table,     },
+	[V2]	= { PCAP_REG_VREG1,   5,  6,   19,  22,  2,  V2_table,     },
+	[V3]	= { PCAP_REG_VREG1,   7,  8,   20,  23,  8,  V3_table,     },
+	[V4]	= { PCAP_REG_VREG1,   11, 12,  21,  24,  8,  V48_table,    },
+	/* V5 STBY and LOWP are on PCAP_REG_VREG2 */
+	[V5]	= { PCAP_REG_VREG1,   15, 16,  12,  19,  4,  V5_table,     },
+
+	[V6]	= { PCAP_REG_VREG2,   1,  2,   14,  20,  2,  V6_table,     },
+	[V7]	= { PCAP_REG_VREG2,   3,  4,   15,  21,  2,  V7_table,     },
+	[V8]	= { PCAP_REG_VREG2,   5,  6,   16,  22,  8,  V48_table,    },
+	[V9]	= { PCAP_REG_VREG2,   9,  10,  17,  23,  4,  V9_table,     },
+	[V10]	= { PCAP_REG_VREG2,   10, NA,  18,  24,  1,  V10_table,    },
+
+	[VAUX1]	= { PCAP_REG_AUXVREG, 1,  2,   22,  23,  4,  VAUX12_table, },
+	[VAUX2]	= { PCAP_REG_AUXVREG, 4,  5,   NA,  NA,  4,  VAUX12_table, },
+	[VAUX3]	= { PCAP_REG_AUXVREG, 7,  8,   NA,  NA,  16, VAUX3_table,  },
+	[VAUX4]	= { PCAP_REG_AUXVREG, 12, 13,  NA,  NA,  4,  VAUX4_table,  },
+	[VSIM]	= { PCAP_REG_AUXVREG, 17, 18,  NA,  NA,  2,  VSIM_table,   },
+	[VSIM2]	= { PCAP_REG_AUXVREG, 16, NA,  NA,  NA,  1,  VSIM2_table,  },
+	[VVIB]	= { PCAP_REG_AUXVREG, 19, 20,  NA,  NA,  4,  VVIB_table,   },
+	[VC]	= { PCAP_REG_AUXVREG, NA, NA,  24,  NA,  1,  VC_table,     },
+
+	[SW1]	= { PCAP_REG_SWCTRL,  1,  2,   NA,  NA,  16, SW12_table,   },
+	[SW2]	= { PCAP_REG_SWCTRL,  6,  7,   NA,  NA,  16, SW12_table,   },
+	[SW3]	= { PCAP_REG_SWCTRL,  11, 12,  NA,  NA,  4,  SW3_table,    },
+
+	[SW1S]	= { PCAP_REG_LOWPWR,  NA, 12,  NA,  NA,  16, SW12_table,   },
+	[SW2S]	= { PCAP_REG_LOWPWR,  NA, 20,  NA,  NA,  0,  SW12_table,   },
+};
 
 static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 						int min_uv, int max_uv)
@@ -109,29 +146,20 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 	u8 bits;
 	int vreg = rdev_get_id(rdev);
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg][V_INDEX] == 0xff)
+	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].voltage_table == NULL)
 		return -EINVAL;
 
-	switch (vreg) {
-	case SW1:
-	case SW1S:
-		bits = pcap_mv_to_sw1(min_uv / 1000);
-		break;
-	case VSIM:
-		bits = pcap_mv_to_vsim(min_uv / 1000);
-		break;
-	default: /* FIXME */
-		return -EINVAL;
+	for (bits = 0; bits < vreg_table[vreg].n_voltages; bits++) {
+		int uv = vreg_table[vreg]->voltage_table[bits] * 1000;
+		if (min_uv <= uv && uv <= max_uv) {
+			ezx_pcap_read(vreg_table[vreg].register, &tmp);
+			tmp |= bits << vreg_table[vreg].index;
+			ezx_pcap_write(vreg_table[vreg].register, tmp);
+			return 0;
+		}
 	}
 
-	ezx_pcap_read(vreg_table[vreg][V_REG], &tmp);
-	tmp |= (bits & vreg_table[vreg][V_MASK]) << vreg_table[vreg][V_INDEX];
-	ezx_pcap_write(vreg_table[vreg][V_REG], tmp);
-
-	if (vreg >= SW1 && vreg <= SW2S)
-		udelay(150);
-
-	return 0;
+	return -EINVAL;
 }
 
 static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
@@ -140,23 +168,12 @@ static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
 	int mv;
 	int vreg = rdev_get_id(rdev);
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg][V_INDEX] == 0xff)
+	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].voltage_table == NULL)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg][V_REG], &tmp);
-	tmp = ((tmp >> vreg_table[vreg][V_INDEX]) & vreg_table[vreg][V_MASK]);
-
-	switch (vreg) {
-	case SW1:
-	case SW1S:
-		mv = pcap_sw1_to_mv(tmp);
-		break;
-	case VSIM:
-		mv = pcap_vsim_to_mv(tmp);
-		break;
-	default: /* FIXME */
-		return -EINVAL;
-	}
+	ezx_pcap_read(vregs[vreg].register, &tmp);
+	tmp = ((tmp >> vregs[vreg].index) & (vregs[vreg].n_voltages - 1));
+	mv = vreg_table[vreg]->voltage_table[0];
 
 	return mv * 1000;
 }
@@ -166,12 +183,12 @@ static int pcap_regulator_enable(struct regulator_dev *rdev)
 	u32 tmp;
 	int vreg = rdev_get_id(rdev);
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg][V_EN] == 0xff)
+	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg][V_REG], &tmp);
-	tmp |= (1 << vreg_table[vreg][V_EN]);
-	ezx_pcap_write(vreg_table[vreg][V_REG], tmp);
+	ezx_pcap_read(vreg_table[vreg].register, &tmp);
+	tmp |= (1 << vreg_table[vreg].en);
+	ezx_pcap_write(vreg_table[vreg].register, tmp);
 
 	return 0;
 }
@@ -181,12 +198,12 @@ static int pcap_regulator_disable(struct regulator_dev *rdev)
 	u32 tmp;
 	int vreg = rdev_get_id(rdev);
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg][V_EN] == 0xff)
+	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg][V_REG], &tmp);
-	tmp &= ~(1 << vreg_table[vreg][V_EN]);
-	ezx_pcap_write(vreg_table[vreg][V_REG], tmp);
+	ezx_pcap_read(vreg_table[vreg].register, &tmp);
+	tmp &= ~(1 << vreg_table[vreg].en;
+	ezx_pcap_write(vreg_table[vreg].register, tmp);
 
 	return 0;
 }
@@ -197,14 +214,11 @@ static int pcap_regulator_is_enabled(struct regulator_dev *rdev)
 	u8 reg, shift, mask;
 	int vreg = rdev_get_id(rdev);
 
-	if (vreg > PCAP_LAST_VREG)
+	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
 		return -EINVAL;
 
-	if (vreg == SW1S || vreg == SW2S) /* always enabled */
-		return 1;
-
-	ezx_pcap_read(vreg_table[vreg][V_REG], &tmp);
-	return ((tmp >> vreg_table[vreg][V_EN]) & 1);
+	ezx_pcap_read(vreg_table[vreg].register, &tmp);
+	return ((tmp >> vreg_table[vreg].en) & 1);
 }
 
 static struct regulator_ops pcap_regulator_ops = {
