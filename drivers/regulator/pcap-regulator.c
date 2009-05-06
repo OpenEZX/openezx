@@ -12,20 +12,20 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/device.h>
 #include <linux/err.h>
 #include <linux/platform_device.h>
-
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 #include <linux/mfd/ezx-pcap.h>
 
 struct pcap_regulator {
-	u8 register;
+	u8 reg;
 	u8 en;
 	u8 index;
 	u8 stby;
 	u8 lowpwr;
-	u16 *voltage_table;
 	u8 n_voltages;
+	const u16 *voltage_table;
 };
 
 static const u16 V1_table[] = {
@@ -72,7 +72,7 @@ static const u16 VSIM2_table[] = {
 	1875,
 };
 
-static const U16 VVIB_table[] = {
+static const u16 VVIB_table[] = {
 	1300, 1800, 2000, 3000,
 };
 
@@ -122,7 +122,6 @@ static struct pcap_regulator vreg_table[] = {
 	[VSIM]	= { PCAP_REG_AUXVREG, 17, 18,  NA,  NA,  2,  VSIM_table,   },
 	[VSIM2]	= { PCAP_REG_AUXVREG, 16, NA,  NA,  NA,  1,  VSIM2_table,  },
 	[VVIB]	= { PCAP_REG_AUXVREG, 19, 20,  NA,  NA,  4,  VVIB_table,   },
-	[VC]	= { PCAP_REG_AUXVREG, NA, NA,  24,  NA,  1,  VC_table,     },
 
 	[SW1]	= { PCAP_REG_SWCTRL,  1,  2,   NA,  NA,  16, SW12_table,   },
 	[SW2]	= { PCAP_REG_SWCTRL,  6,  7,   NA,  NA,  16, SW12_table,   },
@@ -137,14 +136,14 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 {
 	u32 tmp;
 	u8 bits;
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	for (bits = 0; bits < vreg->n_voltages; bits++) {
 		int uv = vreg->voltage_table[bits] * 1000;
 		if (min_uv <= uv && uv <= max_uv) {
-			ezx_pcap_read(vreg->register, &tmp);
+			ezx_pcap_read(vreg->reg, &tmp);
 			tmp |= bits << vreg->index;
-			ezx_pcap_write(vreg->register, tmp);
+			ezx_pcap_write(vreg->reg, tmp);
 			return 0;
 		}
 	}
@@ -156,12 +155,12 @@ static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
 {
 	u32 tmp;
 	int mv;
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	if (vreg->n_voltages == 1)
 		return vreg->voltage_table[0] * 1000;
 
-	ezx_pcap_read(vreg->register, &tmp);
+	ezx_pcap_read(vreg->reg, &tmp);
 	tmp = ((tmp >> vreg->index) & (vreg->n_voltages - 1));
 	mv = vreg->voltage_table[tmp];
 
@@ -171,14 +170,14 @@ static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
 static int pcap_regulator_enable(struct regulator_dev *rdev)
 {
 	u32 tmp;
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg->register, &tmp);
+	ezx_pcap_read(vreg->reg, &tmp);
 	tmp |= (1 << vreg->en);
-	ezx_pcap_write(vreg->register, tmp);
+	ezx_pcap_write(vreg->reg, tmp);
 
 	return 0;
 }
@@ -186,14 +185,14 @@ static int pcap_regulator_enable(struct regulator_dev *rdev)
 static int pcap_regulator_disable(struct regulator_dev *rdev)
 {
 	u32 tmp;
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg->register, &tmp);
-	tmp &= ~(1 << vreg->en;
-	ezx_pcap_write(vreg->register, tmp);
+	ezx_pcap_read(vreg->reg, &tmp);
+	tmp &= ~(1 << vreg->en);
+	ezx_pcap_write(vreg->reg, tmp);
 
 	return 0;
 }
@@ -201,20 +200,19 @@ static int pcap_regulator_disable(struct regulator_dev *rdev)
 static int pcap_regulator_is_enabled(struct regulator_dev *rdev)
 {
 	u32 tmp;
-	u8 reg, shift, mask;
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg->register, &tmp);
+	ezx_pcap_read(vreg->reg, &tmp);
 	return ((tmp >> vreg->en) & 1);
 }
 
 static int pcap_regulator_list_voltage(struct regulator_dev *rdev,
 							unsigned int index)
 {
-	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
 	return vreg->voltage_table[index] * 1000;
 }
@@ -240,7 +238,7 @@ static struct regulator_ops pcap_regulator_ops = {
 static struct regulator_desc pcap_regulators[] = {
 	VREG(V1), VREG(V2), VREG(V3), VREG(V4), VREG(V5), VREG(V6), VREG(V7),
 	VREG(V8), VREG(V9), VREG(V10), VREG(VAUX1), VREG(VAUX2), VREG(VAUX3),
-	VREG(VAUX4), VREG(VSIM), VREG(VVIB), VREG(VC), VREG(SW1), VREG(SW2),
+	VREG(VAUX4), VREG(VSIM), VREG(VVIB), VREG(SW1), VREG(SW2),
 };
 
 static int __devinit pcap_regulator_probe(struct platform_device *pdev)
