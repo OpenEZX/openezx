@@ -336,7 +336,7 @@ static int eoc_regulator_probe(struct platform_device *pdev)
 #ifdef CONFIG_REGULATOR
 	/* register regulator */
 	rdev = regulator_register(&eoc_regulator_desc, &pdev->dev,
-				  dev_get_drvdata(&pdev->dev));
+				  dev_get_drvdata(&pdev->dev), NULL);
 	if (IS_ERR(rdev)) {
 		return PTR_ERR(rdev);
 	}
