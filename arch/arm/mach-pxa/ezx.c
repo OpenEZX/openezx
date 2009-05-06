@@ -48,8 +48,7 @@
 #include <mach/pxa27x-udc.h>
 #include <mach/ezx-bp.h>
 #include <mach/camera.h>
-#include <mach/pm.h>
-#include <mach/system.h>
+#include <mach/reset.h>
 
 #include "devices.h"
 #include "generic.h"
