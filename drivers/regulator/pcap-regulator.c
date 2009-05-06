@@ -1,7 +1,7 @@
 /*
  * PCAP2 Regulator Driver
  *
- * Copyright (c) 2008 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (c) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -206,7 +206,7 @@ static int pcap_regulator_is_enabled(struct regulator_dev *rdev)
 		return -EINVAL;
 
 	ezx_pcap_read(vreg->reg, &tmp);
-	return ((tmp >> vreg->en) & 1);
+	return (tmp >> vreg->en) & 1;
 }
 
 static int pcap_regulator_list_voltage(struct regulator_dev *rdev,
