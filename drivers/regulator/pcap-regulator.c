@@ -83,6 +83,10 @@ static u16 VSIM2_table[] = {
 	1875,
 };
 
+static U16 VVIB_table[] = {
+	1300, 1800, 2000, 3000,
+};
+
 static u16 VAUX12_table[] = {
 	1875, 2475, 2775, 3000,
 };
