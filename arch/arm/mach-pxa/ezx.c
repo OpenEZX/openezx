@@ -48,6 +48,8 @@
 #include <mach/pxa27x-udc.h>
 #include <mach/ezx-bp.h>
 #include <mach/camera.h>
+#include <mach/pm.h>
+#include <mach/system.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -931,6 +933,36 @@ static struct platform_device gen2_bp_device = {
 };
 #endif
 
+/* PM */
+static void ezx_reboot_poweroff(char mode, const char *cmd)
+{
+#ifdef CONFIG_TS0710_MUX_USB
+	if (ezx_bp_is_on() == 0)
+		/* BP paniced, restart it */
+		ezx_reset_bp();
+#endif
+	cpu_proc_fin();
+	setup_mm_for_reboot(mode);
+	if (mode == 'z')
+		gpio_set_value(GPIO4_PCAP_WDI, 0);
+	else
+		arch_reset(mode, cmd);
+
+	/* reboot failed, poweroff! */
+	mdelay(1000);
+	gpio_set_value(GPIO4_PCAP_WDI, 0);
+}
+
+static void ezx_restart(char mode, const char *cmd)
+{
+	ezx_reboot_poweroff(mode, cmd);
+}
+
+static void ezx_poweroff(void)
+{
+	ezx_reboot_poweroff('z', NULL);
+}
+
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
@@ -1107,6 +1139,9 @@ static void __init a780_init(void)
 {
 	struct platform_device *spi_pd;
 
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
@@ -1232,6 +1267,9 @@ static void __init e680_init(void)
 {
 	struct platform_device *spi_pd;
 
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
@@ -1343,6 +1381,9 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 static void __init a1200_init(void)
 {
 	struct platform_device *spi_pd;
+
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
 
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
@@ -1614,6 +1655,9 @@ static void __init a910_init(void)
 {
 	struct platform_device *spi_pd;
 
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
@@ -1722,6 +1766,9 @@ static void __init e6_init(void)
 {
 	struct platform_device *spi_pd;
 
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
@@ -1801,6 +1848,9 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 static void __init e2_init(void)
 {
 	struct platform_device *spi_pd;
+
+	pm_power_off = ezx_poweroff;
+	arm_pm_restart = ezx_restart;
 
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
