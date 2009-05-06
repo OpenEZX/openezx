@@ -934,6 +934,8 @@ static struct platform_device gen2_bp_device = {
 #endif
 
 /* PM */
+extern void setup_mm_for_reboot(char mode);
+
 static void ezx_reboot_poweroff(char mode, const char *cmd)
 {
 #ifdef CONFIG_TS0710_MUX_USB
