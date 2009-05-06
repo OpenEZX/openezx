@@ -705,7 +705,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	}
 
 	printk("usb_ipc_probe: completed probe!\n");
-	usb_set_intfdata(intf, &bvd_ipc);
+	usb_set_intfdata(intf, bvd_ipc);
 	is_probed=1;
 	
 	return 0;
