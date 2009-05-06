@@ -111,13 +111,11 @@ struct pcap_platform_data {
 #define VSIM		14
 #define VSIM2		15
 #define VVIB		16
-#define VC		17
-#define SW1		18
-#define SW2		19
-#define SW3		20
-#define SW1S		21
-#define SW2S		22
-#define PCAP_LAST_VREG	SW2S
+#define SW1		17
+#define SW2		18
+#define SW3		19
+#define SW1S		20
+#define SW2S		21
 
 #define PCAP_BATT_DAC_MASK		0x000000ff
 #define PCAP_BATT_DAC_SHIFT		0
