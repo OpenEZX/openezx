@@ -757,10 +757,10 @@ static void ezx_pcap_init(void)
 {
 	/* set SW1 sleep to keep SW1 1.3v in sync mode */
 	/* SW1 active in sync mode */
-	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
+/*	ezx_pcap_set_sw(SW1, SW_MODE, 0x1); */
 
 	/* set core voltage */
-	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+/*	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250); */
 
 	/* FIXME: EMU driver */
 	ezx_pcap_write(PCAP_REG_BUSCTRL,
