@@ -110,7 +110,7 @@ struct pcap_regulator {
 #define NA 0xff
 
 #define VREG_INFO(_vreg, _reg, _en, _index, _stby, _lowpwr)		\
-	[vreg]	= {							\
+	[_vreg]	= {							\
 		.reg		= _reg,					\
 		.en		= _en,					\
 		.index		= _index,				\
