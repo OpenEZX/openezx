@@ -1,4 +1,4 @@
-ezx/mach/pcap_regulator
+ezx/mach/reboot-poweroff
 ezx/asoc
 ezx/defconfig
 pxa/sparsemem
