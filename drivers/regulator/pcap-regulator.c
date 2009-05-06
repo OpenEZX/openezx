@@ -1,5 +1,5 @@
 /*
- * PCAP Regulator Driver
+ * PCAP2 Regulator Driver
  *
  * Copyright (c) 2008 Daniel Ribeiro <drwyrm@gmail.com>
  *
@@ -8,8 +8,6 @@
  * Free Software Foundation;  either version 2 of the  License, or (at your
  * option) any later version.
  */
-
-#error Please dont use this driver yet :)
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -20,16 +18,7 @@
 
 #include <linux/mfd/ezx-pcap.h>
 
-#define PCAP_REGULATOR(vreg)					\
-	{							\
-		.name		= "vreg",			\
-		.id		= vreg,				\
-		.ops		= &pcap_regulator_ops,		\
-		.type		= REGULATOR_VOLTAGE,		\
-		.owner		= THIS_MODULE,			\
-	}
-
-struct pcap_regulator_info {
+struct pcap_regulator {
 	u8 register;
 	u8 en;
 	u8 index;
@@ -39,79 +28,79 @@ struct pcap_regulator_info {
 	u8 n_voltages;
 };
 
-static u16 V1_table[] = {
+static const u16 V1_table[] = {
 	2775, 1275, 1600, 1725, 1825, 1925, 2075, 2275,
 };
 
-static u16 V2_table[] = {
+static const u16 V2_table[] = {
 	2500, 2775,
 };
 
-static u16 V3_table[] = {
+static const u16 V3_table[] = {
 	1075, 1275, 1550, 1725, 1876, 1950, 2075, 2275,
 };
 
-static u16 V48_table[] = {
+static const u16 V48_table[] = {
 	1275, 1550, 1725, 1875, 1950, 2075, 2275, 2775,
 };
 
-static u16 V5_table[] = {
+static const u16 V5_table[] = {
 	1875, 2275, 2475, 2775,
 };
 
-static u16 V6_table[] = {
+static const u16 V6_table[] = {
 	2475, 2775,
 };
 
-static u16 V7_table[] = {
+static const u16 V7_table[] = {
 	1875, 2775,
 };
 
-static u16 V9_table[] = {
+static const u16 V9_table[] = {
 	1575, 1875, 2475, 2775,
 };
 
-static u16 V10_table[] = {
+static const u16 V10_table[] = {
 	5000,
 };
 
-static u16 VSIM_table[] = {
+static const u16 VSIM_table[] = {
 	1875, 3000,
 };
 
-static u16 VSIM2_table[] = {
+static const u16 VSIM2_table[] = {
 	1875,
 };
 
-static U16 VVIB_table[] = {
+static const U16 VVIB_table[] = {
 	1300, 1800, 2000, 3000,
 };
 
-static u16 VAUX12_table[] = {
+static const u16 VAUX12_table[] = {
 	1875, 2475, 2775, 3000,
 };
 
-static u16 VAUX3_table[] = {
+static const u16 VAUX3_table[] = {
 	1200, 1200, 1200, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800,
 	3000, 3200, 3400, 3600,
 };
 
-static u16 VAUX4_table[] = {
+static const u16 VAUX4_table[] = {
 	1800, 1800, 3000, 5000,
 };
 
-static u16 SW12_table[] = {
+static const u16 SW12_table[] = {
 	900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450,
 	1500, 1600, 1875, 2250,
 };
 
-static u16 SW3_table[] = {
+static const u16 SW3_table[] = {
 	4000, 4500, 5000, 5500,
 };
 
 #define NA 0xff
 
-static pcap_regulator_info vreg_table[] = {
+static struct pcap_regulator vreg_table[] = {
 	/*	    REGISTER	      EN  LEV  STBY LOWP NV  V.TABLE       */
 	[V1]	= { PCAP_REG_VREG1,   1,  2,   18,  0,   8,  V1_table,     },
 	[V2]	= { PCAP_REG_VREG1,   5,  6,   19,  22,  2,  V2_table,     },
@@ -148,17 +137,14 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 {
 	u32 tmp;
 	u8 bits;
-	int vreg = rdev_get_id(rdev);
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].voltage_table == NULL)
-		return -EINVAL;
-
-	for (bits = 0; bits < vreg_table[vreg].n_voltages; bits++) {
-		int uv = vreg_table[vreg]->voltage_table[bits] * 1000;
+	for (bits = 0; bits < vreg->n_voltages; bits++) {
+		int uv = vreg->voltage_table[bits] * 1000;
 		if (min_uv <= uv && uv <= max_uv) {
-			ezx_pcap_read(vreg_table[vreg].register, &tmp);
-			tmp |= bits << vreg_table[vreg].index;
-			ezx_pcap_write(vreg_table[vreg].register, tmp);
+			ezx_pcap_read(vreg->register, &tmp);
+			tmp |= bits << vreg->index;
+			ezx_pcap_write(vreg->register, tmp);
 			return 0;
 		}
 	}
@@ -170,14 +156,14 @@ static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
 {
 	u32 tmp;
 	int mv;
-	int vreg = rdev_get_id(rdev);
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].voltage_table == NULL)
-		return -EINVAL;
+	if (vreg->n_voltages == 1)
+		return vreg->voltage_table[0] * 1000;
 
-	ezx_pcap_read(vregs[vreg].register, &tmp);
-	tmp = ((tmp >> vregs[vreg].index) & (vregs[vreg].n_voltages - 1));
-	mv = vreg_table[vreg]->voltage_table[0];
+	ezx_pcap_read(vreg->register, &tmp);
+	tmp = ((tmp >> vreg->index) & (vreg->n_voltages - 1));
+	mv = vreg->voltage_table[tmp];
 
 	return mv * 1000;
 }
@@ -185,14 +171,14 @@ static int pcap_regulator_get_voltage(struct regulator_dev *rdev)
 static int pcap_regulator_enable(struct regulator_dev *rdev)
 {
 	u32 tmp;
-	int vreg = rdev_get_id(rdev);
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
+	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg].register, &tmp);
-	tmp |= (1 << vreg_table[vreg].en);
-	ezx_pcap_write(vreg_table[vreg].register, tmp);
+	ezx_pcap_read(vreg->register, &tmp);
+	tmp |= (1 << vreg->en);
+	ezx_pcap_write(vreg->register, tmp);
 
 	return 0;
 }
@@ -200,14 +186,14 @@ static int pcap_regulator_enable(struct regulator_dev *rdev)
 static int pcap_regulator_disable(struct regulator_dev *rdev)
 {
 	u32 tmp;
-	int vreg = rdev_get_id(rdev);
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
+	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg].register, &tmp);
-	tmp &= ~(1 << vreg_table[vreg].en;
-	ezx_pcap_write(vreg_table[vreg].register, tmp);
+	ezx_pcap_read(vreg->register, &tmp);
+	tmp &= ~(1 << vreg->en;
+	ezx_pcap_write(vreg->register, tmp);
 
 	return 0;
 }
@@ -216,16 +202,25 @@ static int pcap_regulator_is_enabled(struct regulator_dev *rdev)
 {
 	u32 tmp;
 	u8 reg, shift, mask;
-	int vreg = rdev_get_id(rdev);
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
 
-	if (vreg > PCAP_LAST_VREG || vreg_table[vreg].en == 0xff)
+	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(vreg_table[vreg].register, &tmp);
-	return ((tmp >> vreg_table[vreg].en) & 1);
+	ezx_pcap_read(vreg->register, &tmp);
+	return ((tmp >> vreg->en) & 1);
+}
+
+static int pcap_regulator_list_voltage(struct regulator_dev *rdev,
+							unsigned int index)
+{
+	struct pcap_regulator *vreg = vreg_table[rdev_get_id(rdev)];
+
+	return vreg->voltage_table[index] * 1000;
 }
 
 static struct regulator_ops pcap_regulator_ops = {
+	.list_voltage	= pcap_regulator_list_voltage,
 	.set_voltage	= pcap_regulator_set_voltage,
 	.get_voltage	= pcap_regulator_get_voltage,
 	.enable		= pcap_regulator_enable,
@@ -233,27 +228,19 @@ static struct regulator_ops pcap_regulator_ops = {
 	.is_enabled	= pcap_regulator_is_enabled,
 };
 
+#define VREG(vreg)						\
+[vreg]	= {							\
+		.name		= "vreg",			\
+		.id		= vreg,				\
+		.ops		= &pcap_regulator_ops,		\
+		.type		= REGULATOR_VOLTAGE,		\
+		.owner		= THIS_MODULE,			\
+	}
+
 static struct regulator_desc pcap_regulators[] = {
-	[V1]	= PCAP_REGULATOR(V1),
-	[V2]	= PCAP_REGULATOR(V2),
-	[V3]	= PCAP_REGULATOR(V3),
-	[V4]	= PCAP_REGULATOR(V4),
-	[V5]	= PCAP_REGULATOR(V5),
-	[V6]	= PCAP_REGULATOR(V6),
-	[V7]	= PCAP_REGULATOR(V7),
-	[V8]	= PCAP_REGULATOR(V8),
-	[V9]	= PCAP_REGULATOR(V9),
-	[V10]	= PCAP_REGULATOR(V10),
-	[VAUX1]	= PCAP_REGULATOR(VAUX1),
-	[VAUX2] = PCAP_REGULATOR(VAUX2),
-	[VAUX3]	= PCAP_REGULATOR(VAUX3),
-	[VAUX4]	= PCAP_REGULATOR(VAUX4),
-	[VSIM]	= PCAP_REGULATOR(VSIM),
-	[VSIM2]	= PCAP_REGULATOR(VSIM2),
-	[VVIB]	= PCAP_REGULATOR(VVIB),
-	[VC]	= PCAP_REGULATOR(VC),
-	[SW1]	= PCAP_REGULATOR(SW1),
-	[SW2]	= PCAP_REGULATOR(SW2),
+	VREG(V1), VREG(V2), VREG(V3), VREG(V4), VREG(V5), VREG(V6), VREG(V7),
+	VREG(V8), VREG(V9), VREG(V10), VREG(VAUX1), VREG(VAUX2), VREG(VAUX3),
+	VREG(VAUX4), VREG(VSIM), VREG(VVIB), VREG(VC), VREG(SW1), VREG(SW2),
 };
 
 static int __devinit pcap_regulator_probe(struct platform_device *pdev)
