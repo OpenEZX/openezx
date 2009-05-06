@@ -9,3 +9,5 @@ struct ezxbp_config {
 };
 
 int ezx_wake_bp(void);
+void ezx_reset_bp(void);
+int ezx_bp_is_on(void);
