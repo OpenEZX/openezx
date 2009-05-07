@@ -1193,7 +1193,7 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 		.max_speed_hz = 13000000,
 		.platform_data = &a910_mci_platform_data,
 		.controller_data = &a910_mmcspi_chip_info,
-		.mode = SPI_MODE_0 | SPI_CS_HIGH,
+		.mode = SPI_MODE_0,
 	},
 };
 
