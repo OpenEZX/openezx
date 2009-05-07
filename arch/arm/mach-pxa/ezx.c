@@ -165,10 +165,10 @@ static int ezx_pcap_mmcsd_voltage(unsigned int vdd)
 
 	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
 			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, V_VAL, 3);
+		return ezx_pcap_set_vreg(VAUX2, 1, 3);
 	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
 			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, V_VAL, val);
+		return ezx_pcap_set_vreg(VAUX3, 1, val);
 	else
 		return -ENODEV;
 }
@@ -177,10 +177,10 @@ static int ezx_pcap_mmcsd_power(int on)
 {
 	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
 			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, V_EN, on);
+		return ezx_pcap_set_vreg(VAUX2, 0, on);
 	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
 			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, V_EN, on);
+		return ezx_pcap_set_vreg(VAUX3, 0, on);
 	else
 		return -ENODEV;
 }
