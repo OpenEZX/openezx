@@ -1244,13 +1244,6 @@ static struct platform_device a910_gpio_keys = {
 };
 
 /* A910 SPI/MMC */
-static void a910_mmc_cs_control(u32 command)
-{
-	int on = (command & PXA2XX_CS_ASSERT);
-
-	gpio_set_value(GPIO20_A910_MMC_CS, !on);
-}
-
 static struct pxa2xx_spi_master a910_spi_masterinfo = {
 	.clock_enable = CKEN_SSP1,
 	.num_chipselect = 2,
@@ -1262,7 +1255,8 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 	.rx_threshold = 8,
 	.dma_burst_size = 8,
 	.timeout = 10000,
-	.cs_control = a910_mmc_cs_control,
+	.gpio_cs = GPIO20_A910_MMC_CS,
+	.gpio_cs_inverted = 1,
 };
 
 static struct mmc_spi_platform_data a910_mci_platform_data = {
@@ -1441,8 +1435,6 @@ static void __init a910_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
-	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
-	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
 	platform_device_add(spi_pd);
