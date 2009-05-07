@@ -682,6 +682,9 @@ static int pxamci_remove(struct platform_device *pdev)
 		if (host->pdata && host->pdata->exit)
 			host->pdata->exit(&pdev->dev, mmc);
 
+		if (host->vcc)
+			regulator_put(host->vcc);
+
 		mmc_remove_host(mmc);
 
 		pxamci_stop_clock(host);
