@@ -1411,7 +1411,6 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 	.dma_burst_size = 8,
 	.timeout = 10000,
 	.gpio_cs = GPIO20_A910_MMC_CS,
-	.gpio_cs_inverted = 1,
 };
 
 static struct mmc_spi_platform_data a910_mci_platform_data = {
@@ -1444,7 +1443,7 @@ static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 		.max_speed_hz = 13000000,
 		.platform_data = &a910_mci_platform_data,
 		.controller_data = &a910_mmcspi_chip_info,
-		.mode = SPI_MODE_0,
+		.mode = SPI_MODE_0 | SPI_CS_HIGH,
 	},
 };
 
