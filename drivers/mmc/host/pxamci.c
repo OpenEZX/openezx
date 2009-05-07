@@ -27,6 +27,7 @@
 #include <linux/err.h>
 #include <linux/mmc/host.h>
 #include <linux/io.h>
+#include <linux/regulator/consumer.h>
 
 #include <asm/sizes.h>
 
@@ -67,6 +68,8 @@ struct pxamci_host {
 	unsigned int		dma_dir;
 	unsigned int		dma_drcmrrx;
 	unsigned int		dma_drcmrtx;
+
+	struct regulator	*vcc;
 };
 
 static void pxamci_stop_clock(struct pxamci_host *host)
@@ -438,7 +441,11 @@ static void pxamci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (host->power_mode != ios->power_mode) {
 		host->power_mode = ios->power_mode;
 
-		if (host->pdata && host->pdata->setpower)
+#ifdef CONFIG_REGULATOR
+		if (host->vcc)
+			mmc_regulator_set_ocr(host->vcc, ios->vdd);
+#endif
+		if (!host->vcc && host->pdata && host->pdata->setpower)
 			host->pdata->setpower(mmc_dev(mmc), ios->vdd);
 
 		if (ios->power_mode == MMC_POWER_ON)
@@ -501,6 +508,9 @@ static int pxamci_probe(struct platform_device *pdev)
 	struct pxamci_host *host = NULL;
 	struct resource *r, *dmarx, *dmatx;
 	int ret, irq;
+#ifdef CONFIG_REGULATOR
+	struct regulator *reg;
+#endif
 
 	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	irq = platform_get_irq(pdev, 0);
@@ -561,8 +571,16 @@ static int pxamci_probe(struct platform_device *pdev)
 	mmc->f_min = (host->clkrate + 63) / 64;
 	mmc->f_max = (cpu_is_pxa300() || cpu_is_pxa310()) ? 26000000
 							  : host->clkrate;
+#ifdef CONFIG_REGULATOR
+	reg = regulator_get(&pdev->dev, "vmmc");
+	if (!IS_ERR(reg))
+		host->vcc = reg;
 
-	mmc->ocr_avail = host->pdata ?
+	if (host->vcc)
+		mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
+#endif
+	if (!host->vcc)
+		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
 			 MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->caps = 0;
