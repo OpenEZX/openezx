@@ -617,7 +617,6 @@ static int pxamci_probe(struct platform_device *pdev)
 		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
 			 MMC_VDD_32_33|MMC_VDD_33_34;
-
 	mmc->caps = 0;
 	host->cmdat = 0;
 	if (!cpu_is_pxa25x()) {
