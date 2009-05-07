@@ -72,6 +72,50 @@ struct pxamci_host {
 	struct regulator	*vcc;
 };
 
+#ifdef CONFIG_REGULATOR
+static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
+{
+	struct regulator *reg = regulator_get(dev, "vmmc");
+
+	if (IS_ERR(reg))
+		return PTR_ERR(reg);
+
+	host->vcc = reg;
+	return 0;
+}
+
+static void pxamci_regulator_put(struct pxamci_host *host)
+{
+	regulator_put(host->vcc);
+}
+
+static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
+{
+	return mmc_regulator_get_ocrmask(host->vcc);
+}
+
+static int pxamci_regulator_set_ocr(struct pxamci_host *host,
+							unsigned short vdd)
+{
+	return mmc_regulator_set_ocr(host->vcc, vdd);
+}
+#else
+static int pxamci_regulator_get(struct pxamci_host *host)
+{
+	return 0;
+}
+static void pxamci_regulator_put(struct pxamci_host *host) {}
+static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
+{
+	return 0;
+}
+static int pxamci_regulator_set_ocr(struct pxamci_host *host,
+							unsigned short vdd)
+{
+	return 0;
+}
+#endif
+
 static void pxamci_stop_clock(struct pxamci_host *host)
 {
 	if (readl(host->base + MMC_STAT) & STAT_CLK_EN) {
@@ -441,11 +485,9 @@ static void pxamci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (host->power_mode != ios->power_mode) {
 		host->power_mode = ios->power_mode;
 
-#ifdef CONFIG_REGULATOR
 		if (host->vcc)
-			mmc_regulator_set_ocr(host->vcc, ios->vdd);
-#endif
-		if (!host->vcc && host->pdata && host->pdata->setpower)
+			pxamci_regulator_set_ocr(host, ios->vdd);
+		else if (host->pdata && host->pdata->setpower)
 			host->pdata->setpower(mmc_dev(mmc), ios->vdd);
 
 		if (ios->power_mode == MMC_POWER_ON)
@@ -508,9 +550,6 @@ static int pxamci_probe(struct platform_device *pdev)
 	struct pxamci_host *host = NULL;
 	struct resource *r, *dmarx, *dmatx;
 	int ret, irq;
-#ifdef CONFIG_REGULATOR
-	struct regulator *reg;
-#endif
 
 	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	irq = platform_get_irq(pdev, 0);
@@ -571,18 +610,14 @@ static int pxamci_probe(struct platform_device *pdev)
 	mmc->f_min = (host->clkrate + 63) / 64;
 	mmc->f_max = (cpu_is_pxa300() || cpu_is_pxa310()) ? 26000000
 							  : host->clkrate;
-#ifdef CONFIG_REGULATOR
-	reg = regulator_get(&pdev->dev, "vmmc");
-	if (!IS_ERR(reg))
-		host->vcc = reg;
 
-	if (host->vcc)
-		mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
-#endif
-	if (!host->vcc)
+	if (pxamci_regulator_get(&pdev->dev, host) == 0)
+		mmc->ocr_avail = pxamci_regulator_get_ocrmask(host);
+	else
 		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
 			 MMC_VDD_32_33|MMC_VDD_33_34;
+
 	mmc->caps = 0;
 	host->cmdat = 0;
 	if (!cpu_is_pxa25x()) {
@@ -679,12 +714,11 @@ static int pxamci_remove(struct platform_device *pdev)
 	if (mmc) {
 		struct pxamci_host *host = mmc_priv(mmc);
 
+		pxamci_regulator_put(host);
+
 		if (host->pdata && host->pdata->exit)
 			host->pdata->exit(&pdev->dev, mmc);
-#ifdef CONFIG_REGULATOR
-		if (host->vcc)
-			regulator_put(host->vcc);
-#endif
+
 		mmc_remove_host(mmc);
 
 		pxamci_stop_clock(host);
