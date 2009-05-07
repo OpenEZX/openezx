@@ -84,11 +84,6 @@ static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
 	return 0;
 }
 
-static void pxamci_regulator_put(struct pxamci_host *host)
-{
-	regulator_put(host->vcc);
-}
-
 static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
 {
 	return mmc_regulator_get_ocrmask(host->vcc);
@@ -100,11 +95,10 @@ static int pxamci_regulator_set_ocr(struct pxamci_host *host,
 	return mmc_regulator_set_ocr(host->vcc, vdd);
 }
 #else
-static int pxamci_regulator_get(struct pxamci_host *host)
+static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
 {
-	return 0;
+	return -ENOTSUPP;
 }
-static void pxamci_regulator_put(struct pxamci_host *host) {}
 static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
 {
 	return 0;
@@ -714,7 +708,7 @@ static int pxamci_remove(struct platform_device *pdev)
 		struct pxamci_host *host = mmc_priv(mmc);
 
 		if (host->vcc)
-			pxamci_regulator_put(host);
+			regulator_put(host->vcc);
 
 		if (host->pdata && host->pdata->exit)
 			host->pdata->exit(&pdev->dev, mmc);
