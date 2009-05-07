@@ -113,7 +113,7 @@ static u8 vreg_table[][5] = {
 	[VSIM]	= {	17,	18,	0x1,	0xff,	6,	},
 	[VSIM2]	= {	16,	0xff,	0x0,	0xff,	7,	},
 	[VVIB]	= {	19,	20,	0x3,	0xff,	0xff,	},
-	[VC]	= {	0xff,	0xff,	0x0,	24,	0xff,	},
+//	[VC]	= {	0xff,	0xff,	0x0,	24,	0xff,	},
 };
 
 int ezx_pcap_set_vreg(u8 vreg, u8 what, u8 val)
@@ -132,8 +132,8 @@ int ezx_pcap_set_vreg(u8 vreg, u8 what, u8 val)
 	case V6 ... V10:
 		reg = PCAP_REG_VREG2;
 		break;
-	case VAUX1 ... VC:
-		if ((what == V_LOWPWR || what == V_STBY) && vreg != VAUX1)
+	case VAUX1 ... VVIB:
+		if ((what == 4 || what == 3) && vreg != VAUX1)
 			reg = PCAP_REG_LOWPWR;
 		else
 			reg = PCAP_REG_AUXVREG;
@@ -143,13 +143,13 @@ int ezx_pcap_set_vreg(u8 vreg, u8 what, u8 val)
 	}
 
 	switch (what) {
-	case V_VAL:
-		shift = vreg_table[vreg][V_VAL];
-		mask = vreg_table[vreg][V_MASK];
+	case 1:
+		shift = vreg_table[vreg][1];
+		mask = vreg_table[vreg][2];
 		break;
-	case V_EN:
-	case V_STBY:
-	case V_LOWPWR:
+	case 0:
+	case 3:
+	case 4:
 		shift = vreg_table[vreg][what];
 		mask = 0x1;
 		break;
