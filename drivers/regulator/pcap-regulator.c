@@ -248,10 +248,11 @@ static struct regulator_ops pcap_regulator_ops = {
 	.is_enabled	= pcap_regulator_is_enabled,
 };
 
-#define VREG(vreg)						\
-	[vreg]	= {						\
-		.name		= "vreg",			\
-		.id		= vreg,				\
+#define VREG(_vreg)						\
+	[_vreg]	= {						\
+		.name		= #_vreg,			\
+		.id		= _vreg,			\
+		.n_voltages	= ARRAY_SIZE(_vreg##_table),	\
 		.ops		= &pcap_regulator_ops,		\
 		.type		= REGULATOR_VOLTAGE,		\
 		.owner		= THIS_MODULE,			\
@@ -286,7 +287,7 @@ static int __devexit pcap_regulator_remove(struct platform_device *pdev)
 
 static struct platform_driver pcap_regulator_driver = {
 	.driver = {
-		.name = "pcap_regulator",
+		.name = "pcap-regulator",
 	},
 	.probe = pcap_regulator_probe,
 	.remove = __devexit_p(pcap_regulator_remove),
