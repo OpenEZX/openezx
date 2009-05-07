@@ -714,7 +714,8 @@ static int pxamci_remove(struct platform_device *pdev)
 	if (mmc) {
 		struct pxamci_host *host = mmc_priv(mmc);
 
-		pxamci_regulator_put(host);
+		if (host->vcc)
+			pxamci_regulator_put(host);
 
 		if (host->pdata && host->pdata->exit)
 			host->pdata->exit(&pdev->dev, mmc);
