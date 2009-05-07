@@ -51,7 +51,6 @@
 #define GPIO15_E6_LOCK_SWITCH 		15
 #define GPIO1_PCAP_IRQ			1
 #define GPIO24_PCAP_CS			24
-#define GPIO28_PCAP_CS			28
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -688,20 +687,12 @@ static struct pcap_platform_data ezx_pcap_platform_data = {
 	.init   = ezx_pcap_init,
 };
 
-static void pcap_cs_control(u32 command)
-{
-	int i = machine_is_ezx_a780() || machine_is_ezx_e680();
-	int on = (command & PXA2XX_CS_ASSERT);
-
-	gpio_set_value(GPIO24_PCAP_CS, on ^ i);
-}
-
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
 	.tx_threshold   = 1,
 	.rx_threshold   = 1,
 	.dma_burst_size = 0,
 	.timeout        = 100,
-	.cs_control     = pcap_cs_control,
+	.gpio_cs	= GPIO24_PCAP_CS,
 };
 
 static struct pxa2xx_spi_master ezx_spi_masterinfo = {
@@ -880,9 +871,8 @@ static void __init a780_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
+	ezx_pcap_chip_info.gpio_cs_inverted = 1;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -955,9 +945,8 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
+	ezx_pcap_chip_info.gpio_cs_inverted = 1;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -1024,8 +1013,6 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -1200,8 +1187,6 @@ static void __init a910_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -1270,8 +1255,6 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -1313,8 +1296,6 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
