@@ -160,6 +160,9 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 	u8 i;
 	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 
+	if (vreg->n_voltages == 1)
+		return -EINVAL;
+
 	for (i = 0; i < vreg->n_voltages; i++) {
 		int uV = vreg->voltage_table[i] * 1000;
 		if (min_uV <= uV && uV <= max_uV) {
