@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.30-rc2
-# Sun Apr 19 09:40:49 2009
+# Linux kernel version: 2.6.30-rc4
+# Fri May  8 12:02:34 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1458,7 +1458,12 @@ CONFIG_RTC_DRV_PXA=y
 CONFIG_RTC_DRV_PCAP=y
 # CONFIG_DMADEVICES is not set
 # CONFIG_AUXDISPLAY is not set
-# CONFIG_REGULATOR is not set
+CONFIG_REGULATOR=y
+# CONFIG_REGULATOR_DEBUG is not set
+# CONFIG_REGULATOR_FIXED_VOLTAGE is not set
+CONFIG_REGULATOR_VIRTUAL_CONSUMER=y
+# CONFIG_REGULATOR_BQ24022 is not set
+CONFIG_REGULATOR_PCAP=y
 # CONFIG_UIO is not set
 # CONFIG_STAGING is not set
 
