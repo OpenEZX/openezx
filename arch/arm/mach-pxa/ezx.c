@@ -63,7 +63,6 @@
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
-#define GPIO28_PCAP_CS			28
 #define GPIO46_E680_LED_RED		46
 #define GPIO47_E680_LED_GREEN		47
 
@@ -167,10 +166,10 @@ static int ezx_pcap_mmcsd_voltage(unsigned int vdd)
 
 	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
 			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, V_VAL, 3);
+		return ezx_pcap_set_vreg(VAUX2, 1, 3);
 	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
 			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, V_VAL, val);
+		return ezx_pcap_set_vreg(VAUX3, 1, val);
 	else
 		return -ENODEV;
 }
@@ -179,10 +178,10 @@ static int ezx_pcap_mmcsd_power(int on)
 {
 	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
 			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, V_EN, on);
+		return ezx_pcap_set_vreg(VAUX2, 0, on);
 	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
 			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, V_EN, on);
+		return ezx_pcap_set_vreg(VAUX3, 0, on);
 	else
 		return -ENODEV;
 }
@@ -210,7 +209,7 @@ static struct pxamci_platform_data ezx_mci_platform_data = {
 	.init           = ezx_mci_init,
 	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
-	.detect_delay   = 150 / (1000 / HZ),
+	.detect_delay   = 250 / (1000 / HZ),
 };
 
 static struct platform_device *devices[] __initdata = {
@@ -794,10 +793,10 @@ static void ezx_pcap_init(void)
 {
 	/* set SW1 sleep to keep SW1 1.3v in sync mode */
 	/* SW1 active in sync mode */
-	ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
+/*	ezx_pcap_set_sw(SW1, SW_MODE, 0x1); */
 
 	/* set core voltage */
-	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
+/*	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250); */
 
 	/* FIXME: EMU driver */
 	ezx_pcap_write(PCAP_REG_BUSCTRL,
@@ -814,20 +813,12 @@ static struct pcap_platform_data ezx_pcap_platform_data = {
 	.init   = ezx_pcap_init,
 };
 
-static void pcap_cs_control(u32 command)
-{
-	int i = machine_is_ezx_a780() || machine_is_ezx_e680();
-	int on = (command & PXA2XX_CS_ASSERT);
-
-	gpio_set_value(GPIO24_PCAP_CS, on ^ i);
-}
-
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
 	.tx_threshold   = 1,
 	.rx_threshold   = 1,
 	.dma_burst_size = 0,
 	.timeout        = 100,
-	.cs_control     = pcap_cs_control,
+	.gpio_cs	= GPIO24_PCAP_CS,
 };
 
 static struct pxa2xx_spi_master ezx_spi_masterinfo = {
@@ -1140,8 +1131,6 @@ static void __init a780_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
@@ -1266,8 +1255,6 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 1);
 	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
@@ -1379,10 +1366,9 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1447,13 +1433,6 @@ static struct platform_device a910_gpio_keys = {
 };
 
 /* A910 SPI/MMC */
-static void a910_mmc_cs_control(u32 command)
-{
-	int on = (command & PXA2XX_CS_ASSERT);
-
-	gpio_set_value(GPIO20_A910_MMC_CS, !on);
-}
-
 static struct pxa2xx_spi_master a910_spi_masterinfo = {
 	.clock_enable = CKEN_SSP1,
 	.num_chipselect = 2,
@@ -1465,7 +1444,7 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 	.rx_threshold = 8,
 	.dma_burst_size = 8,
 	.timeout = 10000,
-	.cs_control = a910_mmc_cs_control,
+	.gpio_cs = GPIO20_A910_MMC_CS,
 };
 
 static struct mmc_spi_platform_data a910_mci_platform_data = {
@@ -1650,12 +1629,9 @@ static void __init a910_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
-	gpio_request(GPIO20_A910_MMC_CS, "MMC CS");
-	gpio_direction_output(GPIO20_A910_MMC_CS, 1);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
+	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
@@ -1759,10 +1735,9 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1840,10 +1815,9 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
-	gpio_request(GPIO24_PCAP_CS, "PCAP CS");
-	gpio_direction_output(GPIO24_PCAP_CS, 0);
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 

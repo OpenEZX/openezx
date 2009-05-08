@@ -27,6 +27,7 @@
 #include <linux/err.h>
 #include <linux/mmc/host.h>
 #include <linux/io.h>
+#include <linux/regulator/consumer.h>
 
 #include <asm/sizes.h>
 
@@ -67,7 +68,47 @@ struct pxamci_host {
 	unsigned int		dma_dir;
 	unsigned int		dma_drcmrrx;
 	unsigned int		dma_drcmrtx;
+
+	struct regulator	*vcc;
 };
+
+#ifdef CONFIG_REGULATOR
+static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
+{
+	struct regulator *reg = regulator_get(dev, "vmmc");
+
+	if (IS_ERR(reg))
+		return PTR_ERR(reg);
+
+	host->vcc = reg;
+	return 0;
+}
+
+static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
+{
+	return mmc_regulator_get_ocrmask(host->vcc);
+}
+
+static int pxamci_regulator_set_ocr(struct pxamci_host *host,
+							unsigned short vdd)
+{
+	return mmc_regulator_set_ocr(host->vcc, vdd);
+}
+#else
+static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
+{
+	return -ENOTSUPP;
+}
+static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
+{
+	return 0;
+}
+static int pxamci_regulator_set_ocr(struct pxamci_host *host,
+							unsigned short vdd)
+{
+	return 0;
+}
+#endif
 
 static void pxamci_stop_clock(struct pxamci_host *host)
 {
@@ -438,7 +479,9 @@ static void pxamci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (host->power_mode != ios->power_mode) {
 		host->power_mode = ios->power_mode;
 
-		if (host->pdata && host->pdata->setpower)
+		if (host->vcc)
+			pxamci_regulator_set_ocr(host, ios->vdd);
+		else if (host->pdata && host->pdata->setpower)
 			host->pdata->setpower(mmc_dev(mmc), ios->vdd);
 
 		if (ios->power_mode == MMC_POWER_ON)
@@ -562,7 +605,10 @@ static int pxamci_probe(struct platform_device *pdev)
 	mmc->f_max = (cpu_is_pxa300() || cpu_is_pxa310()) ? 26000000
 							  : host->clkrate;
 
-	mmc->ocr_avail = host->pdata ?
+	if (pxamci_regulator_get(&pdev->dev, host) == 0)
+		mmc->ocr_avail = pxamci_regulator_get_ocrmask(host);
+	else
+		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
 			 MMC_VDD_32_33|MMC_VDD_33_34;
 	mmc->caps = 0;
@@ -660,6 +706,9 @@ static int pxamci_remove(struct platform_device *pdev)
 
 	if (mmc) {
 		struct pxamci_host *host = mmc_priv(mmc);
+
+		if (host->vcc)
+			regulator_put(host->vcc);
 
 		if (host->pdata && host->pdata->exit)
 			host->pdata->exit(&pdev->dev, mmc);
