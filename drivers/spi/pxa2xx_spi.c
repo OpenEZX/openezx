@@ -1186,7 +1186,7 @@ static int transfer(struct spi_device *spi, struct spi_message *msg)
 }
 
 /* the spi->mode bits understood by this driver: */
-#define MODEBITS (SPI_CPOL | SPI_CPHA)
+#define MODEBITS (SPI_CPOL | SPI_CPHA | SPI_CS_HIGH)
 
 static int setup_cs(struct spi_device *spi, struct chip_data *chip,
 		    struct pxa2xx_spi_chip *chip_info)
@@ -1372,6 +1372,9 @@ static int setup(struct spi_device *spi)
 static void cleanup(struct spi_device *spi)
 {
 	struct chip_data *chip = spi_get_ctldata(spi);
+
+	if (!chip)
+		return;
 
 	if (gpio_is_valid(chip->gpio_cs))
 		gpio_free(chip->gpio_cs);
