@@ -164,6 +164,7 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 		int uV = vreg->voltage_table[i] * 1000;
 		if (min_uV <= uV && uV <= max_uV) {
 			ezx_pcap_read(vreg->reg, &tmp);
+			tmp &= ~((vreg->n_voltages - 1) << vreg->index);
 			tmp |= i << vreg->index;
 			ezx_pcap_write(vreg->reg, tmp);
 			return 0;
