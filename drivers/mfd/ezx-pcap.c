@@ -124,7 +124,7 @@ static void pcap_work(struct work_struct *_pcap)
 	ezx_pcap_write(PCAP_REG_ISR, isr);
 }
 
-static irqreturn_t pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
+static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 {
 	printk("%s\n", __func__);
 	desc->chip->ack(irq);
@@ -165,6 +165,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	pcap.spi = spi;
 
 	INIT_WORK(&pcap.work, pcap_work);
+	INIT_WORK(&pcap.msr_work, pcap_msr_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
 	if (!pcap.workqueue) {
 		dev_err(&spi->dev, "cant create pcap thread\n");
@@ -179,17 +180,23 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	if (pdata->init)
 		pdata->init();
 
+	/* setup irq chip */
+	for (irq = PCAP_IRQ(0); irq <= PCAP_LAST_IRQ; irq++) {
+		set_irq_chip_and_handler(irq, &pcap_irq_chip,
+							handle_simple_irq);
+#ifdef CONFIG_ARM
+		set_irq_flags(irq, IRQF_VALID);
+#else
+		set_irq_noprobe(irq);
+	}
+
 	/* mask/ack all PCAP interrupts */
 	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
 	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
+	pcap.msr = PCAP_MASK_ALL_INTERRUPT;
 
-	/* register irq for pcap */
-	ret = request_irq(pdata->irq, pcap_irq_handler, IRQF_TRIGGER_RISING,
-		"PCAP", NULL);
-	if (ret) {
-		dev_err(&spi->dev, "cant request IRQ\n");
-		goto wq_destroy;
-	}
+	set_irq_type(pdata->irq, IRQ_TYPE_EDGE_RISING);
+	set_irq_chained_handler(pdata->irq, pcap_irq_handler);
 	set_irq_wake(pdata->irq, 1);
 
 	return 0;
