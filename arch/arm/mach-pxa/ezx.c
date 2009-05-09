@@ -135,55 +135,14 @@ static int ezx_mci_init(struct device *dev,
 	return err;
 }
 
-static int ezx_pcap_mmcsd_voltage(unsigned int vdd)
-{
-	/* 7 is the active bit in MMC_VDD_165_195 */
-	int val = (vdd == 7) ? 6 : (vdd + 1) / 2 + 3;
-
-	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
-			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, 1, 3);
-	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
-			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, 1, val);
-	else
-		return -ENODEV;
-}
-
-static int ezx_pcap_mmcsd_power(int on)
-{
-	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
-			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, 0, on);
-	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
-			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, 0, on);
-	else
-		return -ENODEV;
-}
-
-static void ezx_mci_setpower(struct device *dev, unsigned int vdd)
-{
-	ezx_pcap_mmcsd_voltage(vdd);
-	ezx_pcap_mmcsd_power(1);
-}
-
 static void ezx_mci_exit(struct device *dev, void *data)
 {
-	ezx_pcap_mmcsd_power(0);
 	if (!machine_is_ezx_a1200())
 		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
 }
 
 static struct pxamci_platform_data ezx_mci_platform_data = {
-	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
-				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
-				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
-				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
-				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
-				|MMC_VDD_34_35|MMC_VDD_35_36,
 	.init           = ezx_mci_init,
-	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
 	.detect_delay   = 250 / (1000 / HZ),
 };
@@ -1340,14 +1299,7 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 };
 
 static struct mmc_spi_platform_data a910_mci_platform_data = {
-	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
-				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
-				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
-				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
-				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
-				|MMC_VDD_34_35|MMC_VDD_35_36,
 	.init           = ezx_mci_init,
-	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
 	.detect_delay   = 150 / (1000 / HZ),
 };
