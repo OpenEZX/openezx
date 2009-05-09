@@ -171,7 +171,6 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
-	ezx_pcap_setup_sysfs(0);
 	destroy_workqueue(pcap.workqueue);
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
@@ -215,12 +214,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	/* set board-specific settings */
 	if (pdata->init)
 		pdata->init();
-
-	ret = ezx_pcap_setup_sysfs(1);
-	if (ret) {
-		dev_err(&spi->dev, "cant create sysfs files\n");
-		goto wq_destroy;
-	}
 
 	/* mask/ack all PCAP interrupts */
 	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
