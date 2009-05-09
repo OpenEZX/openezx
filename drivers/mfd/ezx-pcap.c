@@ -20,7 +20,9 @@
 
 struct pcap_chip {
 	struct spi_device *spi;
+	u32 msr;
 	struct work_struct work;
+	struct work_struct msr_work;
 	struct workqueue_struct *workqueue;
 };
 static struct pcap_chip pcap;
@@ -75,97 +77,63 @@ int ezx_pcap_read(u8 reg_num, u32 *value)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_read);
 
-/* event handling */
-static irqreturn_t pcap_irq_handler(int irq, void *dev_id)
+/* IRQ */
+static inline unsigned int irq2pcap(int irq)
 {
-	queue_work(pcap.workqueue, &pcap.work);
-	return IRQ_HANDLED;
+	return 1 << (irq - PCAP_IRQ(0));
+}
+
+static void pcap_mask_irq(unsigned int irq)
+{
+	pcap.msr |= irq2pcap(irq);
+	printk("%s: %d\n", __func__, pcap.msr);
+	queue_work(pcap.workqueue, &pcap.msr_work);
+}
+
+static void pcap_unmask_irq(unigned int irq)
+{
+	pcap.msr &= ~irq2pcap(irq);
+	printk("%s: %d\n", __func__, pcap.msr);
+	queue_work(pcap.workqueue, &pcap.msr_work);
+}
+
+static struct irq_chip pcap_irq_chip = {
+	.name	= "pcap",
+	.mask	= pcap_mask_irq,
+	.unmask	= pcap_unmask_irq,
+};
+
+static void pcap_msr_work(struct work_struct *msr_work)
+{
+	ezx_pcap_write(PCAP_REG_MSR, pcap.msr);
 }
 
 static void pcap_work(struct work_struct *_pcap)
 {
-	u32 msr;
-	u32 isr;
-	u32 service;
-	struct pcap_event *cb;
+	u32 msr, isr, service;
+	int irq;
 
-	mutex_lock(&event_lock);
 	ezx_pcap_read(PCAP_REG_MSR, &msr);
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
-	isr &= ~msr;
+	service = isr & ~msr;
 
-	list_for_each_entry(cb, &event_list, node) {
-		service = isr & cb->events;
-		if (service) {
-			ezx_pcap_write(PCAP_REG_ISR, service);
-			cb->callback(service, cb->data);
-		}
+	printk ("%s: i%08x m%08x s%08x\n", __func__, isr, msr, service);
+	while (service) {
+		irq = fls(service) - 1 + PCAP_IRQ(0);
+		printk("%s: found irq %d\n", __func__, irq);
+		service &= ~irq2pcap(irq);
+		generic_handle_irq(irq);
 	}
-	mutex_unlock(&event_lock);
+	ezx_pcap_write(PCAP_REG_ISR, isr);
 }
 
-void ezx_pcap_mask_event(u32 events)
+static irqreturn_t pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 {
-	u32 msr;
-
-	ezx_pcap_read(PCAP_REG_MSR, &msr);
-	msr |= events;
-	ezx_pcap_write(PCAP_REG_MSR, msr);
+	printk("%s\n", __func__);
+	desc->chip->ack(irq);
+	queue_work(pcap.workqueue, &pcap.work);
+	return IRQ_HANDLED;
 }
-EXPORT_SYMBOL_GPL(ezx_pcap_mask_event);
-
-void ezx_pcap_unmask_event(u32 events)
-{
-	u32 msr;
-
-	ezx_pcap_read(PCAP_REG_MSR, &msr);
-	msr &= ~events;
-	ezx_pcap_write(PCAP_REG_MSR, msr);
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_unmask_event);
-
-int ezx_pcap_register_event(u32 events, void *callback, void *data, char *label)
-{
-	struct pcap_event *cb;
-
-	cb = kzalloc(sizeof(struct pcap_event), GFP_KERNEL);
-	if (!cb)
-		return -ENOMEM;
-
-	cb->label = label;
-	cb->events = events;
-	cb->callback = callback;
-	cb->data = data;
-
-	mutex_lock(&event_lock);
-	list_add_tail(&cb->node, &event_list);
-	mutex_unlock(&event_lock);
-
-	ezx_pcap_unmask_event(events);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_register_event);
-
-int ezx_pcap_unregister_event(u32 events)
-{
-	int ret = -EINVAL;
-	struct pcap_event *cb;
-	struct pcap_event *store;
-
-	ezx_pcap_mask_event(events);
-
-	mutex_lock(&event_lock);
-	list_for_each_entry_safe(cb, store, &event_list, node) {
-		if (cb->events & events) {
-			list_del(&cb->node);
-			kfree(cb);
-			ret = 0;
-		}
-	}
-	mutex_unlock(&event_lock);
-	return ret;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
