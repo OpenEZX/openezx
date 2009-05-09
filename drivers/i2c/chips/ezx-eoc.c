@@ -22,25 +22,26 @@
 
 #define EOC_REG_ADDR_SIZE		1
 #define EOC_REG_DATA_SIZE		3
-#define EOC_REG_INT_STATUS		32
-#define EOC_REG_INT_MASK		33
-#define EOC_REG_INT_SENSE		34
+
+#define EOC_REG_ISR			32
+#define EOC_REG_MSR			33
+#define EOC_REG_SENSE			34
 #define EOC_REG_POWER_CONTROL_0		35
 #define EOC_REG_POWER_CONTROL_1		36
 #define EOC_REG_CONN_CONTROL		37
 
-#define EOC_INT_VBUS_3V4		(1 << 0)
-#define EOC_INT_VBUS			(1 << 1)
-#define EOC_INT_VBUS_OV			(1 << 2)
-#define EOC_INT_RVRS_CHRG		(1 << 3)
-#define EOC_INT_ID			(1 << 4)
-#define EOC_INT_ID_GROUND		(1 << 5)
-#define EOC_INT_SE1			(1 << 6)
-#define EOC_INT_CC_CV			(1 << 7)
-#define EOC_INT_CHRG_CURR		(1 << 8)
-#define EOC_INT_RVRS_CURR		(1 << 9)
-#define EOC_INT_CK			(1 << 10)
-#define EOC_INT_BATTPON			(1 << 11)
+#define EOC_IRQ_VBUS_3V4		(1 << 0)
+#define EOC_IRQ_VBUS			(1 << 1)
+#define EOC_IRQ_VBUS_OV			(1 << 2)
+#define EOC_IRQ_RVRS_CHRG		(1 << 3)
+#define EOC_IRQ_ID			(1 << 4)
+#define EOC_IRQ_ID_GROUND		(1 << 5)
+#define EOC_IRQ_SE1			(1 << 6)
+#define EOC_IRQ_CC_CV			(1 << 7)
+#define EOC_IRQ_CHRG_CURR		(1 << 8)
+#define EOC_IRQ_RVRS_CURR		(1 << 9)
+#define EOC_IRQ_CK			(1 << 10)
+#define EOC_IRQ_BATTPON			(1 << 11)
 
 /* 21044  2, 6(70K_PD), 12(XCVR), 17(MODE(3)) */
 #define EOC_CONN_USB_SUSPEND		(1 << 1)
@@ -132,55 +133,55 @@ EXPORT_SYMBOL_GPL(eoc_reg_write_mask);
 static void eoc_work(struct work_struct *_eoc)
 {
 	unsigned int isr, msr, i, x;
-	eoc_reg_read(EOC_REG_INT_STATUS, &isr);
-	eoc_reg_read(EOC_REG_INT_MASK, &msr);
+	eoc_reg_read(EOC_REG_ISR, &isr);
+	eoc_reg_read(EOC_REG_MSR, &msr);
 	printk(KERN_INFO "EOC INTS: ");
 	for (i = (isr & ~msr), x = 0; i; x++) {
 		if (!(i & (1 << x)))
 			continue;
 		i &= ~(1 << x);
 		switch (1 << x) {
-		case EOC_INT_VBUS_3V4:
+		case EOC_IRQ_VBUS_3V4:
 			printk("VBUS_3V4 ");
 			break;
-		case EOC_INT_VBUS:
+		case EOC_IRQ_VBUS:
 			printk("VBUS ");
 			break;
-		case EOC_INT_VBUS_OV:
+		case EOC_IRQ_VBUS_OV:
 			printk("VBUS_OV ");
 			break;
-		case EOC_INT_RVRS_CHRG:
+		case EOC_IRQ_RVRS_CHRG:
 			printk("RVRS_CHRG ");
 			break;
-		case EOC_INT_ID:
+		case EOC_IRQ_ID:
 			printk("ID ");
 			break;
-		case EOC_INT_ID_GROUND:
+		case EOC_IRQ_ID_GROUND:
 			printk("ID_GROUND ");
 			break;
-		case EOC_INT_SE1:
+		case EOC_IRQ_SE1:
 			printk("SE1 ");
 			break;
-		case EOC_INT_CC_CV:
+		case EOC_IRQ_CC_CV:
 			printk("CC_CV ");
 			break;
-		case EOC_INT_CHRG_CURR:
+		case EOC_IRQ_CHRG_CURR:
 			printk("CHRG_CURR ");
 			break;
-		case EOC_INT_RVRS_CURR:
+		case EOC_IRQ_RVRS_CURR:
 			printk("RVRS_CURR ");
 			break;
-		case EOC_INT_CK:
+		case EOC_IRQ_CK:
 			printk("CK ");
 			break;
-		case EOC_INT_BATTPON:
+		case EOC_IRQ_BATTPON:
 			printk("BATTPON ");
 			break;
 		}
 	}
 
 	printk("\n");
-	eoc_reg_write(EOC_REG_INT_STATUS, isr);
+	eoc_reg_write(EOC_REG_ISR, isr);
 }
 
 static irqreturn_t eoc_irq(int irq, void *arg)
@@ -280,7 +281,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	eoc_i2c_client = client;
 	INIT_WORK(&work, eoc_work);
 
-	ret = eoc_reg_write(EOC_REG_INT_MASK, 0x0); //fef);
+	ret = eoc_reg_write(EOC_REG_ISR, 0x0); //fef);
 	if (ret)
 		goto ret;
 	eoc_reg_write(EOC_REG_POWER_CONTROL_0, 0xc00);
@@ -292,7 +293,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	eoc_reg_write(EOC_REG_CONN_CONTROL, 0x21044);
 	if (ret)
 		goto ret;
-	for (x = EOC_REG_INT_MASK; x <= EOC_REG_CONN_CONTROL; x++) {
+	for (x = EOC_REG_MSR; x <= EOC_REG_CONN_CONTROL; x++) {
 		ret = eoc_reg_read(x, &tmp);
 		if (ret)
 			goto ret;
@@ -303,7 +304,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	gpio_direction_input(10);
 	ret = request_irq(gpio_to_irq(10), eoc_irq, IRQF_TRIGGER_RISING,
 								"EOC", NULL);
-	eoc_reg_write(EOC_REG_INT_STATUS, 0xffffff);
+	eoc_reg_write(EOC_REG_ISR, 0xffffff);
 
 	platform_device_register(&eoc_regulator_device);
 
