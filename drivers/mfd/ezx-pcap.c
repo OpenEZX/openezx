@@ -17,22 +17,16 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
-#include <linux/rfkill.h>
 
 struct pcap_chip {
 	struct spi_device *spi;
-	struct rfkill *rf_kill;
-	char rf_kill_name[60];
 	struct work_struct work;
 	struct workqueue_struct *workqueue;
-	void (*adc_done)(void *);
-	void *adc_data;
 };
 static struct pcap_chip pcap;
 
 static LIST_HEAD(event_list);
 static DEFINE_MUTEX(event_lock);
-static DEFINE_MUTEX(adc_lock);
 
 /* IO */
 #define PCAP_BUFSIZE	4
@@ -80,210 +74,6 @@ int ezx_pcap_read(u8 reg_num, u32 *value)
 	return ezx_pcap_putget(value);
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_read);
-
-/* Voltage regulators */
-int ezx_pcap_set_sw(u8 sw, u8 what, u8 val)
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_LOWPWR, &tmp);
-	tmp &= ~(0xf << (sw + what));
-	tmp |= ((val & 0xf) << (sw + what));
-	return ezx_pcap_write(PCAP_REG_LOWPWR, tmp);
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_set_sw);
-
-static u8 vreg_table[][5] = {
-	/*		EN	INDEX	MASK	STBY	LOWPWR	*/
-	[V1]	= {	1,	2,	0x7,	18,	0,	},
-	[V2]	= {	5,	6,	0x1,	19,	22,	},
-	[V3]	= {	7,	8,	0x7,	20,	23,	},
-	[V4]	= {	11,	12,	0x7,	21,	24,	},
-	[V5]	= {	15,	16,	0x3,	0xff,	0xff,	},
-	[V6]	= {	1,	0xff,	0x0,	0xff,	0xff,	},
-	/* FIXME: I have no idea of V7-V10 bits -WM */
-	[V7]	= {	0xff,	0xff,	0x0,	0xff,	0xff,	},
-	[V8]	= {	0xff,	0xff,	0x0,	0xff,	0xff,	},
-	[V9]	= {	0xff,	0xff,	0x0,	0xff,	0xff,	},
-	[V10]	= {	0xff,	0xff,	0x0,	0xff,	0xff,	},
-	[VAUX1]	= {	1,	2,	0x3,	22,	23,	},
-	[VAUX2]	= {	4,	5,	0x3,	0,	1,	},
-	[VAUX3]	= {	7,	8,	0xf,	2,	3,	},
-	[VAUX4]	= {	12,	13,	0x3,	4,	5,	},
-	[VSIM]	= {	17,	18,	0x1,	0xff,	6,	},
-	[VSIM2]	= {	16,	0xff,	0x0,	0xff,	7,	},
-	[VVIB]	= {	19,	20,	0x3,	0xff,	0xff,	},
-//	[VC]	= {	0xff,	0xff,	0x0,	24,	0xff,	},
-};
-
-int ezx_pcap_set_vreg(u8 vreg, u8 what, u8 val)
-{
-	struct pcap_platform_data *pdata = pcap.spi->dev.platform_data;
-	u8 reg, shift, mask;
-	u32 tmp;
-
-	switch (vreg) {
-	case V1 ... V5:
-		/* vreg1 is not accessible on port 2 */
-		if (pdata->config & PCAP_SECOND_PORT)
-			return -EINVAL;
-		reg = PCAP_REG_VREG1;
-		break;
-	case V6 ... V10:
-		reg = PCAP_REG_VREG2;
-		break;
-	case VAUX1 ... VVIB:
-		if ((what == 4 || what == 3) && vreg != VAUX1)
-			reg = PCAP_REG_LOWPWR;
-		else
-			reg = PCAP_REG_AUXVREG;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	switch (what) {
-	case 1:
-		shift = vreg_table[vreg][1];
-		mask = vreg_table[vreg][2];
-		break;
-	case 0:
-	case 3:
-	case 4:
-		shift = vreg_table[vreg][what];
-		mask = 0x1;
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	/* invalid setting */
-	if (shift == 0xff || val > mask)
-		return -EINVAL;
-
-	ezx_pcap_read(reg, &tmp);
-	tmp &= ~(mask << shift);
-	tmp |= ((val & mask) << shift);
-	ezx_pcap_write(reg, tmp);
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_set_vreg);
-
-/* ADC */
-void ezx_pcap_disable_adc(void)
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
-	tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	mutex_unlock(&adc_lock);
-}
-
-static void ezx_pcap_adc_event(u32 flags, void *data)
-{
-	void (*adc_done)(void *);
-	void *adc_data;
-
-	if (!pcap.adc_done)
-		return;
-
-	adc_done = pcap.adc_done;
-	adc_data = pcap.adc_data;
-	pcap.adc_done = pcap.adc_data = NULL;
-
-	/* let caller get the results */
-	adc_done(adc_data);
-}
-
-void ezx_pcap_start_adc(u8 bank, u8 time, u32 flags,
-						void *adc_done, void *adc_data)
-{
-	u32 adc;
-	u32 adr;
-
-	mutex_lock(&adc_lock);
-
-	adc = flags | PCAP_ADC_ADEN;
-
-	if (bank == PCAP_ADC_BANK_1)
-		adc |= PCAP_ADC_AD_SEL1;
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	pcap.adc_done = adc_done;
-	pcap.adc_data = adc_data;
-
-	if (time == PCAP_ADC_T_NOW) {
-		ezx_pcap_read(PCAP_REG_ADR, &adr);
-		adr = PCAP_ADR_ASC;
-		ezx_pcap_write(PCAP_REG_ADR, adr);
-		return;
-	}
-
-	if (time == PCAP_ADC_T_IN_BURST)
-		adc |= (PCAP_ADC_ATO_IN_BURST << PCAP_ADC_ATO_SHIFT);
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	ezx_pcap_read(PCAP_REG_ADR, &adr);
-	adr &= ~PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-	adr |= PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_start_adc);
-
-void ezx_pcap_get_adc_channel_result(u8 ch1, u8 ch2, u32 res[])
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADA1_MASK | PCAP_ADC_ADA2_MASK);
-	tmp |= (ch1 << PCAP_ADC_ADA1_SHIFT) | (ch2 << PCAP_ADC_ADA2_SHIFT);
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	ezx_pcap_read(PCAP_REG_ADR, &tmp);
-	res[0] = (tmp & PCAP_ADR_ADD1_MASK) >> PCAP_ADR_ADD1_SHIFT;
-	res[1] = (tmp & PCAP_ADR_ADD2_MASK) >> PCAP_ADR_ADD2_SHIFT;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_get_adc_channel_result);
-
-void ezx_pcap_get_adc_bank_result(u32 res[])
-{
-	int x;
-	u32 tmp[2];
-
-	for (x = 0; x < 7; x += 2) {
-		ezx_pcap_get_adc_channel_result(x, (x+1) % 6, tmp);
-		res[x] = tmp[0];
-		if ((x + 1) < 7)
-			res[x+1] = tmp[1];
-		else
-			res[x+1] = 0;
-	}
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_get_adc_bank_result);
-
-static void adc_complete(void *data)
-{
-	complete(data);
-}
-
-void ezx_pcap_do_general_adc(u8 bank, u8 ch, u32 *res)
-{
-	u32 tmp[2];
-	DECLARE_COMPLETION_ONSTACK(done);
-
-	ezx_pcap_start_adc(bank, PCAP_ADC_T_NOW, 0, adc_complete, &done);
-	wait_for_completion(&done);
-	ezx_pcap_get_adc_channel_result(ch, 0, tmp);
-	ezx_pcap_disable_adc();
-
-	*res = tmp[0];
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_do_general_adc);
 
 /* event handling */
 static irqreturn_t pcap_irq_handler(int irq, void *dev_id)
@@ -377,158 +167,6 @@ int ezx_pcap_unregister_event(u32 events)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
-/* sysfs interface */
-static ssize_t pcap_show_adc_coin(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_COIN, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_battery(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_BATT, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_bplus(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_BPLUS, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_mobportb(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_MOBPORTB, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_temperature(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_TEMPERATURE, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_chargerid(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_CHARGER_ID, &res);
-	return sprintf(buf, "%d\n", res);
-}
-
-static DEVICE_ATTR(adc_coin, 0400, pcap_show_adc_coin, NULL);
-static DEVICE_ATTR(adc_battery, 0400, pcap_show_adc_battery, NULL);
-static DEVICE_ATTR(adc_bplus, 0400, pcap_show_adc_bplus, NULL);
-static DEVICE_ATTR(adc_mobportb, 0400, pcap_show_adc_mobportb, NULL);
-static DEVICE_ATTR(adc_temperature, 0400, pcap_show_adc_temperature, NULL);
-static DEVICE_ATTR(adc_chargerid, 0400, pcap_show_adc_chargerid, NULL);
-
-static int ezx_pcap_setup_sysfs(int create)
-{
-	int ret = 0;
-
-	if (!create)
-		goto remove_all;
-
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_coin);
-	if (ret)
-		goto ret;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battery);
-	if (ret)
-		goto fail1;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-	if (ret)
-		goto fail2;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-	if (ret)
-		goto fail3;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-	if (ret)
-		goto fail4;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
-	if (ret)
-		goto fail5;
-
-	goto ret;
-
-remove_all:
-fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
-fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
-ret:	return ret;
-}
-
-#ifdef CONFIG_RFKILL
-
-static int pcap_bt_toggle_radio(void *data, enum rfkill_state state)
-{
-
-	switch (state) {
-	case RFKILL_STATE_SOFT_BLOCKED:
-		ezx_pcap_set_vreg(V6, V_EN, 0);
-		return 0;
-	case RFKILL_STATE_UNBLOCKED:
-		ezx_pcap_set_vreg(V6, V_EN, 1);
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
-static int pcap_bt_getstate(void *data, enum rfkill_state *state)
-{
-	unsigned int val;
-
-	ezx_pcap_read(PCAP_REG_VREG2, &val);
-
-	val &= 2;
-
-
-	if (val)
-		*state = RFKILL_STATE_UNBLOCKED;
-	else
-		*state = RFKILL_STATE_SOFT_BLOCKED;
-	return 0;
-}
-
-static int __devinit pcap_init_rfkill(struct pcap_platform_data *pdata)
-{
-	if (pdata->config & PCAP_SECOND_PORT)
-		return -ENODEV;
-
-	pcap.rf_kill = rfkill_allocate(&pcap.spi->dev, RFKILL_TYPE_BLUETOOTH);
-	if (!pcap.rf_kill)
-		return -ENOMEM;
-
-	snprintf(pcap.rf_kill_name, sizeof(pcap.rf_kill_name),
-		 "pcap_bt:rfkill");
-	pcap.rf_kill->name = pcap.rf_kill_name;
-	pcap.rf_kill->data = &pcap;
-	pcap.rf_kill->toggle_radio = pcap_bt_toggle_radio;
-	pcap.rf_kill->get_state = pcap_bt_getstate;
-	pcap.rf_kill->state = RFKILL_STATE_SOFT_BLOCKED;
-	pcap.rf_kill->user_claim_unsupported = 1;
-
-	rfkill_register(pcap.rf_kill);
-	return 0;
-}
-
-#endif
-
-
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
@@ -538,13 +176,6 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
 	pcap.spi = NULL;
-#ifdef CONFIG_RFKILL
-	if (pcap.rf_kill) {
-		rfkill_unregister(pcap.rf_kill);
-		pcap.rf_kill = NULL;
-	}
-#endif
-
 
 	return 0;
 }
@@ -604,12 +235,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	}
 	set_irq_wake(pdata->irq, 1);
 
-	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
-			PCAP_IRQ_ADCDONE2 : PCAP_IRQ_ADCDONE,
-			ezx_pcap_adc_event, NULL, "ADC");
-#ifdef CONFIG_RFKILL
-	pcap_init_rfkill(pdata);
-#endif
 	return 0;
 
 wq_destroy:
