@@ -22,14 +22,11 @@ struct pcap_chip {
 	struct spi_device *spi;
 	struct work_struct work;
 	struct workqueue_struct *workqueue;
-	void (*adc_done)(void *);
-	void *adc_data;
 };
 static struct pcap_chip pcap;
 
 static LIST_HEAD(event_list);
 static DEFINE_MUTEX(event_lock);
-static DEFINE_MUTEX(adc_lock);
 
 /* IO */
 #define PCAP_BUFSIZE	4
@@ -167,121 +164,6 @@ int ezx_pcap_set_vreg(u8 vreg, u8 what, u8 val)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_set_vreg);
 
-/* ADC */
-void ezx_pcap_disable_adc(void)
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
-	tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	mutex_unlock(&adc_lock);
-}
-
-static void ezx_pcap_adc_event(u32 flags, void *data)
-{
-	void (*adc_done)(void *);
-	void *adc_data;
-
-	if (!pcap.adc_done)
-		return;
-
-	adc_done = pcap.adc_done;
-	adc_data = pcap.adc_data;
-	pcap.adc_done = pcap.adc_data = NULL;
-
-	/* let caller get the results */
-	adc_done(adc_data);
-}
-
-void ezx_pcap_start_adc(u8 bank, u8 time, u32 flags,
-						void *adc_done, void *adc_data)
-{
-	u32 adc;
-	u32 adr;
-
-	mutex_lock(&adc_lock);
-
-	adc = flags | PCAP_ADC_ADEN;
-
-	if (bank == PCAP_ADC_BANK_1)
-		adc |= PCAP_ADC_AD_SEL1;
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	pcap.adc_done = adc_done;
-	pcap.adc_data = adc_data;
-
-	if (time == PCAP_ADC_T_NOW) {
-		ezx_pcap_read(PCAP_REG_ADR, &adr);
-		adr = PCAP_ADR_ASC;
-		ezx_pcap_write(PCAP_REG_ADR, adr);
-		return;
-	}
-
-	if (time == PCAP_ADC_T_IN_BURST)
-		adc |= (PCAP_ADC_ATO_IN_BURST << PCAP_ADC_ATO_SHIFT);
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	ezx_pcap_read(PCAP_REG_ADR, &adr);
-	adr &= ~PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-	adr |= PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_start_adc);
-
-void ezx_pcap_get_adc_channel_result(u8 ch1, u8 ch2, u32 res[])
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADA1_MASK | PCAP_ADC_ADA2_MASK);
-	tmp |= (ch1 << PCAP_ADC_ADA1_SHIFT) | (ch2 << PCAP_ADC_ADA2_SHIFT);
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	ezx_pcap_read(PCAP_REG_ADR, &tmp);
-	res[0] = (tmp & PCAP_ADR_ADD1_MASK) >> PCAP_ADR_ADD1_SHIFT;
-	res[1] = (tmp & PCAP_ADR_ADD2_MASK) >> PCAP_ADR_ADD2_SHIFT;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_get_adc_channel_result);
-
-void ezx_pcap_get_adc_bank_result(u32 res[])
-{
-	int x;
-	u32 tmp[2];
-
-	for (x = 0; x < 7; x += 2) {
-		ezx_pcap_get_adc_channel_result(x, (x+1) % 6, tmp);
-		res[x] = tmp[0];
-		if ((x + 1) < 7)
-			res[x+1] = tmp[1];
-		else
-			res[x+1] = 0;
-	}
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_get_adc_bank_result);
-
-static void adc_complete(void *data)
-{
-	complete(data);
-}
-
-void ezx_pcap_do_general_adc(u8 bank, u8 ch, u32 *res)
-{
-	u32 tmp[2];
-	DECLARE_COMPLETION_ONSTACK(done);
-
-	ezx_pcap_start_adc(bank, PCAP_ADC_T_NOW, 0, adc_complete, &done);
-	wait_for_completion(&done);
-	ezx_pcap_get_adc_channel_result(ch, 0, tmp);
-	ezx_pcap_disable_adc();
-
-	*res = tmp[0];
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_do_general_adc);
-
 /* event handling */
 static irqreturn_t pcap_irq_handler(int irq, void *dev_id)
 {
@@ -374,100 +256,6 @@ int ezx_pcap_unregister_event(u32 events)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_unregister_event);
 
-/* sysfs interface */
-static ssize_t pcap_show_adc_coin(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_COIN, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_battery(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_BATT, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_bplus(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_BPLUS, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_mobportb(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_MOBPORTB, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_temperature(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_TEMPERATURE, &res);
-	return sprintf(buf, "%d\n", res);
-}
-static ssize_t pcap_show_adc_chargerid(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	u32 res;
-
-	ezx_pcap_do_general_adc(PCAP_ADC_BANK_0, PCAP_ADC_CH_CHARGER_ID, &res);
-	return sprintf(buf, "%d\n", res);
-}
-
-static DEVICE_ATTR(adc_coin, 0400, pcap_show_adc_coin, NULL);
-static DEVICE_ATTR(adc_battery, 0400, pcap_show_adc_battery, NULL);
-static DEVICE_ATTR(adc_bplus, 0400, pcap_show_adc_bplus, NULL);
-static DEVICE_ATTR(adc_mobportb, 0400, pcap_show_adc_mobportb, NULL);
-static DEVICE_ATTR(adc_temperature, 0400, pcap_show_adc_temperature, NULL);
-static DEVICE_ATTR(adc_chargerid, 0400, pcap_show_adc_chargerid, NULL);
-
-static int ezx_pcap_setup_sysfs(int create)
-{
-	int ret = 0;
-
-	if (!create)
-		goto remove_all;
-
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_coin);
-	if (ret)
-		goto ret;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_battery);
-	if (ret)
-		goto fail1;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-	if (ret)
-		goto fail2;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-	if (ret)
-		goto fail3;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-	if (ret)
-		goto fail4;
-	ret = device_create_file(&pcap.spi->dev, &dev_attr_adc_chargerid);
-	if (ret)
-		goto fail5;
-
-	goto ret;
-
-remove_all:
-fail5:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_temperature);
-fail4:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_mobportb);
-fail3:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_bplus);
-fail2:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_battery);
-fail1:	device_remove_file(&pcap.spi->dev, &dev_attr_adc_coin);
-ret:	return ret;
-}
-
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
@@ -536,9 +324,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	}
 	set_irq_wake(pdata->irq, 1);
 
-	ezx_pcap_register_event((pdata->config & PCAP_SECOND_PORT) ?
-			PCAP_IRQ_ADCDONE2 : PCAP_IRQ_ADCDONE,
-			ezx_pcap_adc_event, NULL, "ADC");
 	return 0;
 
 wq_destroy:
