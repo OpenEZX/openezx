@@ -28,6 +28,7 @@
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
+#include <linux/regulator/machine.h>
 
 #include <media/soc_camera.h>
 
@@ -159,55 +160,14 @@ static int ezx_mci_init(struct device *dev,
 	return err;
 }
 
-static int ezx_pcap_mmcsd_voltage(unsigned int vdd)
-{
-	/* 7 is the active bit in MMC_VDD_165_195 */
-	int val = (vdd == 7) ? 6 : (vdd + 1) / 2 + 3;
-
-	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
-			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, 1, 3);
-	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
-			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, 1, val);
-	else
-		return -ENODEV;
-}
-
-static int ezx_pcap_mmcsd_power(int on)
-{
-	if (machine_is_ezx_e680() || machine_is_ezx_e6() ||
-			machine_is_ezx_e2())
-		return ezx_pcap_set_vreg(VAUX2, 0, on);
-	else if (machine_is_ezx_a780() || machine_is_ezx_a1200() ||
-			machine_is_ezx_a910())
-		return ezx_pcap_set_vreg(VAUX3, 0, on);
-	else
-		return -ENODEV;
-}
-
-static void ezx_mci_setpower(struct device *dev, unsigned int vdd)
-{
-	ezx_pcap_mmcsd_voltage(vdd);
-	ezx_pcap_mmcsd_power(1);
-}
-
 static void ezx_mci_exit(struct device *dev, void *data)
 {
-	ezx_pcap_mmcsd_power(0);
 	if (!machine_is_ezx_a1200())
 		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
 }
 
 static struct pxamci_platform_data ezx_mci_platform_data = {
-	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
-				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
-				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
-				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
-				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
-				|MMC_VDD_34_35|MMC_VDD_35_36,
 	.init           = ezx_mci_init,
-	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
 	.detect_delay   = 250 / (1000 / HZ),
 };
@@ -839,6 +799,70 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* voltage regulators */
+/* VAUX2: MMC on E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_VAUX2_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX2_data = {
+	.constraints = {
+		.min_uV = 1875000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX2_consumers),
+	.consumer_supplies = pcap_regulator_VAUX2_consumers,
+};
+
+static struct platform_device pcap_regulator_VAUX2_device = {
+	.name = "pcap-regulator", .id = VAUX2,
+	.platform_data = &pcap_regulator_VAUX2_data,
+};
+
+/* VAUX3: MMC on A780, A1200, A910 */
+static struct regulator_consumer_supply pcap_regulator_VAUX3_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX3_data = {
+	.constraints = {
+		.min_uV = 1200000,
+		.max_uV = 3600000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX3_consumers),
+	.consumer_supplies = pcap_regulator_VAUX3_consumers,
+};
+
+static struct platform_device pcap_regulator_VAUX3_device = {
+	.name = "pcap-regulator", .id = VAUX3,
+	.platform_data = &pcap_regulator_VAUX3_data,
+};
+
+/* SW1: CORE on A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
+	{ .supply = "vcc_core", },
+};
+
+static struct regulator_init_data pcap_regulator_SW1_data = {
+	.constraints = {
+		.min_uV = 950000,
+		.max_uV = 1705000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_SW1_consumers),
+	.consumer_supplies = pcap_regulator_SW1_consumers,
+};
+
+static struct platform_device pcap_regulator_SW1_device = {
+	.name = "pcap-regulator", .id = SW1,
+	.platform_data = &pcap_regulator_SW1_data,
+};
+
 /* PCAP_TS */
 struct platform_device pcap_ts_device = {
 	.name = "pcap-ts",
@@ -1136,6 +1160,7 @@ static void __init a780_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1260,6 +1285,7 @@ static void __init e680_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1371,6 +1397,8 @@ static void __init a1200_init(void)
 	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1448,14 +1476,7 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 };
 
 static struct mmc_spi_platform_data a910_mci_platform_data = {
-	.ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21|MMC_VDD_21_22
-				|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25
-				|MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28
-				|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31
-				|MMC_VDD_31_32|MMC_VDD_32_33|MMC_VDD_33_34
-				|MMC_VDD_34_35|MMC_VDD_35_36,
 	.init           = ezx_mci_init,
-	.setpower       = ezx_mci_setpower,
 	.exit           = ezx_mci_exit,
 	.detect_delay   = 150 / (1000 / HZ),
 };
@@ -1634,6 +1655,8 @@ static void __init a910_init(void)
 	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
+	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1740,6 +1763,8 @@ static void __init e6_init(void)
 	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1820,6 +1845,8 @@ static void __init e2_init(void)
 	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
