@@ -90,7 +90,7 @@ static void pcap_mask_irq(unsigned int irq)
 	queue_work(pcap.workqueue, &pcap.msr_work);
 }
 
-static void pcap_unmask_irq(unigned int irq)
+static void pcap_unmask_irq(unsigned int irq)
 {
 	pcap.msr &= ~irq2pcap(irq);
 	printk("%s: %d\n", __func__, pcap.msr);
