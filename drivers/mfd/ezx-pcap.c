@@ -27,9 +27,6 @@ struct pcap_chip {
 };
 static struct pcap_chip pcap;
 
-static LIST_HEAD(event_list);
-static DEFINE_MUTEX(event_lock);
-
 /* IO */
 #define PCAP_BUFSIZE	4
 static int ezx_pcap_putget(u32 *data)
@@ -140,7 +137,6 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
 	destroy_workqueue(pcap.workqueue);
-	ezx_pcap_unregister_event(PCAP_MASK_ALL_INTERRUPT);
 	free_irq(pdata->irq, NULL);
 	pcap.spi = NULL;
 
