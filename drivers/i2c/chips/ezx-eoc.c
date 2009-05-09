@@ -281,7 +281,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	eoc_i2c_client = client;
 	INIT_WORK(&work, eoc_work);
 
-	ret = eoc_reg_write(EOC_REG_ISR, 0x0); //fef);
+	ret = eoc_reg_write(EOC_REG_MSR, 0x0); //fef);
 	if (ret)
 		goto ret;
 	eoc_reg_write(EOC_REG_POWER_CONTROL_0, 0xc00);
