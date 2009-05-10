@@ -22,6 +22,7 @@ struct pcap_platform_data {
 };
 
 #define PCAP_SECOND_PORT	1
+#define PCAP_CS_AH		2
 
 #define PCAP_REGISTER_WRITE_OP_BIT	0x80000000
 #define PCAP_REGISTER_READ_OP_BIT	0x00000000
