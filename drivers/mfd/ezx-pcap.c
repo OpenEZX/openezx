@@ -129,7 +129,7 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 	printk("%s\n", __func__);
 	desc->chip->ack(irq);
 	queue_work(pcap.workqueue, &pcap.work);
-	return IRQ_HANDLED;
+	return;
 }
 
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
@@ -146,6 +146,7 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 static int __devinit ezx_pcap_probe(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
+	int irq;
 	int ret = -ENODEV;
 
 	if (!pdata)
@@ -188,6 +189,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		set_irq_flags(irq, IRQF_VALID);
 #else
 		set_irq_noprobe(irq);
+#endif
 	}
 
 	/* mask/ack all PCAP interrupts */
