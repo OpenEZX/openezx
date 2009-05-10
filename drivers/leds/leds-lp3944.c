@@ -240,6 +240,12 @@ static int lp3944_led_set_blink(struct led_classdev *led_cdev,
 	/* duty_cycle is the percentage of period during which the led is ON */
 	duty_cycle = 100 * (*delay_on) / period;
 
+	/* invert duty cycle for inverted leds, this has the same effect of
+	 * swapping delay_on and delay_off
+	 */
+	if (led->type == LP3944_LED_TYPE_LED_INVERTED)
+		duty_cycle = 100 - duty_cycle;
+
 	/* NOTE: using always the first DIM mode, this means that all leds
 	 * will have the same blinking pattern.
 	 *
