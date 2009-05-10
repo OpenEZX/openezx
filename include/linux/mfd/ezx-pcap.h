@@ -7,10 +7,18 @@
 #ifndef EZX_PCAP_H
 #define EZX_PCAP_H
 
+struct pcap_subdev {
+	int id;
+	const char *name;
+	void *platform_data;
+};
+
 struct pcap_platform_data {
 	unsigned int irq;
 	unsigned int config;
 	void (*init) (void);	/* board specific init */
+	int num_subdevs;
+	struct pcap_subdev *subdevs[];
 };
 
 #define PCAP_SECOND_PORT	1
