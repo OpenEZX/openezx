@@ -46,9 +46,9 @@
 
 /* These registers are not used to control leds in LP3944, they can store
  * arbitrary values which the chip will ignore.
-#define LP3944_REG_REGISTER8	0x08
-#define LP3944_REG_REGISTER9	0x09
-*/
+ */
+#define LP3944_REG_REGISTER8  0x08
+#define LP3944_REG_REGISTER9  0x09
 
 #define LP3944_DIM0 0
 #define LP3944_DIM1 1
@@ -61,7 +61,6 @@
 #define LP3944_DUTY_CYCLE_MIN 0
 #define LP3944_DUTY_CYCLE_MAX 100
 
-
 #define ldev_to_led(c)       container_of(c, struct lp3944_led, ldev)
 
 /* Saved data */
@@ -70,8 +69,7 @@ struct lp3944_data {
 	struct mutex lock;
 };
 
-static int lp3944_reg_read(struct i2c_client *client, u8 reg,
-			   u8 *value)
+static int lp3944_reg_read(struct i2c_client *client, u8 reg, u8 *value)
 {
 	int tmp;
 
@@ -84,12 +82,10 @@ static int lp3944_reg_read(struct i2c_client *client, u8 reg,
 	return 0;
 }
 
-static int lp3944_reg_write(struct i2c_client *client, u8 reg,
-			    u8 value)
+static int lp3944_reg_write(struct i2c_client *client, u8 reg, u8 value)
 {
 	return i2c_smbus_write_byte_data(client, reg, value);
 }
-
 
 /**
  * Set the period for DIM status
@@ -98,8 +94,7 @@ static int lp3944_reg_write(struct i2c_client *client, u8 reg,
  * @dim: either LP3944_DIM0 or LP3944_DIM1
  * @period: period of a blink, that is a on/off cycle, expressed in ms.
  */
-static int lp3944_dim_set_period(struct i2c_client *client, u8 dim,
-			  u16 period)
+static int lp3944_dim_set_period(struct i2c_client *client, u8 dim, u16 period)
 {
 	u8 psc_reg;
 	u8 psc_value;
@@ -131,7 +126,7 @@ static int lp3944_dim_set_period(struct i2c_client *client, u8 dim,
  * @duty_cycle: percentage of a period during which a led is ON
  */
 static int lp3944_dim_set_dutycycle(struct i2c_client *client, u8 dim,
-			     u8 duty_cycle)
+				    u8 duty_cycle)
 {
 	u8 pwm_reg;
 	u8 pwm_value;
@@ -173,7 +168,7 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 	int err;
 
 	dev_dbg(&led->client->dev, "%s: %s, status before normalization:%d\n",
-			__func__, led->name, status);
+		__func__, led->name, status);
 
 	switch (id) {
 	case LP3944_LED0:
@@ -202,7 +197,6 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 	if (led->type == LP3944_LED_TYPE_LED_INVERTED && status < 2)
 		status = 1 - status;
 
-
 	mutex_lock(&data->lock);
 	lp3944_reg_read(led->client, reg, &val);
 
@@ -210,7 +204,7 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 	val |= (status << (id << 1));
 
 	dev_dbg(&led->client->dev, "%s: %s, reg:%d id:%d status:%d val:%#x\n",
-		 __func__, led->name, reg, id, status, val);
+		__func__, led->name, reg, id, status, val);
 
 	/* set led status */
 	err = lp3944_reg_write(led->client, reg, val);
@@ -246,7 +240,6 @@ static int lp3944_led_set_blink(struct led_classdev *led_cdev,
 	/* duty_cycle is the percentage of period during which the led is ON */
 	duty_cycle = 100 * (*delay_on) / period;
 
-
 	/* NOTE: using always the first DIM mode, this means that all leds
 	 * will have the same blinking pattern.
 	 *
@@ -272,12 +265,12 @@ static int lp3944_led_set_blink(struct led_classdev *led_cdev,
 }
 
 static void lp3944_led_set_brightness(struct led_classdev *led_cdev,
-				  enum led_brightness brightness)
+				      enum led_brightness brightness)
 {
 	struct lp3944_led *led = ldev_to_led(led_cdev);
 
 	dev_dbg(&led->client->dev, "%s: %s, %d\n",
-			__func__, led->name, brightness);
+		__func__, led->name, brightness);
 
 	led->status = brightness;
 	schedule_work(&led->work);
@@ -373,8 +366,7 @@ static int __devinit lp3944_probe(struct i2c_client *client,
 	}
 
 	/* Let's see whether this adapter can support what we need. */
-	if (!i2c_check_functionality(client->adapter,
-				I2C_FUNC_SMBUS_BYTE_DATA)) {
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&client->dev, "insufficient functionality!\n");
 		return -ENODEV;
 	}
@@ -430,7 +422,7 @@ MODULE_DEVICE_TABLE(i2c, lp3944_id);
 static struct i2c_driver lp3944_driver = {
 	.driver   = {
 		   .name = "lp3944",
-	},
+	            },
 	.probe    = lp3944_probe,
 	.remove   = __devexit_p(lp3944_remove),
 	.id_table = lp3944_id,
