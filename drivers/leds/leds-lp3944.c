@@ -50,7 +50,17 @@
 #define LP3944_REG_REGISTER9	0x09
 */
 
-#define LP3944_LED_STATUS_MASK	0x03
+#define LP3944_DIM0 0
+#define LP3944_DIM1 1
+
+/* period in ms */
+#define LP3944_PERIOD_MIN 0
+#define LP3944_PERIOD_MAX 1600
+
+/* duty cycle is a percentage */
+#define LP3944_DUTY_CYCLE_MIN 0
+#define LP3944_DUTY_CYCLE_MAX 100
+
 
 #define ldev_to_led(c)       container_of(c, struct lp3944_led, ldev)
 
@@ -61,9 +71,25 @@ struct lp3944_data {
 };
 
 static int lp3944_reg_read(struct i2c_client *client, u8 reg,
-			   u8 *value);
+			   u8 *value)
+{
+	int tmp;
+
+	tmp = i2c_smbus_read_byte_data(client, reg);
+	if (tmp < 0)
+		return -EINVAL;
+
+	*value = tmp;
+
+	return 0;
+}
+
 static int lp3944_reg_write(struct i2c_client *client, u8 reg,
-			    u8 value);
+			    u8 value)
+{
+	return i2c_smbus_write_byte_data(client, reg, value);
+}
+
 
 /**
  * Set the period for DIM status
@@ -149,15 +175,6 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 	dev_dbg(&led->client->dev, "%s: %s, status before normalization:%d\n",
 			__func__, led->name, status);
 
-	if (status > LP3944_LED_STATUS_DIM1)
-		return -EINVAL;
-
-	/* invert only 0 and 1, leave unchanged the other values,
-	 * remember we are abusing status to set blink patterns
-	 */
-	if (led->type == LP3944_LED_TYPE_LED_INVERTED && status < 2)
-		status = 1 - status;
-
 	switch (id) {
 	case LP3944_LED0:
 	case LP3944_LED1:
@@ -176,6 +193,16 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 		return -EINVAL;
 	}
 
+	if (status > LP3944_LED_STATUS_DIM1)
+		return -EINVAL;
+
+	/* invert only 0 and 1, leave unchanged the other values,
+	 * remember we are abusing status to set blink patterns
+	 */
+	if (led->type == LP3944_LED_TYPE_LED_INVERTED && status < 2)
+		status = 1 - status;
+
+
 	mutex_lock(&data->lock);
 	lp3944_reg_read(led->client, reg, &val);
 
@@ -191,27 +218,6 @@ static int lp3944_led_set(struct lp3944_led *led, u8 status)
 
 	return err;
 }
-
-static int lp3944_reg_read(struct i2c_client *client, u8 reg,
-			   u8 *value)
-{
-	int tmp;
-
-	tmp = i2c_smbus_read_byte_data(client, reg);
-	if (tmp < 0)
-		return -EINVAL;
-
-	*value = tmp;
-
-	return 0;
-}
-
-static int lp3944_reg_write(struct i2c_client *client, u8 reg,
-			    u8 value)
-{
-	return i2c_smbus_write_byte_data(client, reg, value);
-}
-
 
 static int lp3944_led_set_blink(struct led_classdev *led_cdev,
 				unsigned long *delay_on,

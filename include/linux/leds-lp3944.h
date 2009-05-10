@@ -25,18 +25,7 @@
 #define LP3944_LED7 7
 #define LP3944_LEDS_MAX 8
 
-#define LP3944_DIM0 0
-#define LP3944_DIM1 1
-#define LP3944_DIMS_MAX 2
-
-/* period in 1/10 sec */
-#define LP3944_PERIOD_MIN 0
-#define LP3944_PERIOD_MAX 16
-
-/* duty cycle is a percentage */
-#define LP3944_DUTY_CYCLE_MIN 0
-#define LP3944_DUTY_CYCLE_MAX 100
-
+#define LP3944_LED_STATUS_MASK	0x03
 enum lp3944_status {
 	LP3944_LED_STATUS_OFF  = 0x0,
 	LP3944_LED_STATUS_ON   = 0x1,
