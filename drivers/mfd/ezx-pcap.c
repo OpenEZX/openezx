@@ -132,12 +132,34 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 	return;
 }
 
+/* subdevs */
+static int pcap_remove_subdev(struct device *dev, void *unused)
+{
+	platform_device_unregister(to_platform_device(dev));
+	return 0;
+}
+
+static int pcap_add_subdev(struct spi_device *spi, struct pcap_subdev *subdev)
+{
+	struct platform_device *pdev;
+
+	pdev = platform_device_alloc(subdev->name, subdev->id);
+	pdev->dev.parent = &spi->dev;
+	pdev->platform_data = subdev->platform_data;
+
+	return platform_device_add(pdev);
+}
+
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 
 	destroy_workqueue(pcap.workqueue);
 	free_irq(pdata->irq, NULL);
+
+	/* remove all registered subdevs */
+	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
+
 	pcap.spi = NULL;
 
 	return 0;
@@ -146,17 +168,20 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 static int __devinit ezx_pcap_probe(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
-	int irq;
+	int i;
 	int ret = -ENODEV;
 
+	/* platform data is required */
 	if (!pdata)
 		goto ret;
 
+	/* we support only one pcap device */
 	if (pcap.spi) {
 		ret = -EBUSY;
 		goto ret;
 	}
 
+	/* setup spi */
 	spi->bits_per_word = 32;
 	spi->mode = SPI_MODE_0;
 	ret = spi_setup(spi);
@@ -165,6 +190,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	pcap.spi = spi;
 
+	/* setup irq */
 	INIT_WORK(&pcap.work, pcap_work);
 	INIT_WORK(&pcap.msr_work, pcap_msr_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
@@ -175,20 +201,15 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* redirect interrupts to AP */
 	if (!(pdata->config & PCAP_SECOND_PORT))
-		ezx_pcap_write(PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
-
-	/* set board-specific settings */
-	if (pdata->init)
-		pdata->init();
+		ezx_pcap_write(PCAP_REG_INT_SEL, 0);
 
 	/* setup irq chip */
-	for (irq = PCAP_IRQ(0); irq <= PCAP_LAST_IRQ; irq++) {
-		set_irq_chip_and_handler(irq, &pcap_irq_chip,
-							handle_simple_irq);
+	for (i = PCAP_IRQ(0); i <= PCAP_LAST_IRQ; i++) {
+		set_irq_chip_and_handler(i, &pcap_irq_chip, handle_simple_irq);
 #ifdef CONFIG_ARM
-		set_irq_flags(irq, IRQF_VALID);
+		set_irq_flags(i, IRQF_VALID);
 #else
-		set_irq_noprobe(irq);
+		set_irq_noprobe(i);
 #endif
 	}
 
@@ -201,8 +222,21 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	set_irq_chained_handler(pdata->irq, pcap_irq_handler);
 	set_irq_wake(pdata->irq, 1);
 
+	/* setup subdevs */
+	for (i = 0; i < pdata->num_subdevs; i++) {
+		ret = pcap_add_subdev(spi, pdata->subdevs[i]);
+		if (ret)
+			goto remove_subdevs;
+	}
+
+	/* set board-specific settings */
+	if (pdata->init)
+		pdata->init();
+
 	return 0;
 
+remove_subdevs:
+	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
 wq_destroy:
 	destroy_workqueue(pcap.workqueue);
 null_spi:
