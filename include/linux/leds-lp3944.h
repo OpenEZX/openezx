@@ -62,7 +62,7 @@ struct lp3944_led {
 
 struct lp3944_platform_data {
 	struct lp3944_led leds[LP3944_LEDS_MAX];
-	unsigned leds_size;
+	u8 leds_size;
 };
 
 #endif /* __LINUX_LEDS_LP3944_H */

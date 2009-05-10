@@ -60,23 +60,23 @@ struct lp3944_data {
 	struct mutex lock;
 };
 
-static int lp3944_reg_read(struct i2c_client *client, unsigned reg,
-			   unsigned *value);
-static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
-			    unsigned value);
+static int lp3944_reg_read(struct i2c_client *client, u8 reg,
+			   u8 *value);
+static int lp3944_reg_write(struct i2c_client *client, u8 reg,
+			    u8 value);
 
 /**
  * Set the period for DIM status
  *
  * @client: the i2c client
  * @dim: either LP3944_DIM0 or LP3944_DIM1
- * @period: period of a blink, that is a on/off cycle, in 1/10 sec
+ * @period: period of a blink, that is a on/off cycle, expressed in ms.
  */
-static int lp3944_dim_set_period(struct i2c_client *client, unsigned dim,
-			  unsigned period)
+static int lp3944_dim_set_period(struct i2c_client *client, u8 dim,
+			  u16 period)
 {
-	unsigned psc_reg;
-	unsigned psc_value;
+	u8 psc_reg;
+	u8 psc_value;
 	int err;
 
 	if (dim == LP3944_DIM0)
@@ -102,13 +102,13 @@ static int lp3944_dim_set_period(struct i2c_client *client, unsigned dim,
  *
  * @client: the i2c client
  * @dim: either LP3944_DIM0 or LP3944_DIM1
- * @duty_cycle: percentage of a period in which a led is ON
+ * @duty_cycle: percentage of a period during which a led is ON
  */
-static int lp3944_dim_set_dutycycle(struct i2c_client *client, unsigned dim,
-			     unsigned duty_cycle)
+static int lp3944_dim_set_dutycycle(struct i2c_client *client, u8 dim,
+			     u8 duty_cycle)
 {
-	unsigned pwm_reg;
-	unsigned pwm_value;
+	u8 pwm_reg;
+	u8 pwm_value;
 	int err;
 
 	if (dim == LP3944_DIM0)
@@ -138,12 +138,12 @@ static int lp3944_dim_set_dutycycle(struct i2c_client *client, unsigned dim,
  *                 LP3944_LED_STATUS_DIM0
  *                 LP3944_LED_STATUS_DIM1
  */
-static int lp3944_led_set(struct lp3944_led *led, unsigned status)
+static int lp3944_led_set(struct lp3944_led *led, u8 status)
 {
 	struct lp3944_data *data = i2c_get_clientdata(led->client);
-	unsigned id = led->id;
-	unsigned reg;
-	unsigned val = 0;
+	u8 id = led->id;
+	u8 reg;
+	u8 val = 0;
 	int err;
 
 	dev_dbg(&led->client->dev, "%s: %s, status before normalization:%d\n",
@@ -192,8 +192,8 @@ static int lp3944_led_set(struct lp3944_led *led, unsigned status)
 	return err;
 }
 
-static int lp3944_reg_read(struct i2c_client *client, unsigned reg,
-			   unsigned *value)
+static int lp3944_reg_read(struct i2c_client *client, u8 reg,
+			   u8 *value)
 {
 	int tmp;
 
@@ -206,8 +206,8 @@ static int lp3944_reg_read(struct i2c_client *client, unsigned reg,
 	return 0;
 }
 
-static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
-			    unsigned value)
+static int lp3944_reg_write(struct i2c_client *client, u8 reg,
+			    u8 value)
 {
 	return i2c_smbus_write_byte_data(client, reg, value);
 }
