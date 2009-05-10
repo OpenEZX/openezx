@@ -8,7 +8,7 @@ Kernel driver lp3944
                http://www.national.com/pf/LP/LP3944.html
 
 Authors:
-        Antonio Ospite <ao2@openezx.org>
+        Antonio Ospite <ospite@studenti.unina.it>
 
 
 Description
@@ -23,7 +23,6 @@ specified supplying two parameters:
   - duty cycle: percentage of the period the led is on, from 0 to 100
 
 Setting a led in DIM0 or DIM1 mode makes it blink according to the pattern.
-
 See the datasheet for details.
 
 LP3944 can be found on Motorola A910 smartphone, where it drives the rgb
