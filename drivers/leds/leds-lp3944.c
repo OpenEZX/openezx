@@ -304,9 +304,6 @@ static int lp3944_configure(struct i2c_client *client,
 
 		switch (pled->type) {
 
-		case LP3944_LED_TYPE_NONE:
-			break;
-
 		case LP3944_LED_TYPE_LED:
 		case LP3944_LED_TYPE_LED_INVERTED:
 			pled->ldev.name = pled->name;
@@ -336,6 +333,11 @@ static int lp3944_configure(struct i2c_client *client,
 				goto exit;
 			}
 			break;
+
+		case LP3944_LED_TYPE_NONE:
+		default:
+			break;
+
 		}
 	}
 	return 0;
@@ -344,12 +346,15 @@ exit:
 	if (i > 0)
 		for (i = i - 1; i >= 0; i--)
 			switch (pdata->leds[i].type) {
-			case LP3944_LED_TYPE_NONE:
-				break;
+
 			case LP3944_LED_TYPE_LED:
 			case LP3944_LED_TYPE_LED_INVERTED:
 				led_classdev_unregister(&pdata->leds[i].ldev);
 				cancel_work_sync(&pdata->leds[i].work);
+				break;
+
+			case LP3944_LED_TYPE_NONE:
+			default:
 				break;
 			}
 
@@ -397,12 +402,14 @@ static int __devexit lp3944_remove(struct i2c_client *client)
 
 	for (i = 0; i < pdata->leds_size; i++)
 		switch (pdata->leds[i].type) {
-		case LP3944_LED_TYPE_NONE:
-			break;
 		case LP3944_LED_TYPE_LED:
 		case LP3944_LED_TYPE_LED_INVERTED:
 			led_classdev_unregister(&pdata->leds[i].ldev);
 			cancel_work_sync(&pdata->leds[i].work);
+			break;
+
+		case LP3944_LED_TYPE_NONE:
+		default:
 			break;
 		}
 
