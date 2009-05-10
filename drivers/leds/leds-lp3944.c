@@ -46,11 +46,20 @@
 
 /* These registers are not used to control leds in LP3944, they can store
  * arbitrary values which the chip will ignore.
-#define LP3944_REG_REGISTER8	0x08
-#define LP3944_REG_REGISTER9	0x09
-*/
+ */
+#define LP3944_REG_REGISTER8  0x08
+#define LP3944_REG_REGISTER9  0x09
 
-#define LP3944_LED_STATUS_MASK	0x03
+#define LP3944_DIM0 0
+#define LP3944_DIM1 1
+
+/* period in ms */
+#define LP3944_PERIOD_MIN 0
+#define LP3944_PERIOD_MAX 1600
+
+/* duty cycle is a percentage */
+#define LP3944_DUTY_CYCLE_MIN 0
+#define LP3944_DUTY_CYCLE_MAX 100
 
 #define ldev_to_led(c)       container_of(c, struct lp3944_led, ldev)
 
@@ -60,23 +69,35 @@ struct lp3944_data {
 	struct mutex lock;
 };
 
-static int lp3944_reg_read(struct i2c_client *client, unsigned reg,
-			   unsigned *value);
-static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
-			    unsigned value);
+static int lp3944_reg_read(struct i2c_client *client, u8 reg, u8 *value)
+{
+	int tmp;
+
+	tmp = i2c_smbus_read_byte_data(client, reg);
+	if (tmp < 0)
+		return -EINVAL;
+
+	*value = tmp;
+
+	return 0;
+}
+
+static int lp3944_reg_write(struct i2c_client *client, u8 reg, u8 value)
+{
+	return i2c_smbus_write_byte_data(client, reg, value);
+}
 
 /**
  * Set the period for DIM status
  *
  * @client: the i2c client
  * @dim: either LP3944_DIM0 or LP3944_DIM1
- * @period: period of a blink, that is a on/off cycle, in 1/10 sec
+ * @period: period of a blink, that is a on/off cycle, expressed in ms.
  */
-static int lp3944_dim_set_period(struct i2c_client *client, unsigned dim,
-			  unsigned period)
+static int lp3944_dim_set_period(struct i2c_client *client, u8 dim, u16 period)
 {
-	unsigned psc_reg;
-	unsigned psc_value;
+	u8 psc_reg;
+	u8 psc_value;
 	int err;
 
 	if (dim == LP3944_DIM0)
@@ -102,13 +123,13 @@ static int lp3944_dim_set_period(struct i2c_client *client, unsigned dim,
  *
  * @client: the i2c client
  * @dim: either LP3944_DIM0 or LP3944_DIM1
- * @duty_cycle: percentage of a period in which a led is ON
+ * @duty_cycle: percentage of a period during which a led is ON
  */
-static int lp3944_dim_set_dutycycle(struct i2c_client *client, unsigned dim,
-			     unsigned duty_cycle)
+static int lp3944_dim_set_dutycycle(struct i2c_client *client, u8 dim,
+				    u8 duty_cycle)
 {
-	unsigned pwm_reg;
-	unsigned pwm_value;
+	u8 pwm_reg;
+	u8 pwm_value;
 	int err;
 
 	if (dim == LP3944_DIM0)
@@ -138,25 +159,16 @@ static int lp3944_dim_set_dutycycle(struct i2c_client *client, unsigned dim,
  *                 LP3944_LED_STATUS_DIM0
  *                 LP3944_LED_STATUS_DIM1
  */
-static int lp3944_led_set(struct lp3944_led *led, unsigned status)
+static int lp3944_led_set(struct lp3944_led *led, u8 status)
 {
 	struct lp3944_data *data = i2c_get_clientdata(led->client);
-	unsigned id = led->id;
-	unsigned reg;
-	unsigned val = 0;
+	u8 id = led->id;
+	u8 reg;
+	u8 val = 0;
 	int err;
 
 	dev_dbg(&led->client->dev, "%s: %s, status before normalization:%d\n",
-			__func__, led->name, status);
-
-	if (status > LP3944_LED_STATUS_DIM1)
-		return -EINVAL;
-
-	/* invert only 0 and 1, leave unchanged the other values,
-	 * remember we are abusing status to set blink patterns
-	 */
-	if (led->type == LP3944_LED_TYPE_LED_INVERTED && status < 2)
-		status = 1 - status;
+		__func__, led->name, status);
 
 	switch (id) {
 	case LP3944_LED0:
@@ -176,6 +188,15 @@ static int lp3944_led_set(struct lp3944_led *led, unsigned status)
 		return -EINVAL;
 	}
 
+	if (status > LP3944_LED_STATUS_DIM1)
+		return -EINVAL;
+
+	/* invert only 0 and 1, leave unchanged the other values,
+	 * remember we are abusing status to set blink patterns
+	 */
+	if (led->type == LP3944_LED_TYPE_LED_INVERTED && status < 2)
+		status = 1 - status;
+
 	mutex_lock(&data->lock);
 	lp3944_reg_read(led->client, reg, &val);
 
@@ -183,7 +204,7 @@ static int lp3944_led_set(struct lp3944_led *led, unsigned status)
 	val |= (status << (id << 1));
 
 	dev_dbg(&led->client->dev, "%s: %s, reg:%d id:%d status:%d val:%#x\n",
-		 __func__, led->name, reg, id, status, val);
+		__func__, led->name, reg, id, status, val);
 
 	/* set led status */
 	err = lp3944_reg_write(led->client, reg, val);
@@ -192,48 +213,66 @@ static int lp3944_led_set(struct lp3944_led *led, unsigned status)
 	return err;
 }
 
-static int lp3944_reg_read(struct i2c_client *client, unsigned reg,
-			   unsigned *value)
+static int lp3944_led_set_blink(struct led_classdev *led_cdev,
+				unsigned long *delay_on,
+				unsigned long *delay_off)
 {
-	int tmp;
+	struct lp3944_led *led = ldev_to_led(led_cdev);
+	u16 period;
+	u8 duty_cycle;
+	int err;
 
-	tmp = i2c_smbus_read_byte_data(client, reg);
-	if (tmp < 0)
+	/* units are in ms */
+	if (*delay_on + *delay_off > LP3944_PERIOD_MAX)
 		return -EINVAL;
 
-	*value = tmp;
+	if (*delay_on == 0 && *delay_off == 0) {
+		/* Special case: the leds subsystem reqires a default user
+		 * friendly blink pattern for the LED.  Let's blink the led
+		 * slowly (0.5Hz).
+		 */
+		*delay_on = 500;
+		*delay_off = 500;
+	}
+
+	period = (*delay_on) + (*delay_off);
+
+	/* duty_cycle is the percentage of period during which the led is ON */
+	duty_cycle = 100 * (*delay_on) / period;
+
+	/* NOTE: using always the first DIM mode, this means that all leds
+	 * will have the same blinking pattern.
+	 *
+	 * We could find a way later to have two leds blinking in hardware
+	 * with different patterns at the same time, falling back to software
+	 * control for the other ones.
+	 */
+	err = lp3944_dim_set_period(led->client, LP3944_DIM0, period);
+	if (err)
+		return err;
+
+	err = lp3944_dim_set_dutycycle(led->client, LP3944_DIM0, duty_cycle);
+	if (err)
+		return err;
+
+	dev_dbg(&led->client->dev, "%s: OK hardware accelerated blink!\n",
+		__func__);
+
+	led->status = LP3944_LED_STATUS_DIM0;
+	schedule_work(&led->work);
 
 	return 0;
 }
 
-static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
-			    unsigned value)
-{
-	return i2c_smbus_write_byte_data(client, reg, value);
-}
-
 static void lp3944_led_set_brightness(struct led_classdev *led_cdev,
-				  enum led_brightness brightness)
+				      enum led_brightness brightness)
 {
 	struct lp3944_led *led = ldev_to_led(led_cdev);
 
-	led->status = brightness;
-	/*
-	 * For now we abuse the brightness value to set blink patterns, this
-	 * could be converted to use the blink_set() callback.
-	 *
-	 * status interpretation:
-	 *   0 = led OFF
-	 *   1 = led ON (max_brightness and failsafe default)
-	 *   2 = led in DIM0 mode
-	 *   3 = led in DIM1 mode
-	 */
-	if (led->status > 3)
-		led->status = 1;
-
 	dev_dbg(&led->client->dev, "%s: %s, %d\n",
-			__func__, led->name, led->status);
+		__func__, led->name, brightness);
 
+	led->status = brightness;
 	schedule_work(&led->work);
 }
 
@@ -251,11 +290,6 @@ static int lp3944_configure(struct i2c_client *client,
 {
 	int i, err = 0;
 
-	for (i = 0; i < pdata->dims_size; i++) {
-		lp3944_dim_set_period(client, i, pdata->dims[i].period);
-		lp3944_dim_set_dutycycle(client, i, pdata->dims[i].dutycycle);
-	}
-
 	for (i = 0; i < pdata->leds_size; i++) {
 		struct lp3944_led *pled = &pdata->leds[i];
 		pled->client = client;
@@ -263,17 +297,12 @@ static int lp3944_configure(struct i2c_client *client,
 
 		switch (pled->type) {
 
-		case LP3944_LED_TYPE_NONE:
-			break;
-
 		case LP3944_LED_TYPE_LED:
 		case LP3944_LED_TYPE_LED_INVERTED:
 			pled->ldev.name = pled->name;
-			/* max_brightness should be 1, but for now we abuse
-			 * brightness values > 1 to set blink patterns
-			 * pled->ldev.max_brightness = 1;
-			 */
+			pled->ldev.max_brightness = 1;
 			pled->ldev.brightness_set = lp3944_led_set_brightness;
+			pled->ldev.blink_set = lp3944_led_set_blink;
 			pled->ldev.flags = LED_CORE_SUSPENDRESUME;
 
 			INIT_WORK(&pled->work, lp3944_led_work);
@@ -297,6 +326,11 @@ static int lp3944_configure(struct i2c_client *client,
 				goto exit;
 			}
 			break;
+
+		case LP3944_LED_TYPE_NONE:
+		default:
+			break;
+
 		}
 	}
 	return 0;
@@ -305,12 +339,15 @@ exit:
 	if (i > 0)
 		for (i = i - 1; i >= 0; i--)
 			switch (pdata->leds[i].type) {
-			case LP3944_LED_TYPE_NONE:
-				break;
+
 			case LP3944_LED_TYPE_LED:
 			case LP3944_LED_TYPE_LED_INVERTED:
 				led_classdev_unregister(&pdata->leds[i].ldev);
 				cancel_work_sync(&pdata->leds[i].work);
+				break;
+
+			case LP3944_LED_TYPE_NONE:
+			default:
 				break;
 			}
 
@@ -324,14 +361,13 @@ static int __devinit lp3944_probe(struct i2c_client *client,
 	struct lp3944_data *data;
 
 	if (lp3944_pdata == NULL) {
-		printk(KERN_ERR "%s: no platform data\n", __func__);
+		dev_err(&client->dev, "no platform data\n");
 		return -EINVAL;
 	}
 
 	/* Let's see whether this adapter can support what we need. */
-	if (!i2c_check_functionality(client->adapter,
-				I2C_FUNC_SMBUS_BYTE_DATA)) {
-		printk(KERN_ERR "%s: insufficient functionality!\n", __func__);
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
+		dev_err(&client->dev, "insufficient functionality!\n");
 		return -ENODEV;
 	}
 
@@ -358,12 +394,14 @@ static int __devexit lp3944_remove(struct i2c_client *client)
 
 	for (i = 0; i < pdata->leds_size; i++)
 		switch (pdata->leds[i].type) {
-		case LP3944_LED_TYPE_NONE:
-			break;
 		case LP3944_LED_TYPE_LED:
 		case LP3944_LED_TYPE_LED_INVERTED:
 			led_classdev_unregister(&pdata->leds[i].ldev);
 			cancel_work_sync(&pdata->leds[i].work);
+			break;
+
+		case LP3944_LED_TYPE_NONE:
+		default:
 			break;
 		}
 
@@ -384,7 +422,7 @@ MODULE_DEVICE_TABLE(i2c, lp3944_id);
 static struct i2c_driver lp3944_driver = {
 	.driver   = {
 		   .name = "lp3944",
-	},
+	            },
 	.probe    = lp3944_probe,
 	.remove   = __devexit_p(lp3944_remove),
 	.id_table = lp3944_id,
