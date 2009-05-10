@@ -83,14 +83,14 @@ static inline unsigned int irq2pcap(int irq)
 static void pcap_mask_irq(unsigned int irq)
 {
 	pcap.msr |= irq2pcap(irq);
-	printk("%s: %d\n", __func__, pcap.msr);
+	printk("%s: %d (%08x)\n", __func__, irq, pcap.msr);
 	queue_work(pcap.workqueue, &pcap.msr_work);
 }
 
 static void pcap_unmask_irq(unsigned int irq)
 {
 	pcap.msr &= ~irq2pcap(irq);
-	printk("%s: %d\n", __func__, pcap.msr);
+	printk("%s: %d (%08x)\n", __func__, irq, pcap.msr);
 	queue_work(pcap.workqueue, &pcap.msr_work);
 }
 
@@ -102,7 +102,11 @@ static struct irq_chip pcap_irq_chip = {
 
 static void pcap_msr_work(struct work_struct *msr_work)
 {
+	u32 isr;
+	printk("%s: %08x\n", __func__, pcap.msr);
 	ezx_pcap_write(PCAP_REG_MSR, pcap.msr);
+	ezx_pcap_read(PCAP_REG_ISR, &isr);
+	printk("%s: ISR %08x\n", __func__, isr);
 }
 
 static void pcap_work(struct work_struct *_pcap)
@@ -112,15 +116,25 @@ static void pcap_work(struct work_struct *_pcap)
 
 	ezx_pcap_read(PCAP_REG_MSR, &msr);
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
+
+	local_irq_disable();
 	service = isr & ~msr;
 
 	printk ("%s: i%08x m%08x s%08x\n", __func__, isr, msr, service);
-	while (service) {
-		irq = fls(service) - 1 + PCAP_IRQ(0);
-		printk("%s: found irq %d\n", __func__, irq);
-		service &= ~irq2pcap(irq);
-		generic_handle_irq(irq);
+	for (irq = PCAP_IRQ(0); service; service >>= 1, irq++) {
+		if (service & 1) {
+			struct irq_desc *desc = irq_to_desc(irq);
+
+			printk("%s: found irq %d\n", __func__, irq);
+			if (!desc)
+				printk("invalid irq!!!\n");
+			else if (desc->status & IRQ_DISABLED)
+				note_interrupt(irq, desc, IRQ_NONE);
+			else
+				desc->handle_irq(irq, desc);
+		}
 	}
+	local_irq_enable();
 	ezx_pcap_write(PCAP_REG_ISR, isr);
 }
 
@@ -131,6 +145,17 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 	queue_work(pcap.workqueue, &pcap.work);
 	return;
 }
+
+static irqreturn_t pcap_test_irq(int irq, void *data)
+{
+	printk("%s: %d\n", __func__, irq);
+	return IRQ_HANDLED;
+}
+
+
+
+
+
 
 /* subdevs */
 static int pcap_remove_subdev(struct device *dev, void *unused)
@@ -169,6 +194,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 	int i;
+	u32 t;
 	int ret = -ENODEV;
 
 	/* platform data is required */
@@ -183,7 +209,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* setup spi */
 	spi->bits_per_word = 32;
-	spi->mode = SPI_MODE_0;
+	spi->mode = SPI_MODE_0 | pdata->config & PCAP_CS_AH ? SPI_CS_HIGH : 0;
 	ret = spi_setup(spi);
 	if (ret)
 		goto ret;
@@ -214,7 +240,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	}
 
 	/* mask/ack all PCAP interrupts */
-	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
+	ezx_pcap_write(PCAP_REG_MSR, 0); //PCAP_MASK_ALL_INTERRUPT);
 	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
 	pcap.msr = PCAP_MASK_ALL_INTERRUPT;
 
@@ -233,12 +259,31 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	if (pdata->init)
 		pdata->init();
 
+	/* test irq */
+	ret = request_irq(PCAP_IRQ_1HZ, pcap_test_irq, IRQF_DISABLED,
+						"1HZ", NULL);
+	if (ret)
+		printk("error requesting test irq\n");
+	ret = request_irq(PCAP_IRQ_TS, pcap_test_irq, IRQF_DISABLED,
+						"TS", NULL);
+	if (ret)
+		printk("error requesting test irq\n");
+
+	for (i = 0; i <= 31; i++) {
+		ezx_pcap_read(i, &t);
+		printk("%s: %d %08x\n", __func__, i, t);
+	}
+		
+
+
 	return 0;
 
 remove_subdevs:
 	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
-wq_destroy:
+	for (i = PCAP_IRQ(0); i <= PCAP_LAST_IRQ; i++)
+		set_irq_chip_and_handler(i, NULL, NULL);
 	destroy_workqueue(pcap.workqueue);
+	pcap.workqueue = NULL;
 null_spi:
 	pcap.spi = NULL;
 ret:
