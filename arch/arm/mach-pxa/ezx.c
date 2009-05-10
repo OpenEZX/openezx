@@ -1359,7 +1359,7 @@ static void __init a1200_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
@@ -1613,7 +1613,7 @@ static void __init a910_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
@@ -1717,7 +1717,7 @@ static void __init e6_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
@@ -1795,7 +1795,7 @@ static void __init e2_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
