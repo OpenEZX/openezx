@@ -270,23 +270,10 @@ static void lp3944_led_set_brightness(struct led_classdev *led_cdev,
 {
 	struct lp3944_led *led = ldev_to_led(led_cdev);
 
-	led->status = brightness;
-	/*
-	 * For now we abuse the brightness value to set blink patterns, this
-	 * could be converted to use the blink_set() callback.
-	 *
-	 * status interpretation:
-	 *   0 = led OFF
-	 *   1 = led ON (max_brightness and failsafe default)
-	 *   2 = led in DIM0 mode
-	 *   3 = led in DIM1 mode
-	 */
-	if (led->status > 3)
-		led->status = 1;
-
 	dev_dbg(&led->client->dev, "%s: %s, %d\n",
-			__func__, led->name, led->status);
+			__func__, led->name, brightness);
 
+	led->status = brightness;
 	schedule_work(&led->work);
 }
 
@@ -304,11 +291,6 @@ static int lp3944_configure(struct i2c_client *client,
 {
 	int i, err = 0;
 
-	for (i = 0; i < pdata->dims_size; i++) {
-		lp3944_dim_set_period(client, i, pdata->dims[i].period);
-		lp3944_dim_set_dutycycle(client, i, pdata->dims[i].dutycycle);
-	}
-
 	for (i = 0; i < pdata->leds_size; i++) {
 		struct lp3944_led *pled = &pdata->leds[i];
 		pled->client = client;
@@ -322,10 +304,7 @@ static int lp3944_configure(struct i2c_client *client,
 		case LP3944_LED_TYPE_LED:
 		case LP3944_LED_TYPE_LED_INVERTED:
 			pled->ldev.name = pled->name;
-			/* max_brightness should be 1, but for now we abuse
-			 * brightness values > 1 to set blink patterns
-			 * pled->ldev.max_brightness = 1;
-			 */
+			pled->ldev.max_brightness = 1;
 			pled->ldev.brightness_set = lp3944_led_set_brightness;
 			pled->ldev.blink_set = lp3944_led_set_blink;
 			pled->ldev.flags = LED_CORE_SUSPENDRESUME;

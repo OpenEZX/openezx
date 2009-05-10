@@ -50,11 +50,6 @@ enum lp3944_type {
 	LP3944_LED_TYPE_LED_INVERTED,
 };
 
-struct lp3944_dim {
-	unsigned period;
-	unsigned dutycycle;
-};
-
 struct lp3944_led {
 	u8 id;
 	struct i2c_client *client;
@@ -66,9 +61,7 @@ struct lp3944_led {
 };
 
 struct lp3944_platform_data {
-	struct lp3944_dim dims[LP3944_DIMS_MAX];
 	struct lp3944_led leds[LP3944_LEDS_MAX];
-	unsigned dims_size;
 	unsigned leds_size;
 };
 
