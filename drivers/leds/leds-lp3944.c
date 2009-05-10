@@ -212,6 +212,59 @@ static int lp3944_reg_write(struct i2c_client *client, unsigned reg,
 	return i2c_smbus_write_byte_data(client, reg, value);
 }
 
+
+static int lp3944_led_set_blink(struct led_classdev *led_cdev,
+				unsigned long *delay_on,
+				unsigned long *delay_off)
+{
+	struct lp3944_led *led = ldev_to_led(led_cdev);
+	u16 period;
+	u8 duty_cycle;
+	int err;
+
+	/* units are in ms */
+	if (*delay_on + *delay_off > LP3944_PERIOD_MAX)
+		return -EINVAL;
+
+	if (*delay_on == 0 && *delay_off == 0) {
+		/* Special case: the leds subsystem reqires a default user
+		 * friendly blink pattern for the LED.  Let's blink the led
+		 * slowly (0.5Hz).
+		 */
+		*delay_on = 500;
+		*delay_off = 500;
+	}
+
+	period = (*delay_on) + (*delay_off);
+
+	/* duty_cycle is the percentage of period during which the led is ON */
+	duty_cycle = 100 * (*delay_on) / period;
+
+
+	/* NOTE: using always the first DIM mode, this means that all leds
+	 * will have the same blinking pattern.
+	 *
+	 * We could find a way later to have two leds blinking in hardware
+	 * with different patterns at the same time, falling back to software
+	 * control for the other ones.
+	 */
+	err = lp3944_dim_set_period(led->client, LP3944_DIM0, period);
+	if (err)
+		return err;
+
+	err = lp3944_dim_set_dutycycle(led->client, LP3944_DIM0, duty_cycle);
+	if (err)
+		return err;
+
+	dev_dbg(&led->client->dev, "%s: OK hardware accelerated blink!\n",
+		__func__);
+
+	led->status = LP3944_LED_STATUS_DIM0;
+	schedule_work(&led->work);
+
+	return 0;
+}
+
 static void lp3944_led_set_brightness(struct led_classdev *led_cdev,
 				  enum led_brightness brightness)
 {
@@ -274,6 +327,7 @@ static int lp3944_configure(struct i2c_client *client,
 			 * pled->ldev.max_brightness = 1;
 			 */
 			pled->ldev.brightness_set = lp3944_led_set_brightness;
+			pled->ldev.blink_set = lp3944_led_set_blink;
 			pled->ldev.flags = LED_CORE_SUSPENDRESUME;
 
 			INIT_WORK(&pled->work, lp3944_led_work);
