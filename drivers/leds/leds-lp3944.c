@@ -372,7 +372,8 @@ static int __devinit lp3944_probe(struct i2c_client *client,
 	}
 
 	/* Let's see whether this adapter can support what we need. */
-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
+	if (!i2c_check_functionality(client->adapter,
+				I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(&client->dev, "insufficient functionality!\n");
 		return -ENODEV;
 	}
@@ -428,7 +429,7 @@ MODULE_DEVICE_TABLE(i2c, lp3944_id);
 static struct i2c_driver lp3944_driver = {
 	.driver   = {
 		   .name = "lp3944",
-	            },
+	},
 	.probe    = lp3944_probe,
 	.remove   = __devexit_p(lp3944_remove),
 	.id_table = lp3944_id,
