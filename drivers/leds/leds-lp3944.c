@@ -368,14 +368,14 @@ static int __devinit lp3944_probe(struct i2c_client *client,
 	struct lp3944_data *data;
 
 	if (lp3944_pdata == NULL) {
-		printk(KERN_ERR "%s: no platform data\n", __func__);
+		dev_err(&client->dev, "no platform data\n");
 		return -EINVAL;
 	}
 
 	/* Let's see whether this adapter can support what we need. */
 	if (!i2c_check_functionality(client->adapter,
 				I2C_FUNC_SMBUS_BYTE_DATA)) {
-		printk(KERN_ERR "%s: insufficient functionality!\n", __func__);
+		dev_err(&client->dev, "insufficient functionality!\n");
 		return -ENODEV;
 	}
 
