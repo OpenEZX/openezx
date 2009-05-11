@@ -24,6 +24,7 @@
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/leds-lp3944.h>
+#include <linux/regulator/machine.h>
 
 #include <media/soc_camera.h>
 
@@ -713,6 +714,70 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* voltage regulators */
+/* VAUX2: MMC on E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_VAUX2_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX2_data = {
+	.constraints = {
+		.min_uV = 1875000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX2_consumers),
+	.consumer_supplies = pcap_regulator_VAUX2_consumers,
+};
+
+static struct platform_device pcap_regulator_VAUX2_device = {
+	.name = "pcap-regulator", .id = VAUX2,
+	.platform_data = &pcap_regulator_VAUX2_data,
+};
+
+/* VAUX3: MMC on A780, A1200, A910 */
+static struct regulator_consumer_supply pcap_regulator_VAUX3_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX3_data = {
+	.constraints = {
+		.min_uV = 1200000,
+		.max_uV = 3600000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX3_consumers),
+	.consumer_supplies = pcap_regulator_VAUX3_consumers,
+};
+
+static struct platform_device pcap_regulator_VAUX3_device = {
+	.name = "pcap-regulator", .id = VAUX3,
+	.platform_data = &pcap_regulator_VAUX3_data,
+};
+
+/* SW1: CORE on A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
+	{ .supply = "vcc_core", },
+};
+
+static struct regulator_init_data pcap_regulator_SW1_data = {
+	.constraints = {
+		.min_uV = 950000,
+		.max_uV = 1705000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_SW1_consumers),
+	.consumer_supplies = pcap_regulator_SW1_consumers,
+};
+
+static struct platform_device pcap_regulator_SW1_device = {
+	.name = "pcap-regulator", .id = SW1,
+	.platform_data = &pcap_regulator_SW1_data,
+};
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -914,6 +979,7 @@ static void __init a780_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -987,6 +1053,7 @@ static void __init e680_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -1058,6 +1125,8 @@ static void __init a1200_init(void)
 	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+//	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1222,6 +1291,8 @@ static void __init a910_init(void)
 	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+//	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1295,6 +1366,8 @@ static void __init e6_init(void)
 	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+//	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1340,6 +1413,8 @@ static void __init e2_init(void)
 	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
+//	platform_device_register(&pcap_regulator_SW1_device);
+	platform_device_register(&pcap_regulator_VAUX2_device);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
