@@ -822,6 +822,12 @@ struct platform_device pcap_ts_device = {
 	.id   = -1,
 };
 
+/* PCAP_RTC */
+static struct platform_device pcap_rtc_device = {
+	.name = "rtc-pcap",
+	.id   = -1,
+};
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -1242,6 +1248,7 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&gen2_flash_device,
 	&pcap_ts_device,
 	&a1200_leds_device,
+	&pcap_rtc_device,
 };
 
 static void __init a1200_init(void)
@@ -1473,6 +1480,7 @@ static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 	&gen2_flash_device,
 	&a910_leds_device,
+	&pcap_rtc_device,
 };
 
 static void __init a910_init(void)
@@ -1569,6 +1577,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&gen2_flash_device,
 	&pcap_ts_device,
 	&e6_leds_device,
+	&pcap_rtc_device,
 };
 
 static void __init e6_init(void)
@@ -1639,6 +1648,7 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
 	&e2_leds_device,
+	&pcap_rtc_device,
 };
 
 static void __init e2_init(void)
