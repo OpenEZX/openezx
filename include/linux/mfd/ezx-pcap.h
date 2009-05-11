@@ -7,13 +7,22 @@
 #ifndef EZX_PCAP_H
 #define EZX_PCAP_H
 
+struct pcap_subdev {
+	int id;
+	const char *name;
+	void *platform_data;
+};
+
 struct pcap_platform_data {
 	unsigned int irq;
 	unsigned int config;
 	void (*init) (void);	/* board specific init */
+	int num_subdevs;
+	struct pcap_subdev *subdevs[];
 };
 
 #define PCAP_SECOND_PORT	1
+#define PCAP_CS_AH		2
 
 #define PCAP_REGISTER_WRITE_OP_BIT	0x80000000
 #define PCAP_REGISTER_READ_OP_BIT	0x00000000
@@ -60,38 +69,6 @@ struct pcap_platform_data {
 #define PCAP_REG_AUXVREG_MASK	0x16	/* Auxiliary Regulator Mask */
 #define PCAP_REG_VENDOR_REV	0x17
 #define PCAP_REG_PERIPH_MASK	0x19	/* Peripheral Mask */
-
-/* interrupts - registers 0x0, 0x1, 0x2, 0x3 */
-#define PCAP_IRQ_ADCDONE	(1 << 0)	/* AD Conversion Done Port 1 */
-#define PCAP_IRQ_TS		(1 << 1)	/* Touch Screen */
-#define PCAP_IRQ_1HZ		(1 << 2)	/* 1HZ Timer */
-#define PCAP_IRQ_WH		(1 << 3)	/* "...high"??? */
-#define PCAP_IRQ_WL		(1 << 4)	/* "...low"??? */
-#define PCAP_IRQ_TODA		(1 << 5)	/* RTC Time Of Day?
-						   (see "RTC_TODA") */
-#define PCAP_IRQ_USB4V		(1 << 6)	/* USB OTG */
-#define PCAP_IRQ_ONOFF		(1 << 7)	/* in blob: "ONOFFSNS" */
-#define PCAP_IRQ_ONOFF2		(1 << 8)	/* in blob: "ONOFFSNS2" */
-#define PCAP_IRQ_USB1V		(1 << 9)	/* USB below 1volt???
-						   in blob: "USBDET_1V" */
-#define PCAP_IRQ_MOBPORT	(1 << 10)	/* GSM-related?? ("mobport",
-						   see 958_MotDoc.pdf);
-						   in blob: "MOBSENSB" */
-#define PCAP_IRQ_MB2		(1 << 11)	/* Mic; in blob: "MB2SNS" */
-#define PCAP_IRQ_A1		(1 << 12)	/* Audio jack;
-						   in blob: "A1SNS" */
-#define PCAP_IRQ_ST		(1 << 13)	/* called "MSTB" in blob */
-#define PCAP_IRQ_PC		(1 << 14)
-#define PCAP_IRQ_WARM		(1 << 15)
-#define PCAP_IRQ_EOL		(1 << 16)	/*  battery End Of Life???
-						   (see below);
-						   in blob: "EOL_STAT" */
-#define PCAP_IRQ_CLK		(1 << 17)	/* called "CLK_STAT" in blob */
-#define PCAP_IRQ_SYSRST		(1 << 18)
-#define PCAP_IRQ_DUMMY		(1 << 19)
-#define PCAP_IRQ_ADCDONE2	(1 << 20)	/* AD Conversion Done Port 2 */
-#define PCAP_IRQ_SOFTRESET	(1 << 21)
-#define PCAP_IRQ_MNEXB		(1 << 22)
 
 /* voltage regulators */
 #define V1		0
