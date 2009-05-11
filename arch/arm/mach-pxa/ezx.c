@@ -108,7 +108,7 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
 };
 
-static struct platform_device *devices[] __initdata = {
+static struct platform_device *ezx_devices[] __initdata = {
 	&ezx_backlight_device,
 };
 
@@ -713,6 +713,93 @@ static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
 	},
 };
 
+/* MTD partitions on NOR flash */
+#define EZX_MTD_PART(_name, _offset, _size, _flags)	\
+	{						\
+		.name		= #_name,		\
+		.offset		= _offset,		\
+		.size		= _size,		\
+		.flags		= _flags,		\
+	}
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct resource gen1_flash_resource = {
+	.start	= PXA_CS0_PHYS,
+	.end	= PXA_CS0_PHYS + SZ_32M - 1,
+	.flags	= IORESOURCE_MEM,
+};
+
+static struct mtd_partition gen1_partitions[] = {
+	EZX_MTD_PART(bootloader,	0x00000000, 131072,	MTD_WRITEABLE),
+	EZX_MTD_PART(kernel,		0x00020000, 1048576,	0),
+	EZX_MTD_PART(rootfs,		0x00120000, 26083328,	0),
+	EZX_MTD_PART(userfs,		0x01a00000, 5767168,	0),
+	EZX_MTD_PART(setup,		0x01fa0000, 131072,	0),
+	EZX_MTD_PART(logo,		0x01fc0000, 131072,	0),
+};
+
+static struct flash_platform_data gen1_flash_data = {
+	.map_name	= "cfi_probe",
+	.name		= "EZX A780/E680 NOR flash",
+	.width		= 2,
+	.parts		= gen1_partitions,
+	.nr_parts	= ARRAY_SIZE(gen1_partitions),
+};
+
+static struct platform_device gen1_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &gen1_flash_data,
+	},
+	.resource      = &gen1_flash_resource,
+	.num_resources = 1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+	defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct resource gen2_flash_resource = {
+	.start	= PXA_CS0_PHYS,
+	.end	= PXA_CS0_PHYS + SZ_64M - 1,
+	.flags	= IORESOURCE_MEM,
+};
+
+static struct mtd_partition gen2_partitions[] = {
+	EZX_MTD_PART(bootloader,	0x00000000, 393216,	MTD_WRITEABLE),
+	EZX_MTD_PART(bootloader setup,	0x00060000, 131072,	0),
+	EZX_MTD_PART(linux loader,	0x00080000, 131072,	0),
+	EZX_MTD_PART(kernel,		0x000a0000, 1048576,	0),
+	EZX_MTD_PART(resourcefs,	0x001a0000, 9437184,	0),
+	EZX_MTD_PART(userfs db,		0x00aa0000, 6291456,	0),
+	EZX_MTD_PART(userfs general,	0x010a0000, 8388608,	0),
+	EZX_MTD_PART(secure setup,	0x018a0000, 131072,	0),
+	EZX_MTD_PART(tcmd data,		0x018c0000, 131072,	0),
+	EZX_MTD_PART(logo,		0x018e0000, 131072,	0),
+	EZX_MTD_PART(fota,		0x01900000, 917504,	0),
+	EZX_MTD_PART(languagefs,	0x019e0000, 12582912,	0),
+	EZX_MTD_PART(setup,		0x025e0000, 131072,	0),
+	EZX_MTD_PART(rootfs,		0x02600000, 27262976,	0),
+};
+
+static struct flash_platform_data gen2_flash_data = {
+	.map_name	= "cfi_probe",
+	.name		= "EZX A1200/A910/E2/E6 NOR flash",
+	.width		= 2,
+	.parts		= gen2_partitions,
+	.nr_parts	= ARRAY_SIZE(gen2_partitions),
+};
+
+static struct platform_device gen2_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &gen2_flash_data,
+	},
+	.resource      = &gen2_flash_resource,
+	.num_resources = 1,
+};
+#endif
 
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
@@ -738,59 +825,6 @@ static struct platform_device a780_gpio_keys = {
 	.dev  = {
 		.platform_data = &a780_gpio_keys_platform_data,
 	},
-};
-
-/* mtd partitions on NOR flash */
-static struct resource flash_resource = {
-	.start = PXA_CS0_PHYS,
-	.end   = PXA_CS0_PHYS + SZ_32M - 1,
-	.flags = IORESOURCE_MEM,
-};
-
-static struct mtd_partition a780_partitions[] = {
-	{
-		.name       = "Bootloader",
-		.size       = 0x00020000,
-		.offset     = 0x0,
-		.mask_flags = MTD_WRITEABLE, /* force read-only */
-	}, {
-		.name       = "Kernel",
-		.size       = 0x000e0000,
-		.offset     = 0x00020000,
-	} , {
-		.name       = "rootfs",
-		.size       = 0x018e0000,
-		.offset     = 0x00120000,
-	} , {
-		.name       = "VFM_Filesystem",
-		.size       = 0x00580000,
-		.offset     = 0x01a00000,
-	} , {
-		.name       = "setup",
-		.size       = 0x00020000,
-		.offset     = 0x01fa0000,
-	} , {
-		.name       = "Logo",
-		.size       = 0x00020000,
-		.offset     = 0x01fc0000,
-	},
-};
-
-static struct flash_platform_data a780_flash_data = {
-	.map_name = "cfi_probe",
-	.name     = "A780 NOR flash",
-	.parts    = a780_partitions,
-	.nr_parts = ARRAY_SIZE(a780_partitions),
-};
-
-static struct platform_device a780_flash_device = {
-	.name          = "pxa2xx-flash",
-	.id            = 0,
-	.dev           = {
-		.platform_data = &a780_flash_data,
-	},
-	.resource      = &flash_resource,
-	.num_resources = 1,
 };
 
 /* camera */
@@ -859,6 +893,10 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 	},
 };
 
+static struct platform_device *a780_devices[] __initdata = {
+	&a780_gpio_keys,
+	&gen1_flash_device,
+};
 
 static void __init a780_init(void)
 {
@@ -881,15 +919,10 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
-	platform_device_register(&a780_gpio_keys);
-
-	/* FIXME: Could this be simplified to just 2 ? */
-	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
-	platform_device_register(&a780_flash_device);
-
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
@@ -933,6 +966,11 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e680_devices[] __initdata = {
+	&e680_gpio_keys,
+	&gen1_flash_device,
+};
+
 static void __init e680_init(void)
 {
 	struct platform_device *spi_pd;
@@ -954,9 +992,8 @@ static void __init e680_init(void)
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
-	platform_device_register(&e680_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e680_devices));
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
@@ -1000,6 +1037,11 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *a1200_devices[] __initdata = {
+	&a1200_gpio_keys,
+	&gen2_flash_device,
+};
+
 static void __init a1200_init(void)
 {
 	struct platform_device *spi_pd;
@@ -1013,7 +1055,7 @@ static void __init a1200_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1021,9 +1063,8 @@ static void __init a1200_init(void)
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
-	platform_device_register(&a1200_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a1200_devices));
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
@@ -1160,6 +1201,11 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	},
 };
 
+static struct platform_device *a910_devices[] __initdata = {
+	&a910_gpio_keys,
+	&gen2_flash_device,
+};
+
 static void __init a910_init(void)
 {
 	struct platform_device *spi_pd;
@@ -1173,7 +1219,7 @@ static void __init a910_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1181,11 +1227,10 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
-	platform_device_register(&a910_gpio_keys);
-
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
@@ -1229,6 +1274,11 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e6_devices[] __initdata = {
+	&e6_gpio_keys,
+	&gen2_flash_device,
+};
+
 static void __init e6_init(void)
 {
 	struct platform_device *spi_pd;
@@ -1242,7 +1292,7 @@ static void __init e6_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1250,9 +1300,8 @@ static void __init e6_init(void)
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
-	platform_device_register(&e6_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e6_devices));
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
@@ -1271,6 +1320,10 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e2_devices[] __initdata = {
+	&gen2_flash_device,
+};
+
 static void __init e2_init(void)
 {
 	struct platform_device *spi_pd;
@@ -1284,7 +1337,7 @@ static void __init e2_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_spi_boardinfo[0].mode |= SPI_CS_HIGH;
+	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
@@ -1292,7 +1345,8 @@ static void __init e2_init(void)
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
