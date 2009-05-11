@@ -227,9 +227,9 @@ static int lp3944_led_set_blink(struct led_classdev *led_cdev,
 		return -EINVAL;
 
 	if (*delay_on == 0 && *delay_off == 0) {
-		/* Special case: the leds subsystem reqires a default user
+		/* Special case: the leds subsystem requires a default user
 		 * friendly blink pattern for the LED.  Let's blink the led
-		 * slowly (0.5Hz).
+		 * slowly (1Hz).
 		 */
 		*delay_on = 500;
 		*delay_off = 500;
