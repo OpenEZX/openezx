@@ -98,7 +98,7 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
 };
 
-static struct platform_device *devices[] __initdata = {
+static struct platform_device *ezx_devices[] __initdata = {
 	&ezx_backlight_device,
 };
 
@@ -739,6 +739,9 @@ static struct platform_device a780_flash_device = {
 	.num_resources = 1,
 };
 
+static struct platform_device *a780_devices[] __initdata = {
+	&a780_gpio_keys,
+};
 
 static void __init a780_init(void)
 {
@@ -752,13 +755,12 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
-	platform_device_register(&a780_gpio_keys);
-
 	/* FIXME: Could this be simplified to just 2 ? */
 	a780_flash_data.width = (BOOT_DEF & 1) ? 2 : 4,
 	platform_device_register(&a780_flash_device);
 
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
@@ -802,6 +804,10 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e680_devices[] __initdata = {
+	&e680_gpio_keys,
+};
+
 static void __init e680_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -815,9 +821,8 @@ static void __init e680_init(void)
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
-	platform_device_register(&e680_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e680_devices));
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
@@ -861,6 +866,10 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *a1200_devices[] __initdata = {
+	&a1200_gpio_keys,
+};
+
 static void __init a1200_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -874,9 +883,8 @@ static void __init a1200_init(void)
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
-	platform_device_register(&a1200_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a1200_devices));
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
@@ -916,6 +924,9 @@ static struct platform_device a910_gpio_keys = {
 	},
 };
 
+static struct platform_device *a910_devices[] __initdata = {
+	&a910_gpio_keys,
+};
 
 static void __init a910_init(void)
 {
@@ -929,9 +940,8 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
-	platform_device_register(&a910_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
@@ -975,6 +985,10 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e6_devices[] __initdata = {
+	&e6_gpio_keys,
+};
+
 static void __init e6_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -988,9 +1002,8 @@ static void __init e6_init(void)
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
-	platform_device_register(&e6_gpio_keys);
-
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e6_devices));
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
@@ -1009,6 +1022,9 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
 
+static struct platform_device *e2_devices[] __initdata = {
+};
+
 static void __init e2_init(void)
 {
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
@@ -1022,7 +1038,8 @@ static void __init e2_init(void)
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
-	platform_add_devices(devices, ARRAY_SIZE(devices));
+	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
+	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
