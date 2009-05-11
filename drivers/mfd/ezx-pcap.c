@@ -2,7 +2,7 @@
  * Driver for Motorola PCAP2 as present in EZX phones
  *
  * Copyright (C) 2006 Harald Welte <laforge@openezx.org>
- * Copyright (C) 2007-2008 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  */
 
@@ -148,7 +148,11 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 
 static irqreturn_t pcap_test_irq(int irq, void *data)
 {
+	u32 tmp;
 	printk("%s: %d\n", __func__, irq);
+	ezx_pcap_read(0, &tmp);
+	printk("%s: %08x\n", __func__, tmp);
+
 	return IRQ_HANDLED;
 }
 
@@ -240,7 +244,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	}
 
 	/* mask/ack all PCAP interrupts */
-	ezx_pcap_write(PCAP_REG_MSR, 0); //PCAP_MASK_ALL_INTERRUPT);
+	ezx_pcap_write(PCAP_REG_MSR, PCAP_MASK_ALL_INTERRUPT);
 	ezx_pcap_write(PCAP_REG_ISR, PCAP_CLEAR_INTERRUPT_REGISTER);
 	pcap.msr = PCAP_MASK_ALL_INTERRUPT;
 
@@ -255,7 +259,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 			goto remove_subdevs;
 	}
 
-	/* set board-specific settings */
+	/* board specific quirks */
 	if (pdata->init)
 		pdata->init();
 
