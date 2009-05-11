@@ -1030,6 +1030,7 @@ static struct platform_device gen2_flash_device = {
 	.resource      = &gen2_flash_resource,
 	.num_resources = 1,
 };
+#endif
 
 #ifdef CONFIG_MACH_EZX_A780
 /* gpio_keys */
