@@ -953,9 +953,10 @@ static struct platform_device gen1_flash_device = {
 	.resource      = &gen1_flash_resource,
 	.num_resources = 1,
 };
+#endif
 
 #if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
-        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+	defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
 static struct resource gen2_flash_resource = {
 	.start	= PXA_CS0_PHYS,
 	.end	= PXA_CS0_PHYS + SZ_64M - 1,
