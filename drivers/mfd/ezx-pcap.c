@@ -174,7 +174,7 @@ static int pcap_add_subdev(struct spi_device *spi, struct pcap_subdev *subdev)
 
 	pdev = platform_device_alloc(subdev->name, subdev->id);
 	pdev->dev.parent = &spi->dev;
-	pdev->platform_data = subdev->platform_data;
+	pdev->dev.platform_data = subdev->platform_data;
 
 	return platform_device_add(pdev);
 }
