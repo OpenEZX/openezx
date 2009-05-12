@@ -2,7 +2,7 @@
  *  pcap rtc code for Motorola EZX phones
  *
  *  Copyright (c) 2008 guiming zhuo <gmzhuo@gmail.com>
- *  Copyright (c) 2008 Daniel Ribeiro <drwyrm@gmail.com>
+ *  Copyright (c) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  *  Based on Motorola's rtc.c Copyright (c) 2003-2005 Motorola
  *
@@ -19,14 +19,13 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static void pcap_rtc_irq(u32 events, void *data)
+static irqreturn_t pcap_rtc_irq(int irq, void *rtc)
 {
 	unsigned long rtc_events = 0;
-	struct rtc_device *rtc = data;
 
-	if (events & PCAP_IRQ_1HZ)
+	if (irq == PCAP_IRQ_1HZ)
 		rtc_events |= RTC_IRQF | RTC_UF;
-	if (events & PCAP_IRQ_TODA)
+	else if (irq == PCAP_IRQ_TODA)
 		rtc_events |= RTC_IRQF | RTC_AF;
 
 	rtc_update_irq(rtc, 1, rtc_events);
@@ -108,24 +107,24 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 	return 0;
 }
 
-static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
+static inline int pcap_rtc_irq_enable(int irq, unsigned int en)
 {
 	if (en)
-		ezx_pcap_unmask_event(PCAP_IRQ_TODA);
+		enable_irq(irq);
 	else
-		ezx_pcap_mask_event(PCAP_IRQ_TODA);
+		disable_irq(irq);
 
 	return 0;
 }
 
+static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
+{
+	return pcap_rtc_irq_enable(PCAP_IRQ_TODA, en);
+}
+
 static int pcap_rtc_update_irq_enable(struct device *dev, unsigned int en)
 {
-	if (en)
-		ezx_pcap_unmask_event(PCAP_IRQ_1HZ);
-	else
-		ezx_pcap_mask_event(PCAP_IRQ_1HZ);
-
-	return 0;
+	return pcap_rtc_irq_enable(PCAP_IRQ_1HZ, en);
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
@@ -148,8 +147,8 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	ezx_pcap_register_event(PCAP_IRQ_1HZ, pcap_rtc_irq, rtc, "RTC Timer");
-	ezx_pcap_register_event(PCAP_IRQ_TODA, pcap_rtc_irq, rtc, "RTC Alarm");
+	request_irq(PCAP_IRQ_1HZ, pcap_rtc_irq, 0, "RTC Timer");
+	request_irq(PCAP_IRQ_TODA, pcap_rtc_irq, 0, "RTC Alarm");
 
 	return 0;
 }
@@ -158,15 +157,17 @@ static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
 
-	ezx_pcap_unregister_event(PCAP_IRQ_1HZ | PCAP_IRQ_TODA);
+	free_irq(PCAP_IRQ_1HZ, rtc);
+	free_irq(PCAP_IRQ_TODA, rtc);
 	rtc_device_unregister(rtc);
+
 	return 0;
 }
 
 static struct platform_driver pcap_rtc_driver = {
 	.remove = __exit_p(pcap_rtc_remove),
 	.driver = {
-		.name  = "rtc-pcap",
+		.name  = "pcap_rtc",
 		.owner = THIS_MODULE,
 	},
 };
