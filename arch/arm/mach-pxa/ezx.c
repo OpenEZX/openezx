@@ -781,8 +781,11 @@ static struct regulator_init_data pcap_regulator_VAUX2_data = {
 };
 
 static struct platform_device pcap_regulator_VAUX2_device = {
-	.name = "pcap-regulator", .id = VAUX2,
-	.platform_data = &pcap_regulator_VAUX2_data,
+	.name = "pcap-regulator",
+	.id = VAUX2,
+	.dev = {
+		.platform_data = &pcap_regulator_VAUX2_data,
+	},
 };
 
 /* VAUX3: MMC on A780, A1200, A910 */
