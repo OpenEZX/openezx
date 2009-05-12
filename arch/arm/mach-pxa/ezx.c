@@ -790,7 +790,7 @@ static struct platform_device pcap_regulator_SW1_device = {
 		.name		= #_name,		\
 		.offset		= _offset,		\
 		.size		= _size,		\
-		.flags		= _flags,		\
+		.mask_flags	= _flags,		\
 	}
 
 #if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
