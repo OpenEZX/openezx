@@ -838,8 +838,11 @@ static struct regulator_init_data pcap_regulator_VAUX3_data = {
 };
 
 static struct platform_device pcap_regulator_VAUX3_device = {
-	.name = "pcap-regulator", .id = VAUX3,
-	.platform_data = &pcap_regulator_VAUX3_data,
+	.name = "pcap-regulator",
+	.id = VAUX3,
+	.dev = {
+		.platform_data = &pcap_regulator_VAUX3_data,
+	},
 };
 
 /* SW1: CORE on A1200, A910, E6, E2 */
@@ -859,8 +862,11 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 };
 
 static struct platform_device pcap_regulator_SW1_device = {
-	.name = "pcap-regulator", .id = SW1,
-	.platform_data = &pcap_regulator_SW1_data,
+	.name = "pcap-regulator",
+	.id = SW1,
+	.dev = {
+		.platform_data = &pcap_regulator_SW1_data,
+	},
 };
 
 /* PCAP_TS */
