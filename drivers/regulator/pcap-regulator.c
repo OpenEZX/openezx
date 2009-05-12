@@ -273,7 +273,7 @@ static int __devinit pcap_regulator_probe(struct platform_device *pdev)
 	struct regulator_dev *rdev;
 
 	rdev = regulator_register(&pcap_regulators[pdev->id], &pdev->dev,
-				pdev->platform_data, NULL);
+				pdev->dev.platform_data, NULL);
 	if (IS_ERR(rdev))
 		return PTR_ERR(rdev);
 
