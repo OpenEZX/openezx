@@ -83,14 +83,12 @@ static inline unsigned int irq2pcap(int irq)
 static void pcap_mask_irq(unsigned int irq)
 {
 	pcap.msr |= irq2pcap(irq);
-	printk("%s: %d (%08x)\n", __func__, irq, pcap.msr);
 	queue_work(pcap.workqueue, &pcap.msr_work);
 }
 
 static void pcap_unmask_irq(unsigned int irq)
 {
 	pcap.msr &= ~irq2pcap(irq);
-	printk("%s: %d (%08x)\n", __func__, irq, pcap.msr);
 	queue_work(pcap.workqueue, &pcap.msr_work);
 }
 
@@ -102,11 +100,7 @@ static struct irq_chip pcap_irq_chip = {
 
 static void pcap_msr_work(struct work_struct *msr_work)
 {
-	u32 isr;
-	printk("%s: %08x\n", __func__, pcap.msr);
 	ezx_pcap_write(PCAP_REG_MSR, pcap.msr);
-	ezx_pcap_read(PCAP_REG_ISR, &isr);
-	printk("%s: ISR %08x\n", __func__, isr);
 }
 
 static void pcap_work(struct work_struct *_pcap)
@@ -116,31 +110,30 @@ static void pcap_work(struct work_struct *_pcap)
 
 	ezx_pcap_read(PCAP_REG_MSR, &msr);
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
+	ezx_pcap_write(PCAP_REG_ISR, isr);
 
 	local_irq_disable();
 	service = isr & ~msr;
 
-	printk ("%s: i%08x m%08x s%08x\n", __func__, isr, msr, service);
 	for (irq = PCAP_IRQ(0); service; service >>= 1, irq++) {
 		if (service & 1) {
 			struct irq_desc *desc = irq_to_desc(irq);
 
-			printk("%s: found irq %d\n", __func__, irq);
-			if (!desc)
-				printk("invalid irq!!!\n");
-			else if (desc->status & IRQ_DISABLED)
+			if (WARN(!desc, KERN_WARNING
+					"Invalid PCAP IRQ %d\n", irq))
+				break;
+
+			if (desc->status & IRQ_DISABLED)
 				note_interrupt(irq, desc, IRQ_NONE);
 			else
 				desc->handle_irq(irq, desc);
 		}
 	}
 	local_irq_enable();
-	ezx_pcap_write(PCAP_REG_ISR, isr);
 }
 
 static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 {
-	printk("%s\n", __func__);
 	desc->chip->ack(irq);
 	queue_work(pcap.workqueue, &pcap.work);
 	return;
