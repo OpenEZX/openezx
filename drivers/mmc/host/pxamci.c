@@ -605,9 +605,13 @@ static int pxamci_probe(struct platform_device *pdev)
 	mmc->f_max = (cpu_is_pxa300() || cpu_is_pxa310()) ? 26000000
 							  : host->clkrate;
 
-	if (pxamci_regulator_get(&pdev->dev, host) == 0)
+	if (pxamci_regulator_get(&pdev->dev, host) == 0) {
 		mmc->ocr_avail = pxamci_regulator_get_ocrmask(host);
-	else
+		if (host->pdata && host->pdata->ocr_mask)
+			dev_warn(mmc_dev(mmc),
+				"ocr_mask/setpower will not be used\n");
+
+	} else
 		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
 			 MMC_VDD_32_33|MMC_VDD_33_34;
