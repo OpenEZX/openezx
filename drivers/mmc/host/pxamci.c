@@ -72,43 +72,37 @@ struct pxamci_host {
 	struct regulator	*vcc;
 };
 
+static inline void pxamci_init_ocr(struct pxamci_host *host)
+{
 #ifdef CONFIG_REGULATOR
-static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
-{
-	struct regulator *reg = regulator_get(dev, "vmmc");
+	host->vcc = regulator_get(mmc_dev(host->mmc), "vmmc");
 
-	if (IS_ERR(reg))
-		return PTR_ERR(reg);
-
-	host->vcc = reg;
-	return 0;
-}
-
-static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
-{
-	return mmc_regulator_get_ocrmask(host->vcc);
-}
-
-static int pxamci_regulator_set_ocr(struct pxamci_host *host,
-							unsigned short vdd)
-{
-	return mmc_regulator_set_ocr(host->vcc, vdd);
-}
-#else
-static int pxamci_regulator_get(struct device *dev, struct pxamci_host *host)
-{
-	return -ENOTSUPP;
-}
-static int pxamci_regulator_get_ocrmask(struct pxamci_host *host)
-{
-	return 0;
-}
-static int pxamci_regulator_set_ocr(struct pxamci_host *host,
-							unsigned short vdd)
-{
-	return 0;
-}
+	if (IS_ERR(host->vcc))
+		host->vcc = NULL;
+	else {
+		mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
+		if (host->pdata && host->pdata->ocr_mask)
+			dev_warn(mmc_dev(host->mmc),
+				"ocr_mask/setpower will not be used\n");
+	}
 #endif
+	if (host->vcc == NULL) {
+		/* fall-back to platform data */
+		mmc->ocr_avail = host->pdata ?
+			host->pdata->ocr_mask :
+			MMC_VDD_32_33 | MMC_VDD_33_34;
+	}
+}
+
+static inline void pxamci_set_power(struct pxamci_host *host, unsigned int vdd)
+{
+#ifdef CONFIG_REGULATOR
+	if (host->vcc)
+		mmc_regulator_set_ocr(host->vcc, vdd);
+#endif
+	if (!host->vcc && host->pdata && host->pdata->setpower)
+		host->pdata->setpower(mmc_dev(host->mmc), vdd);
+}
 
 static void pxamci_stop_clock(struct pxamci_host *host)
 {
@@ -479,10 +473,7 @@ static void pxamci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (host->power_mode != ios->power_mode) {
 		host->power_mode = ios->power_mode;
 
-		if (host->vcc)
-			pxamci_regulator_set_ocr(host, ios->vdd);
-		else if (host->pdata && host->pdata->setpower)
-			host->pdata->setpower(mmc_dev(mmc), ios->vdd);
+		pxamci_set_power(host, ios->vdd);
 
 		if (ios->power_mode == MMC_POWER_ON)
 			host->cmdat |= CMDAT_INIT;
@@ -605,15 +596,8 @@ static int pxamci_probe(struct platform_device *pdev)
 	mmc->f_max = (cpu_is_pxa300() || cpu_is_pxa310()) ? 26000000
 							  : host->clkrate;
 
-	if (pxamci_regulator_get(&pdev->dev, host) == 0) {
-		mmc->ocr_avail = pxamci_regulator_get_ocrmask(host);
-		if (host->pdata && host->pdata->ocr_mask)
-			dev_warn(mmc_dev(mmc),
-				"ocr_mask/setpower will not be used\n");
-	} else
-		mmc->ocr_avail = host->pdata ?
-			 host->pdata->ocr_mask :
-			 MMC_VDD_32_33|MMC_VDD_33_34;
+	pxamci_init_ocr(host);
+
 	mmc->caps = 0;
 	host->cmdat = 0;
 	if (!cpu_is_pxa25x()) {
