@@ -1,4 +1,4 @@
-ezx/mach/reboot-poweroff
+ezx/mach/rfkill-bluetooth
 ezx/asoc
 ezx/defconfig
 pxa/sparsemem
