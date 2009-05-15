@@ -47,6 +47,7 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
+#include <mach/ezx-bp.h>
 #include <mach/camera.h>
 
 #include "devices.h"
@@ -873,6 +874,52 @@ static struct pxa2xx_udc_mach_info ezx_udc_info = {
 	.gpio_vbus	= -1,
 };
 
+/* OHCI Controller */
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_PERPORT_MODE,
+	.flags		= ENABLE_PORT3,
+	.power_on_delay	= 400,
+};
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 82,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 57,
+	.first_step = 2,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -1083,6 +1130,7 @@ static struct platform_device *a780_devices[] __initdata = {
 	&gen1_flash_device,
 	&pcap_ts_device,
 	&a780_leds_device,
+	&gen1_bp_device,
 };
 
 static void __init a780_init(void)
@@ -1102,6 +1150,8 @@ static void __init a780_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 	platform_device_register(&pcap_regulator_VAUX3_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1200,6 +1250,7 @@ static struct platform_device *e680_devices[] __initdata = {
 	&gen1_flash_device,
 	&pcap_ts_device,
 	&e680_leds_device,
+	&gen1_bp_device,
 };
 
 static void __init e680_init(void)
@@ -1219,6 +1270,8 @@ static void __init e680_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 	platform_device_register(&pcap_regulator_VAUX2_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1306,6 +1359,7 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_leds_device,
 	&pcap_rtc_device,
 	&pcap_keys_device,
+	&gen2_bp_device,
 };
 
 static void __init a1200_init(void)
@@ -1326,6 +1380,8 @@ static void __init a1200_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX3_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1542,6 +1598,7 @@ static struct platform_device *a910_devices[] __initdata = {
 	&a910_leds_device,
 	&pcap_rtc_device,
 	&pcap_keys_device,
+	&gen2_bp_device,
 };
 
 static void __init a910_init(void)
@@ -1562,6 +1619,8 @@ static void __init a910_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX3_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
@@ -1643,6 +1702,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&e6_leds_device,
 	&pcap_rtc_device,
 	&pcap_keys_device,
+	&gen2_bp_device,
 };
 
 static void __init e6_init(void)
@@ -1663,6 +1723,8 @@ static void __init e6_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX2_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1718,6 +1780,7 @@ static struct platform_device *e2_devices[] __initdata = {
 	&e2_leds_device,
 	&pcap_rtc_device,
 	&pcap_keys_device,
+	&gen2_bp_device,
 };
 
 static void __init e2_init(void)
@@ -1738,6 +1801,8 @@ static void __init e2_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX2_device);
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
