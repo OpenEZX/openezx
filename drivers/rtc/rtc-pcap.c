@@ -29,7 +29,7 @@ static irqreturn_t pcap_rtc_irq(int irq, void *rtc)
 		rtc_events |= RTC_IRQF | RTC_AF;
 
 	rtc_update_irq(rtc, 1, rtc_events);
-	return;
+	return IRQ_HANDLED;
 }
 
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
@@ -147,8 +147,8 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	request_irq(PCAP_IRQ_1HZ, pcap_rtc_irq, 0, "RTC Timer");
-	request_irq(PCAP_IRQ_TODA, pcap_rtc_irq, 0, "RTC Alarm");
+	request_irq(PCAP_IRQ_1HZ, pcap_rtc_irq, 0, "RTC Timer", rtc);
+	request_irq(PCAP_IRQ_TODA, pcap_rtc_irq, 0, "RTC Alarm", rtc);
 
 	return 0;
 }
