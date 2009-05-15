@@ -1,6 +1,6 @@
-From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/reboot-poweroff
+From: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Subject: [PATCH] ezx/mach/rfkill-bluetooth
 
 <patch description>
 
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
