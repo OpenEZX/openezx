@@ -1,5 +1,4 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
-To: Richard Purdie <rpurdie@rpsys.net>
 CC: openezx-devel <openezx-devel@lists.openezx.org>
 Subject: [PATCH] LEDs driver for National Semiconductor LP3944 Funlight Chip
 
