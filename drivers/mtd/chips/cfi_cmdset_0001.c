@@ -319,7 +319,7 @@ static inline struct cfi_pri_intelext *
 read_pri_intelext(struct map_info *map, __u16 adr)
 {
 	struct cfi_pri_intelext *extp;
-	unsigned int extra_size;
+	unsigned int extra_size = 0;
 	unsigned int extp_size = sizeof(*extp);
 
  again:
