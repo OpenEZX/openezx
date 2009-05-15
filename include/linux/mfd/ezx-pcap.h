@@ -88,11 +88,13 @@ struct pcap_platform_data {
 #define VSIM		14
 #define VSIM2		15
 #define VVIB		16
-#define SW1		17
-#define SW2		18
-#define SW3		19
-#define SW1S		20
-#define SW2S		21
+#define VC		17
+
+#define V_EN		0
+#define V_VAL		1
+#define V_MASK		2
+#define V_STBY		3
+#define V_LOWPWR	4
 
 #define PCAP_BATT_DAC_MASK		0x000000ff
 #define PCAP_BATT_DAC_SHIFT		0
@@ -218,6 +220,30 @@ struct pcap_platform_data {
 #define PCAP_RTC_TOD_MASK	0xffff
 #define PCAP_RTC_PC_MASK	0x7
 #define SEC_PER_DAY		86400
+
+/* LOWPWR */
+#define SW1		8
+#define SW2		16
+
+#define SW_MODE		0
+#define SW_VOLTAGE	4
+
+#define SW_VOLTAGE_900	0x0
+#define SW_VOLTAGE_950	0x1
+#define SW_VOLTAGE_1000	0x2
+#define SW_VOLTAGE_1050	0x3
+#define SW_VOLTAGE_1100	0x4
+#define SW_VOLTAGE_1150	0x5
+#define SW_VOLTAGE_1200	0x6
+#define SW_VOLTAGE_1250	0x7
+#define SW_VOLTAGE_1300	0x8
+#define SW_VOLTAGE_1350	0x9
+#define SW_VOLTAGE_1400	0xa
+#define SW_VOLTAGE_1500	0xb
+#define SW_VOLTAGE_1600	0xc
+#define SW_VOLTAGE_1875	0xd
+#define SW_VOLTAGE_2250	0xe
+#define SW_VOLTAGE_4400	0xf
 
 int ezx_pcap_write(u8, u32);
 int ezx_pcap_read(u8, u32 *);
