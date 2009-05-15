@@ -80,7 +80,7 @@ static inline void pxamci_init_ocr(struct pxamci_host *host)
 	if (IS_ERR(host->vcc))
 		host->vcc = NULL;
 	else {
-		mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
+		host->mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
 		if (host->pdata && host->pdata->ocr_mask)
 			dev_warn(mmc_dev(host->mmc),
 				"ocr_mask/setpower will not be used\n");
