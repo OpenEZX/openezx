@@ -832,24 +832,9 @@ struct platform_device pcap_ts_device = {
 };
 
 /* PCAP_RTC */
-static struct resource pcap_rtc_resources[] = {
-	[0] = {
-		.start      = PCAP_IRQ_1HZ,
-		.end        = PCAP_IRQ_1HZ,
-		.flags      = IORESOURCE_IRQ,
-	},
-	[1] = {
-		.start      = PCAP_IRQ_TODA,
-		.end        = PCAP_IRQ_TODA,
-		.flags      = IORESOURCE_IRQ,
-	},
-};
-
 static struct platform_device pcap_rtc_device = {
 	.name = "rtc-pcap",
 	.id   = -1,
-	.num_resources  = ARRAY_SIZE(pcap_rtc_resources),
-	.resource   = pcap_rtc_resources,
 };
 
 /* MTD partitions on NOR flash */
