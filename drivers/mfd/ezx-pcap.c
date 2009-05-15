@@ -206,7 +206,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* setup spi */
 	spi->bits_per_word = 32;
-	spi->mode = SPI_MODE_0 | pdata->config & PCAP_CS_AH ? SPI_CS_HIGH : 0;
+	spi->mode = SPI_MODE_0 | (pdata->config & PCAP_CS_AH ? SPI_CS_HIGH : 0);
 	ret = spi_setup(spi);
 	if (ret)
 		goto ret;
