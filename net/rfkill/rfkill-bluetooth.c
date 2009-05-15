@@ -54,7 +54,7 @@ static int reg_bt_getstate(void *data, enum rfkill_state *state)
 
 static int __devinit reg_rfkill_probe(struct platform_device *pdev)
 {
-	struct regulator *reg = regulator_get(&pdev->dev, "vmmc");
+	struct regulator *reg = regulator_get(&pdev->dev, "vbluetooth");
 	if (!reg)
 		return -ENODEV;
 	rfkill_info.vcc = reg;
