@@ -1816,6 +1816,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e6_init(void)
@@ -1900,7 +1901,6 @@ static struct platform_device *e2_devices[] __initdata = {
 	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
-	&ezx_rfkill_bluetooth_devic,
 };
 
 static void __init e2_init(void)
