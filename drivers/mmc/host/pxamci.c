@@ -610,7 +610,6 @@ static int pxamci_probe(struct platform_device *pdev)
 		if (host->pdata && host->pdata->ocr_mask)
 			dev_warn(mmc_dev(mmc),
 				"ocr_mask/setpower will not be used\n");
-
 	} else
 		mmc->ocr_avail = host->pdata ?
 			 host->pdata->ocr_mask :
