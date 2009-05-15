@@ -19,18 +19,18 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static irqreturn_t pcap_rtc_irq(int irq, void *rtc)
+static irqreturn_t pcap_rtc_irq_timer(int irq, void *rtc)
 {
-	unsigned long rtc_events = 0;
-
-	if (irq == PCAP_IRQ_1HZ)
-		rtc_events |= RTC_IRQF | RTC_UF;
-	else if (irq == PCAP_IRQ_TODA)
-		rtc_events |= RTC_IRQF | RTC_AF;
-
-	rtc_update_irq(rtc, 1, rtc_events);
+	rtc_update_irq(rtc, 1, RTC_IRQF | RTC_UF);
 	return;
 }
+
+static irqreturn_t pcap_rtc_irq_alarm(int irq, void *rtc)
+{
+	rtc_update_irq(rtc, 1, RTC_IRQF | RTC_AF);
+	return;
+}
+
 
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
@@ -119,12 +119,14 @@ static inline int pcap_rtc_irq_enable(int irq, unsigned int en)
 
 static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
 {
-	return pcap_rtc_irq_enable(PCAP_IRQ_TODA, en);
+	struct platform_device *pdev = to_platform_device(dev);
+	return pcap_rtc_irq_enable(platform_get_irq(plat_dev, 1), en);
 }
 
 static int pcap_rtc_update_irq_enable(struct device *dev, unsigned int en)
 {
-	return pcap_rtc_irq_enable(PCAP_IRQ_1HZ, en);
+	struct platform_device *pdev = to_platform_device(dev);
+	return pcap_rtc_irq_enable(platform_get_irq(plat_dev, 0), en);
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
@@ -139,6 +141,8 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc;
+	int irq;
+	int ret = 0;
 
 	rtc = rtc_device_register("pcap", &plat_dev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
@@ -147,8 +151,13 @@ static int __init pcap_rtc_probe(struct platform_device *plat_dev)
 
 	platform_set_drvdata(plat_dev, rtc);
 
-	request_irq(PCAP_IRQ_1HZ, pcap_rtc_irq, 0, "RTC Timer");
-	request_irq(PCAP_IRQ_TODA, pcap_rtc_irq, 0, "RTC Alarm");
+	irq = platform_get_irq(plat_dev, 0);
+	if (irq > 0)
+		request_irq(irq, pcap_rtc_irq_timer, 0, "RTC Timer");
+
+	irq = platform_get_irq(plat_dev, 1);
+	if (irq > 0)
+		request_irq(irq, pcap_rtc_irq_alarm, 0, "RTC Alarm");
 
 	return 0;
 }
@@ -157,8 +166,8 @@ static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
 
-	free_irq(PCAP_IRQ_1HZ, rtc);
-	free_irq(PCAP_IRQ_TODA, rtc);
+	free_irq(platform_get_irq(dev, 0), rtc);
+	free_irq(platform_get_irq(dev, 1), rtc);
 	rtc_device_unregister(rtc);
 
 	return 0;
