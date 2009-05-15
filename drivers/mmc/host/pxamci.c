@@ -88,7 +88,7 @@ static inline void pxamci_init_ocr(struct pxamci_host *host)
 #endif
 	if (host->vcc == NULL) {
 		/* fall-back to platform data */
-		mmc->ocr_avail = host->pdata ?
+		host->mmc->ocr_avail = host->pdata ?
 			host->pdata->ocr_mask :
 			MMC_VDD_32_33 | MMC_VDD_33_34;
 	}
