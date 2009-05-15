@@ -1,13 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] mtd/cfi1.1-has-extra-too
+Subject: [PATCH] mtd/pf38f4476-fix
 
-references:
-
-1.0:
-http://www.datasheetcatalog.org/datasheets2/81/816884_1.pdf
-
-1.1:
-http://milkymist.org/doc/MT28F640J3.pdf
-http://www.delorie.com/agenda/specs/29066709.pdf
+<patch description>
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
