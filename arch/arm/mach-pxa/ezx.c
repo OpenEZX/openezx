@@ -143,6 +143,11 @@ struct platform_device ezx_usb20_device = {
 	.resource   = ezx_usb20_resources,
 };
 
+struct platform_device ezx_rfkill_bluetooth_device = {
+	.name       = "rfkill_bluetooth",
+	.id     = -1,
+};
+
 /* MMC */
 static int ezx_mci_init(struct device *dev,
 		irqreturn_t (*detect_int)(int, void *), void *data)
@@ -872,6 +877,30 @@ static struct platform_device pcap_regulator_SW1_device = {
 	},
 };
 
+/* V6: bluetooth on A1200, E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_V6_consumers[] = {
+	{ .dev = &ezx_rfkill_bluetooth_device.dev, .supply = "vbluetooth", },
+};
+
+static struct regulator_init_data pcap_regulator_V6_data = {
+	.constraints = {
+		.min_uV = 2475000,
+		.max_uV = 2775000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS ,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_V6_consumers),
+	.consumer_supplies = pcap_regulator_V6_consumers,
+};
+
+static struct platform_device pcap_regulator_V6_device = {
+	.name = "pcap-regulator",
+	.id = V6,
+	.dev = {
+		.platform_data = &pcap_regulator_V6_data,
+	},
+};
+
+
 /* PCAP_TS */
 struct platform_device pcap_ts_device = {
 	.name = "pcap-ts",
@@ -879,9 +908,24 @@ struct platform_device pcap_ts_device = {
 };
 
 /* PCAP_RTC */
+static struct resource pcap_rtc_resources[] = {
+	[0] = {
+		.start      = PCAP_IRQ_1HZ,
+		.end        = PCAP_IRQ_1HZ,
+		.flags      = IORESOURCE_IRQ,
+	},
+	[1] = {
+		.start      = PCAP_IRQ_TODA,
+		.end        = PCAP_IRQ_TODA,
+		.flags      = IORESOURCE_IRQ,
+	},
+};
+
 static struct platform_device pcap_rtc_device = {
 	.name = "rtc-pcap",
 	.id   = -1,
+	.num_resources  = ARRAY_SIZE(pcap_rtc_resources),
+	.resource   = pcap_rtc_resources,
 };
 
 /* UDC */
@@ -1787,6 +1831,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e6_init(void)
@@ -1811,6 +1856,7 @@ static void __init e6_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX2_device);
+	platform_device_register(&pcap_regulator_V6_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
