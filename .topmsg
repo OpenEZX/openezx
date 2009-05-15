@@ -1,0 +1,6 @@
+From: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Subject: [PATCH] ezx/rfkill-bluetooth
+
+rfkill for bluetooth depend on regulator
+
+Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
