@@ -148,6 +148,11 @@ struct platform_device ezx_usb20_device = {
 	.resource   = ezx_usb20_resources,
 };
 
+struct platform_device ezx_rfkill_bluetooth_device = {
+	.name       = "rfkill_bluetooth",
+	.id     = -1,
+};
+
 /* MMC */
 static int ezx_mci_init(struct device *dev,
 		irqreturn_t (*detect_int)(int, void *), void *data)
@@ -876,6 +881,30 @@ static struct platform_device pcap_regulator_SW1_device = {
 		.platform_data = &pcap_regulator_SW1_data,
 	},
 };
+
+/* V6: bluetooth on A1200, E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_V6_consumers[] = {
+	{ .dev = &ezx_rfkill_bluetooth_device.dev, .supply = "vbluetooth", },
+};
+
+static struct regulator_init_data pcap_regulator_V6_data = {
+	.constraints = {
+		.min_uV = 2475000,
+		.max_uV = 2775000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS ,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_V6_consumers),
+	.consumer_supplies = pcap_regulator_V6_consumers,
+};
+
+static struct platform_device pcap_regulator_V6_device = {
+	.name = "pcap-regulator",
+	.id = V6,
+	.dev = {
+		.platform_data = &pcap_regulator_V6_data,
+	},
+};
+
 
 /* PCAP_TS */
 struct platform_device pcap_ts_device = {
@@ -1792,6 +1821,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e6_init(void)
@@ -1816,6 +1846,7 @@ static void __init e6_init(void)
 	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 //	platform_device_register(&pcap_regulator_SW1_device);
 	platform_device_register(&pcap_regulator_VAUX2_device);
+	platform_device_register(&pcap_regulator_V6_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
