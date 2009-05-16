@@ -95,7 +95,7 @@ static struct platform_driver bluetooth_rfkill_driver = {
 	.probe = reg_rfkill_probe,
 	.remove = __devexit_p(reg_rfkill_remove),
 	.driver = {
-		   .name = "reg-rfkill-bluetooth",
+		   .name = "rfkill_bluetooth",
 		   .owner = THIS_MODULE,
 		   },
 };
