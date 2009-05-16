@@ -311,6 +311,7 @@ struct isp1583_request {
 	struct list_head queue;	/* ep's requests */
 	struct usb_request req;
 	int isIn;
+	int mapped;
 };
 
 enum ep0_state {
