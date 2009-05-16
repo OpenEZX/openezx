@@ -1,2 +1,2 @@
-ezx/mach/eoc
-usb/isp1583
+ezx/mach/isp1583
+pxa/gpio_reset
