@@ -134,3 +134,12 @@ config SND_PXA2XX_SOC_MIOA701
         help
           Say Y if you want to add support for SoC audio on the
           MIO A701.
+
+config SND_PXA2XX_SOC_EZX
+	tristate "SoC Audio Support for EZX"
+	depends on SND_PXA2XX_SOC
+	select SND_PXA_SOC_SSP
+	select SND_SOC_PCAP2
+	help
+	  Say Y if you want to add support for SoC audio on the
+	  Motorola EZX Phones
