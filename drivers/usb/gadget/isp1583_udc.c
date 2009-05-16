@@ -1,9 +1,9 @@
 /*
  * linux/drivers/usb/gadget/isp1583_udc.c
  *
- * Samsung S3C24xx series on-chip full speed USB device controllers
+ * ISP1583 high speed USB device controllers
  *
- * Copyright (C) 2004-2007 guiming zhuo <gmzhuo@gmail.com>
+ * Copyright (C) 2009 guiming zhuo <gmzhuo@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,6 @@
 #include <linux/memory.h>
 
 #include <mach/pxa2xx-regs.h>
-#include <linux/mfd/ezx-pcap.h>
 #include <linux/gpio.h>
 
 #include "isp1583_udc.h"
@@ -2017,9 +2016,10 @@ static irqreturn_t vbus_detect_irq(int dummy, void *_dev)
 	return IRQ_HANDLED;
 }
 
-void sys_event_vbusdetect(u32 events, void *data)
+static irqreturn_t sys_event_vbusdetect(int events, void *data)
 {
 	check_vbus();
+	return IRQ_HANDLED;
 }
 
 void cpu_dma_handler(int chanel, void *data)
@@ -2087,9 +2087,9 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	}
 
 	the_controller->vbus = 0;
-	ezx_pcap_register_event(PCAP_IRQ_MOBPORT,
-				sys_event_vbusdetect, (void *)the_controller,
-				"vbusdetect");
+	request_irq(platform_get_irq(pdev, 1),
+				sys_event_vbusdetect, 0,
+				"vbusdetect", the_controller);
 
 	the_controller->dma_channel = pxa_request_dma("isp1583",
 						      DMA_PRIO_LOW,
@@ -2112,7 +2112,7 @@ err_map:
 static int isp1583_udc_remove(struct platform_device *pdev)
 {
 	struct isp1583_udc *udc = platform_get_drvdata(pdev);
-	ezx_pcap_unregister_event(PCAP_IRQ_MOBPORT);
+	free_irq(platform_get_irq(pdev, 1), udc);
 	dev_dbg(&pdev->dev, "%s()\n", __func__);
 	if (udc->driver)
 		return -EBUSY;
