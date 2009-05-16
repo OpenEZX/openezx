@@ -38,6 +38,8 @@
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
+#include <linux/dma-mapping.h>
+#include <linux/mm.h>
 
 #include <linux/usb.h>
 #include <linux/usb/gadget.h>
@@ -69,6 +71,7 @@ static struct isp1583_udc *the_controller;
 /*************************** DEBUG FUNCTION ***************************/
 #define DEBUG_NORMAL	1
 #define DEBUG_VERBOSE	2
+#define DMA_ADDR_INVALID 0
 
 #ifdef CONFIG_USB_ISP1583_DEBUG
 #define USB_ISP1583_DEBUG_LEVEL 0
@@ -322,6 +325,24 @@ static void isp1583_udc_done(struct isp1583_ep *ep,
 	else
 		status = req->req.status;
 
+	if (req->req.dma) {
+		if (req->mapped) {
+			dma_unmap_single(ep->gadget->dev.parent,
+					 req->req.dma, req->req.length,
+					 (ep->bEndpointAddress & USB_DIR_IN)
+					 ? DMA_TO_DEVICE : DMA_FROM_DEVICE);
+			req->req.dma = DMA_ADDR_INVALID;
+			req->mapped = 0;
+		} else
+			dma_sync_single_for_cpu(ep->gadget->dev.parent,
+						req->req.dma, req->req.length,
+						(ep->
+						 bEndpointAddress & USB_DIR_IN)
+						? DMA_TO_DEVICE :
+						DMA_FROM_DEVICE);
+
+	}
+
 	ep->halted = 1;
 	req->req.complete(&ep->ep, &req->req);
 	ep->halted = halted;
@@ -396,6 +417,7 @@ int isp1583_send_control(const unsigned char *pData, unsigned long len)
 	pdesc = (struct usb_device_descriptor *)pData;
 	ulLength = (len > 64) ? 64 : len;
 
+	the_controller->isp_dma_flag = 1;
 	usb_select_endpoint(USB_ENDPOINT_CONTROL_IN);
 
 	if (ulLength != 64)
@@ -413,7 +435,7 @@ int isp1583_send_control(const unsigned char *pData, unsigned long len)
 
 		the_controller->regs[ISP1583_EPDATA_REG] = ulData;
 	}
-
+	the_controller->isp_dma_flag = 0;
 	return ulIdx;
 
 }
@@ -601,7 +623,7 @@ static void isp1583_epx_rx_set_dma(unsigned long phys_addr)
 {
 	unsigned int bEndpointAddress =
 	    the_controller->dma_ep->bEndpointAddress;
-
+	the_controller->isp_dma_flag = 1;
 	/* configure PXA DMA registers */
 	DALGN |= (1 << the_controller->dma_channel);
 	DRCMR(0) = 0x80 | the_controller->dma_channel;
@@ -609,14 +631,12 @@ static void isp1583_epx_rx_set_dma(unsigned long phys_addr)
 	DSADR(the_controller->dma_channel) =
 	    (the_controller->phy_base + ISP_DMA_DATA_PORT_OFFSET);
 	DTADR(the_controller->dma_channel) = phys_addr;
-	DCMD(the_controller->dma_channel) = DCMD_INCTRGADDR | DCMD_FLOWSRC |
-	    DCMD_BURST32 | the_controller->isp_dma_len;
-	DCSR(the_controller->dma_channel) |= DCSR_RUN | DCSR_NODESC;
+	DCMD(the_controller->dma_channel) =
+	    DCMD_INCTRGADDR | DCMD_FLOWSRC | DCMD_WIDTH2 | DCMD_BURST32 |
+	    the_controller->isp_dma_len;
 
-	usb_select_endpoint(ep_index(bEndpointAddress & 0x7f,
-				     (bEndpointAddress & 0x80) >> 7) + 3);
-	usb_select_endpoint(ep_index(bEndpointAddress & 0x7f,
-				     (bEndpointAddress & 0x80) >> 7));
+	usb_select_endpoint(ep_index(bEndpointAddress & 0x7f, 1) + 5);
+	usb_select_dma_endpoint(ep_index(bEndpointAddress & 0x7f, 0));
 
 	the_controller->regs[ISP1583_DMACNT_L_REG] =
 	    (unsigned short)(the_controller->isp_dma_len & 0xFFFF);
@@ -624,9 +644,7 @@ static void isp1583_epx_rx_set_dma(unsigned long phys_addr)
 	    (unsigned short)(the_controller->isp_dma_len >> 16 & 0xFFFF);
 
 	the_controller->regs[ISP1583_DMACMD_REG] = ISP_GDMA_Write_Command;
-
-	the_controller->isp_dma_flag = 1;
-
+	DCSR(the_controller->dma_channel) |= DCSR_RUN | DCSR_NODESC;
 }
 
 /*
@@ -637,30 +655,29 @@ static void isp1583_epx_tx_set_dma(unsigned long phys_addr)
 	unsigned int bEndpointAddress =
 	    the_controller->dma_ep->bEndpointAddress;
 
+	the_controller->isp_dma_flag = 1;
+
 	/* configure PXA DMA registers */
 	DALGN |= (1 << the_controller->dma_channel);
 	DRCMR(0) = 0x80 | the_controller->dma_channel;
+	DDADR(the_controller->dma_channel) = 0;
 	DCSR(the_controller->dma_channel) = DCSR_NODESC;
-	DSADR(the_controller->dma_channel) =
+	DSADR(the_controller->dma_channel) = phys_addr;
+	DTADR(the_controller->dma_channel) =
 	    (the_controller->phy_base + ISP_DMA_DATA_PORT_OFFSET);
-	DTADR(the_controller->dma_channel) = phys_addr;
-	DCMD(the_controller->dma_channel) = DCMD_INCSRCADDR | DCMD_FLOWTRG |
-	    DCMD_BURST32 | the_controller->isp_dma_len;
+	DCMD(the_controller->dma_channel) =
+	    DCMD_INCSRCADDR | DCMD_FLOWTRG | DCMD_WIDTH2 | DCMD_BURST32 |
+	    the_controller->isp_dma_len;
 	DCSR(the_controller->dma_channel) |= DCSR_RUN | DCSR_NODESC;
 
-	usb_select_endpoint(ep_index(bEndpointAddress & 0x7f,
-				     (bEndpointAddress & 0x80) >> 7) + 5);
-	usb_select_endpoint(ep_index(bEndpointAddress & 0x7f,
-				     (bEndpointAddress & 0x80) >> 7));
+	usb_select_endpoint(ep_index((bEndpointAddress) & 0x7f, 0) + 5);
+	usb_select_dma_endpoint(ep_index(bEndpointAddress & 0x7f, 1));
 
 	the_controller->regs[ISP1583_DMACNT_L_REG] =
 	    (unsigned short)(the_controller->isp_dma_len & 0xFFFF);
 	the_controller->regs[ISP1583_DMACNT_H_REG] =
 	    (unsigned short)(the_controller->isp_dma_len >> 16 & 0xFFFF);
-
 	the_controller->regs[ISP1583_DMACMD_REG] = ISP_GDMA_Read_Command;
-
-	the_controller->isp_dma_flag = 1;
 }
 
 /*
@@ -670,8 +687,7 @@ static void isp1583_dev_dma_irq(void)
 {
 	unsigned long flags;
 	struct isp1583_ep *ep = the_controller->dma_ep;
-	unsigned int bEndpointAddress =
-	    the_controller->dma_ep->bEndpointAddress;
+	unsigned int bEndpointAddress = ep->bEndpointAddress;
 	struct isp1583_request *req;
 	unsigned long dma_addr;
 	union CONTROL_REG ctrl;
@@ -685,41 +701,37 @@ static void isp1583_dev_dma_irq(void)
 		local_irq_restore(flags);
 		return;
 	}
-
 	req = list_entry(ep->queue.next, struct isp1583_request, queue);
 
 	the_controller->isp_dma_flag = 0;
 
 	/* TX interrupt */
-	if (USB_DIR_IN & the_controller->isp_dma_index) {
+	if (USB_DIR_IN & bEndpointAddress) {
 		if (the_controller->isp_dma_index_len >= req->req.length) {
 			/* all data have been transmitted by DMA */
 			if (req->req.length % ep->fifo_size) {
-				usb_select_endpoint(ep_index(bEndpointAddress &
-							     0x7f,
-							     (bEndpointAddress &
-							      0x80) >> 7) + 5);
+				usb_select_dma_endpoint(ep_index
+							(bEndpointAddress &
+							 0x7f, 0) + 5);
 				usb_select_endpoint(ep_index
 						    (bEndpointAddress & 0x7f,
-						     (bEndpointAddress & 0x80)
-						     >> 7));
+						     1));
 
 				ctrl.VALUE = 0;
 				ctrl.BITS.VENDP = 1;
 				the_controller->regs[ISP1583_EPCFG_REG] =
 				    ctrl.VALUE;
 			}
+			req->req.actual = the_controller->isp_dma_index_len;
 
 			isp1583_udc_done(ep, req, 0);
-
 			if (!the_controller->isp_dma_flag) {
 				/* set dma endpoint into a random value which is
 				 *different with endpoint index
 				 */
-				usb_select_endpoint(ep_index(bEndpointAddress &
-							     0x7f,
-							     (bEndpointAddress &
-							      0x80) >> 7) + 5);
+				usb_select_dma_endpoint(ep_index
+							(bEndpointAddress &
+							 0x7f, 1) + 5);
 
 				l.VALUE =
 				    the_controller->regs[ISP1583_INTEN_L_REG];
@@ -737,7 +749,6 @@ static void isp1583_dev_dma_irq(void)
 			local_irq_restore(flags);
 			return;
 		}
-
 		/* re-set the DMA to transfer the other data */
 		the_controller->isp_dma_len = req->req.length -
 		    the_controller->isp_dma_index_len;
@@ -748,22 +759,29 @@ static void isp1583_dev_dma_irq(void)
 		the_controller->isp_dma_index_len +=
 		    the_controller->isp_dma_len;
 
+		req->req.actual = the_controller->isp_dma_index_len;
 		/* enable TX dma transfer */
 		isp1583_epx_tx_set_dma(dma_addr);
 
 	} else {		/* RX interrupt */
-
 		/* if all wished data have been received by DMA */
 		if (the_controller->isp_dma_index_len >= req->req.length) {
+			unsigned long remain;
+			req->req.actual = the_controller->isp_dma_index_len;
+			usb_select_dma_endpoint(ep_index(bEndpointAddress &
+							 0x7f, 0));
+			remain = the_controller->regs[ISP1583_DMACNT_H_REG];
+			remain <<= 16;
+			remain |= the_controller->regs[ISP1583_DMACNT_L_REG];
+			req->req.actual = req->req.length - remain;
 			isp1583_udc_done(ep, req, 0);
 			if (!the_controller->isp_dma_flag) {
 				/* set dma endpoint into a random value which is
 				 *different with endpoint index
 				 */
-				usb_select_endpoint(ep_index(bEndpointAddress &
-							     0x7f,
-							     (bEndpointAddress &
-							      0x80) >> 7) + 5);
+				usb_select_dma_endpoint(ep_index
+							(bEndpointAddress &
+							 0x7f, 0) + 5);
 
 				/* enable endpoint interrupt */
 				l.VALUE =
@@ -843,7 +861,7 @@ static int isp1583_tx_done(struct isp1583_ep *ep)
 	unsigned long flags;
 
 	local_irq_save(flags);
-	if (list_empty(&ep->queue)) {
+	if (the_controller->isp_dma_flag || list_empty(&ep->queue)) {
 		req = NULL;
 		local_irq_restore(flags);
 		return 0;
@@ -1069,12 +1087,11 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 
 	if (int_status_lsb.BITS.DMA) {	/* DMA interrupt */
 		unsigned short dma_int;
-		printk(KERN_DEBUG "got dma int\n");
 		dma_int = the_controller->regs[ISP1583_DMAINTS_REG];
 		the_controller->regs[ISP1583_DMAINTS_REG] = dma_int;
 
-		isp1583_dev_dma_irq();
-
+		if (dma_int)
+			isp1583_dev_dma_irq();
 	}
 
 	if ((int_status_lsb.BITS.RESUME) && (!int_status_lsb.BITS.SUSP))
@@ -1127,7 +1144,6 @@ static irqreturn_t isp1583_udc_irq(int dummy, void *_dev)
 			}
 		} else
 			the_controller->ep0state = EP0_IDLE;
-
 	}
 
 	if (int_status_lsb.BITS.EP0RX) {
@@ -1315,6 +1331,7 @@ static struct usb_request *isp1583_udc_alloc_request(struct usb_ep *_ep,
 	if (!req)
 		return NULL;
 
+	req->req.dma = 0;
 	INIT_LIST_HEAD(&req->queue);
 	return &req->req;
 }
@@ -1333,6 +1350,59 @@ isp1583_udc_free_request(struct usb_ep *_ep, struct usb_request *_req)
 
 	WARN_ON(!list_empty(&req->queue));
 	kfree(req);
+}
+
+static int isp1583_dma_packet_xmit(struct isp1583_ep *ep)
+{
+	struct isp1583_request *req;
+	unsigned long flags;
+	union INT_ENABLE_LSB l;
+	union INT_ENABLE_MSB m;
+
+	local_irq_save(flags);
+	if (list_empty(&ep->queue))
+		req = NULL;
+	else
+		req = list_entry(ep->queue.next, struct isp1583_request, queue);
+
+	if (!req || req->req.length == 0) {
+		local_irq_restore(flags);
+		return 0;
+	}
+	if (req->req.dma == 0) {
+		req->req.dma = dma_map_single(ep->gadget->dev.parent,
+					      req->req.buf,
+					      req->req.length, DMA_TO_DEVICE);
+		req->mapped = 1;
+	} else {
+		dma_sync_single_for_device(ep->gadget->dev.parent,
+					   req->req.dma, req->req.length,
+					   DMA_TO_DEVICE);
+		req->mapped = 0;
+	}
+
+	usb_select_endpoint(ep_index(ep->bEndpointAddress & 0x7f, DIR_RX) + 5);
+	if (the_controller->isp_dma_flag == 0) {
+		/* disable endpoint interrupt */
+		l.VALUE = the_controller->regs[ISP1583_INTEN_L_REG];
+		m.VALUE = the_controller->regs[ISP1583_INTEN_M_REG];
+
+		isp_ep_in_int(ep->bEndpointAddress & 0x7f, 0, &l, &m);
+
+		the_controller->regs[ISP1583_INTEN_L_REG] = l.VALUE;
+		the_controller->regs[ISP1583_INTEN_M_REG] = m.VALUE;
+
+		the_controller->dma_ep = ep;
+		if (req->req.length > MAX_DMA_SIZE)
+			the_controller->isp_dma_len = MAX_DMA_SIZE;
+		else
+			the_controller->isp_dma_len = req->req.length;
+		the_controller->isp_dma_index_len = the_controller->isp_dma_len;
+		req->req.actual = the_controller->isp_dma_index_len;
+		isp1583_epx_tx_set_dma(req->req.dma);
+	}
+	local_irq_restore(flags);
+	return 0;
 }
 
 /*
@@ -1355,8 +1425,7 @@ static int isp1583_udc_queue(struct usb_ep *_ep, struct usb_request *_req,
 
 	local_irq_save(flags);
 
-	if (unlikely(!_req || !_req->complete
-		     || !_req->buf)){
+	if (unlikely(!_req || !_req->complete || !_req->buf)) {
 		local_irq_restore(flags);
 		return -EINVAL;
 	}
@@ -1367,7 +1436,8 @@ static int isp1583_udc_queue(struct usb_ep *_ep, struct usb_request *_req,
 	if ((ep->bEndpointAddress & 0x7f) &&
 	    ((ep->bEndpointAddress & USB_DIR_IN) != 0)) {
 		list_add_tail(&req->queue, &ep->queue);
-		isp1583_packet_xmit(ep);
+		if (isp1583_dma_packet_xmit(ep) != 0)
+			isp1583_packet_xmit(ep);
 	} else if ((ep->bEndpointAddress & 0x7f) &&
 		   ((ep->bEndpointAddress & USB_DIR_IN) == 0))
 		list_add_tail(&req->queue, &ep->queue);
@@ -1631,6 +1701,7 @@ register_error:
 	the_controller->gadget.dev.driver = NULL;
 	return retval;
 }
+
 EXPORT_SYMBOL(usb_gadget_register_driver);
 
 static void stop_activity(struct isp1583_udc *dev,
@@ -1679,6 +1750,7 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 
 	return 0;
 }
+
 EXPORT_SYMBOL(usb_gadget_unregister_driver);
 
 /*---------------------------------------------------------------------------*/
@@ -1999,8 +2071,8 @@ int check_vbus(void)
 			stop_activity(the_controller, the_controller->driver);
 			if (the_controller->driver
 			    && the_controller->driver->disconnect)
-				the_controller->
-				    driver->disconnect(&the_controller->gadget);
+				the_controller->driver->
+				    disconnect(&the_controller->gadget);
 			the_controller->gadget.speed = USB_SPEED_UNKNOWN;
 		}
 		gpio_set_value(94, 0);
@@ -2088,8 +2160,7 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 
 	the_controller->vbus = 0;
 	request_irq(platform_get_irq(pdev, 1),
-				sys_event_vbusdetect, 0,
-				"vbusdetect", the_controller);
+		    sys_event_vbusdetect, 0, "vbusdetect", the_controller);
 
 	the_controller->dma_channel = pxa_request_dma("isp1583",
 						      DMA_PRIO_LOW,
