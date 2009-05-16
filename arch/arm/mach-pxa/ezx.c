@@ -1349,7 +1349,11 @@ struct platform_device a1200_leds_device = {
 };
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+	},
 };
 
 static struct platform_device *a1200_devices[] __initdata = {
@@ -1589,6 +1593,8 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	}, {
 		I2C_BOARD_INFO("lp3944", 0x60),
 		.platform_data = &a910_lp3944_leds,
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
 	},
 };
 
@@ -1692,7 +1698,11 @@ struct platform_device e6_leds_device = {
 };
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+	},
 };
 
 static struct platform_device *e6_devices[] __initdata = {
