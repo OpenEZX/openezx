@@ -351,15 +351,19 @@ static int __init ezx_init(void)
 #endif
 
 	/* request jack event */
+	/* not deal this event temporarily */
+	/*
 	ezx_pcap_register_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1, jack_irq,
 							NULL, "HP/MIC");
-
+	*/
 	return ret;
 }
 
 static void __exit ezx_exit(void)
 {
+	/*
 	ezx_pcap_unregister_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1);
+	*/
 	platform_device_unregister(ezx_snd_device);
 }
 
