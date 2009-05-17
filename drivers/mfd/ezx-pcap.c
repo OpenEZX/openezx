@@ -139,21 +139,6 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 	return;
 }
 
-static irqreturn_t pcap_test_irq(int irq, void *data)
-{
-	u32 tmp;
-	printk("%s: %d\n", __func__, irq);
-	ezx_pcap_read(0, &tmp);
-	printk("%s: %08x\n", __func__, tmp);
-
-	return IRQ_HANDLED;
-}
-
-
-
-
-
-
 /* subdevs */
 static int pcap_remove_subdev(struct device *dev, void *unused)
 {
@@ -191,7 +176,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 	int i;
-	u32 t;
 	int ret = -ENODEV;
 
 	/* platform data is required */
@@ -247,7 +231,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* setup subdevs */
 	for (i = 0; i < pdata->num_subdevs; i++) {
-		ret = pcap_add_subdev(spi, pdata->subdevs[i]);
+		ret = pcap_add_subdev(spi, &pdata->subdevs[i]);
 		if (ret)
 			goto remove_subdevs;
 	}
@@ -255,23 +239,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	/* board specific quirks */
 	if (pdata->init)
 		pdata->init();
-
-	/* test irq */
-	ret = request_irq(PCAP_IRQ_1HZ, pcap_test_irq, IRQF_DISABLED,
-						"1HZ", NULL);
-	if (ret)
-		printk("error requesting test irq\n");
-	ret = request_irq(PCAP_IRQ_TS, pcap_test_irq, IRQF_DISABLED,
-						"TS", NULL);
-	if (ret)
-		printk("error requesting test irq\n");
-
-	for (i = 0; i <= 31; i++) {
-		ezx_pcap_read(i, &t);
-		printk("%s: %d %08x\n", __func__, i, t);
-	}
-		
-
 
 	return 0;
 
