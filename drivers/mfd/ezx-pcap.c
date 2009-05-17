@@ -176,7 +176,6 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 {
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 	int i;
-	u32 t;
 	int ret = -ENODEV;
 
 	/* platform data is required */
@@ -232,7 +231,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* setup subdevs */
 	for (i = 0; i < pdata->num_subdevs; i++) {
-		ret = pcap_add_subdev(spi, pdata->subdevs[i]);
+		ret = pcap_add_subdev(spi, &pdata->subdevs[i]);
 		if (ret)
 			goto remove_subdevs;
 	}
