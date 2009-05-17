@@ -24,11 +24,11 @@ config RFKILL_INPUT
 	  module will be called rfkill-input.
 
 config RFKILL_BLUETOOTH
-	tristate "rfkill for buletooth depend on regulator"
+	tristate "Generic bluetooth regulator driver"
 	depends on RFKILL && REGULATOR
 	help
-	  Say Y here if your bluetooth power controled by on regulator
-
+	  Say Y here if your bluetooth power is controlled by a
+	  voltage regulator.
 
 # LED trigger support
 config RFKILL_LEDS
