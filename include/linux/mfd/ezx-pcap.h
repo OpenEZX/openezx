@@ -18,7 +18,7 @@ struct pcap_platform_data {
 	unsigned int config;
 	void (*init) (void);	/* board specific init */
 	int num_subdevs;
-	struct pcap_subdev *subdevs[];
+	struct pcap_subdev *subdevs;
 };
 
 #define PCAP_SECOND_PORT	1
