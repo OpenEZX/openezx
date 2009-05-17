@@ -1097,7 +1097,6 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
 	&gen1_flash_device,
-	&pcap_ts_device,
 	&gen1_bp_device,
 };
 
@@ -1245,7 +1244,6 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 static struct platform_device *e680_devices[] __initdata = {
 	&e680_gpio_keys,
 	&gen1_flash_device,
-	&pcap_ts_device,
 	&gen1_bp_device,
 };
 
@@ -1385,7 +1383,6 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
 	&gen2_flash_device,
-	&pcap_ts_device,
 	&gen2_bp_device,
 };
 
@@ -1777,7 +1774,6 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
 	&gen2_flash_device,
-	&pcap_ts_device,
 	&gen2_bp_device,
 };
 
