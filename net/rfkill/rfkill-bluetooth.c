@@ -1,5 +1,5 @@
 /*
- * Driver for Motorola PCAP2 as present in EZX phones
+ * Regulator consumer driver for bluetooth rfkill
  *
  * Copyright (C) 2009 gmzhuo <gmzhuo@gmail.com>
  *
