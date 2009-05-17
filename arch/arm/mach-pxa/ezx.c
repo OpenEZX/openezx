@@ -881,8 +881,8 @@ static struct pcap_leds_platform_data a780_pcap_leds = {
 
 static struct pcap_subdev a780_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
@@ -1082,8 +1082,8 @@ static struct pcap_leds_platform_data e680_pcap_leds = {
 
 static struct pcap_subdev e680_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
@@ -1203,8 +1203,8 @@ static struct pcap_leds_platform_data a1200_pcap_leds = {
 
 static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
 		.id		= -1,
@@ -1327,8 +1327,8 @@ static struct pcap_leds_platform_data a910_pcap_leds = {
 
 static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
 		.id		= -1,
@@ -1568,8 +1568,8 @@ static struct pcap_leds_platform_data e6_pcap_leds = {
 
 static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
 		.id		= -1,
@@ -1692,8 +1692,8 @@ static struct pcap_leds_platform_data e2_pcap_leds = {
 
 static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
 		.id		= -1,
