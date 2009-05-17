@@ -1067,7 +1067,7 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 
 static struct pcap_platform_data a780_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
-	.config 	= 0,
+	.config 	= PCAP_SECOND_PORT,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
 	.subdevs	= a780_pcap_subdevs,
@@ -1197,7 +1197,6 @@ static void __init a780_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
-	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
@@ -1280,7 +1279,7 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 
 static struct pcap_platform_data e680_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
-	.config 	= 0,
+	.config 	= PCAP_SECOND_PORT,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
 	.subdevs	= e680_pcap_subdevs,
@@ -1348,7 +1347,6 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
-	ezx_pcap_platform_data.config = PCAP_SECOND_PORT;
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
