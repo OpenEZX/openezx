@@ -753,17 +753,9 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
-/* PCAP */
+/* FIXME: EMU driver */
 static void ezx_pcap_init(void)
 {
-	/* set SW1 sleep to keep SW1 1.3v in sync mode */
-	/* SW1 active in sync mode */
-/*	ezx_pcap_set_sw(SW1, SW_MODE, 0x1); */
-
-	/* set core voltage */
-/*	ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250); */
-
-	/* FIXME: EMU driver */
 	ezx_pcap_write(PCAP_REG_BUSCTRL,
 			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
 	gpio_request(120, "EMU mux1");
@@ -772,12 +764,7 @@ static void ezx_pcap_init(void)
 	gpio_direction_output(119, 0);
 }
 
-static struct pcap_platform_data ezx_pcap_platform_data = {
-	.irq    = gpio_to_irq(GPIO1_PCAP_IRQ),
-	.config = 0,
-	.init   = ezx_pcap_init,
-};
-
+/* SPI */
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
 	.tx_threshold   = 1,
 	.rx_threshold   = 1,
@@ -790,18 +777,6 @@ static struct pxa2xx_spi_master ezx_spi_masterinfo = {
 	.clock_enable   = CKEN_SSP1,
 	.num_chipselect = 1,
 	.enable_dma     = 1,
-};
-
-static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
-	{
-		.modalias        = "ezx-pcap",
-		.bus_num         = 1,
-		.chip_select     = 0,
-		.max_speed_hz    = 13000000,
-		.platform_data   = &ezx_pcap_platform_data,
-		.controller_data = &ezx_pcap_chip_info,
-		.mode            = SPI_MODE_0,
-	},
 };
 
 /* voltage regulators */
@@ -821,14 +796,6 @@ static struct regulator_init_data pcap_regulator_VAUX2_data = {
 	.consumer_supplies = pcap_regulator_VAUX2_consumers,
 };
 
-static struct platform_device pcap_regulator_VAUX2_device = {
-	.name = "pcap-regulator",
-	.id = VAUX2,
-	.dev = {
-		.platform_data = &pcap_regulator_VAUX2_data,
-	},
-};
-
 /* VAUX3: MMC on A780, A1200, A910 */
 static struct regulator_consumer_supply pcap_regulator_VAUX3_consumers[] = {
 	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
@@ -845,14 +812,6 @@ static struct regulator_init_data pcap_regulator_VAUX3_data = {
 	.consumer_supplies = pcap_regulator_VAUX3_consumers,
 };
 
-static struct platform_device pcap_regulator_VAUX3_device = {
-	.name = "pcap-regulator",
-	.id = VAUX3,
-	.dev = {
-		.platform_data = &pcap_regulator_VAUX3_data,
-	},
-};
-
 /* SW1: CORE on A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
 	{ .supply = "vcc_core", },
@@ -867,26 +826,6 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 	},
 	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_SW1_consumers),
 	.consumer_supplies = pcap_regulator_SW1_consumers,
-};
-
-static struct platform_device pcap_regulator_SW1_device = {
-	.name = "pcap-regulator",
-	.id = SW1,
-	.dev = {
-		.platform_data = &pcap_regulator_SW1_data,
-	},
-};
-
-/* PCAP_TS */
-struct platform_device pcap_ts_device = {
-	.name = "pcap-ts",
-	.id   = -1,
-};
-
-/* PCAP_RTC */
-static struct platform_device pcap_rtc_device = {
-	.name = "rtc-pcap",
-	.id   = -1,
 };
 
 /* UDC */
@@ -1071,6 +1010,61 @@ static struct platform_device gen2_flash_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
+/* pcap-leds */
+static struct pcap_leds_platform_data a780_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		}, {
+			.type = PCAP_VIB,
+			.name = "a780:vibrator",
+		},
+	},
+	.num_leds = 3,
+};
+
+static struct pcap_subdev a780_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a780_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a780_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= 0,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
+	.subdevs	= a780_pcap_subdevs,
+};
+
+static struct spi_board_info a780_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a780_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
 	[0] = {
@@ -1162,36 +1156,10 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 	},
 };
 
-/* pcap-leds */
-static struct pcap_leds_platform_data a780_leds = {
-	.leds = {
-		{
-			.type = PCAP_BL0,
-			.name = "a780:main",
-		}, {
-			.type = PCAP_BL1,
-			.name = "a780:aux",
-		}, {
-			.type = PCAP_VIB,
-			.name = "a780:vibrator",
-		},
-	},
-	.num_leds = 3,
-};
-
-struct platform_device a780_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &a780_leds,
-	},
-};
-
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
 	&gen1_flash_device,
 	&pcap_ts_device,
-	&a780_leds_device,
 	&gen1_bp_device,
 };
 
@@ -1214,8 +1182,7 @@ static void __init a780_init(void)
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
-	platform_device_register(&pcap_regulator_VAUX3_device);
+	spi_register_board_info(ARRAY_AND_SIZE(a780_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1247,33 +1214,8 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
-/* gpio_keys */
-static struct gpio_keys_button e680_buttons[] = {
-	[0] = {
-		.code = KEY_SCREENLOCK,
-		.gpio = GPIO12_E680_LOCK_SWITCH,
-		.active_low = 0,
-		.desc = "E680 lock switch",
-		.type = EV_KEY,
-		.wakeup = 1,
-	},
-};
-
-static struct gpio_keys_platform_data e680_gpio_keys_platform_data = {
-	.buttons  = e680_buttons,
-	.nbuttons = ARRAY_SIZE(e680_buttons),
-};
-
-static struct platform_device e680_gpio_keys = {
-	.name = "gpio-keys",
-	.id   = -1,
-	.dev  = {
-		.platform_data = &e680_gpio_keys_platform_data,
-	},
-};
-
 /* pcap-leds */
-static struct pcap_leds_platform_data e680_leds = {
+static struct pcap_leds_platform_data e680_pcap_leds = {
 	.leds = {
 		{
 			.type = PCAP_LED0,
@@ -1299,11 +1241,66 @@ static struct pcap_leds_platform_data e680_leds = {
 	.num_leds = 3,
 };
 
-struct platform_device e680_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &e680_leds,
+static struct pcap_subdev e680_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e680_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e680_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= 0,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
+	.subdevs	= e680_pcap_subdevs,
+};
+
+static struct spi_board_info e680_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e680_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
+/* gpio_keys */
+static struct gpio_keys_button e680_buttons[] = {
+	[0] = {
+		.code = KEY_SCREENLOCK,
+		.gpio = GPIO12_E680_LOCK_SWITCH,
+		.active_low = 0,
+		.desc = "E680 lock switch",
+		.type = EV_KEY,
+		.wakeup = 1,
+	},
+};
+
+static struct gpio_keys_platform_data e680_gpio_keys_platform_data = {
+	.buttons  = e680_buttons,
+	.nbuttons = ARRAY_SIZE(e680_buttons),
+};
+
+static struct platform_device e680_gpio_keys = {
+	.name = "gpio-keys",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &e680_gpio_keys_platform_data,
 	},
 };
 
@@ -1315,7 +1312,6 @@ static struct platform_device *e680_devices[] __initdata = {
 	&e680_gpio_keys,
 	&gen1_flash_device,
 	&pcap_ts_device,
-	&e680_leds_device,
 	&gen1_bp_device,
 };
 
@@ -1338,8 +1334,7 @@ static void __init e680_init(void)
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
-	platform_device_register(&pcap_regulator_VAUX2_device);
+	spi_register_board_info(ARRAY_AND_SIZE(e680_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1369,6 +1364,61 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+/* pcap-leds */
+static struct pcap_leds_platform_data a1200_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a1200:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+static struct pcap_subdev a1200_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a1200_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a1200_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
+	.subdevs	= a1200_pcap_subdevs,
+};
+
+static struct spi_board_info a1200_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a1200_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a1200_buttons[] = {
 	[0] = {
@@ -1394,30 +1444,6 @@ static struct platform_device a1200_gpio_keys = {
 	},
 };
 
-static struct platform_device pcap_keys_device = {
-	.name = "pcap-keys",
-	.id   = -1,
-};
-
-/* pcap-leds */
-static struct pcap_leds_platform_data a1200_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "a1200:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
-struct platform_device a1200_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &a1200_leds,
-	},
-};
-
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("tea5767", 0x81),
@@ -1430,9 +1456,6 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
 	&gen2_flash_device,
 	&pcap_ts_device,
-	&a1200_leds_device,
-	&pcap_rtc_device,
-	&pcap_keys_device,
 	&gen2_bp_device,
 };
 
@@ -1453,11 +1476,8 @@ static void __init a1200_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
-//	platform_device_register(&pcap_regulator_SW1_device);
-	platform_device_register(&pcap_regulator_VAUX3_device);
+	spi_register_board_info(ARRAY_AND_SIZE(a1200_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1487,6 +1507,86 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+/* pcap-leds */
+static struct pcap_leds_platform_data a910_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a910:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+static struct pcap_subdev a910_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a910_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a910_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
+	.subdevs	= a910_pcap_subdevs,
+};
+
+static struct pxa2xx_spi_master a910_spi_masterinfo = {
+	.clock_enable = CKEN_SSP1,
+	.num_chipselect = 2,
+	.enable_dma = 1,
+};
+
+static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
+	.tx_threshold = 8,
+	.rx_threshold = 8,
+	.dma_burst_size = 8,
+	.timeout = 10000,
+	.gpio_cs = GPIO20_A910_MMC_CS,
+};
+
+static struct mmc_spi_platform_data a910_mci_platform_data = {
+	.init           = ezx_mci_init,
+	.exit           = ezx_mci_exit,
+	.detect_delay   = 250 / (1000 / HZ),
+};
+
+static struct spi_board_info a910_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a910_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	}, {
+		.modalias = "mmc_spi",
+		.bus_num = 1,
+		.chip_select = 1,
+		.max_speed_hz = 13000000,
+		.platform_data = &a910_mci_platform_data,
+		.controller_data = &a910_mmcspi_chip_info,
+		.mode = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a910_buttons[] = {
 	[0] = {
@@ -1509,67 +1609,6 @@ static struct platform_device a910_gpio_keys = {
 	.id   = -1,
 	.dev  = {
 		.platform_data = &a910_gpio_keys_platform_data,
-	},
-};
-
-/* A910 SPI/MMC */
-static struct pxa2xx_spi_master a910_spi_masterinfo = {
-	.clock_enable = CKEN_SSP1,
-	.num_chipselect = 2,
-	.enable_dma = 1,
-};
-
-static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
-	.tx_threshold = 8,
-	.rx_threshold = 8,
-	.dma_burst_size = 8,
-	.timeout = 10000,
-	.gpio_cs = GPIO20_A910_MMC_CS,
-};
-
-static struct mmc_spi_platform_data a910_mci_platform_data = {
-	.init           = ezx_mci_init,
-	.exit           = ezx_mci_exit,
-	.detect_delay   = 150 / (1000 / HZ),
-};
-
-static struct spi_board_info a910_spi_boardinfo[] __initdata = {
-	{
-		.modalias = "ezx-pcap",
-		.bus_num = 1,
-		.chip_select = 0,
-		.max_speed_hz = 13000000,
-		.platform_data = &ezx_pcap_platform_data,
-		.controller_data = &ezx_pcap_chip_info,
-		.mode = SPI_MODE_0,
-	},
-	{
-		.modalias = "mmc_spi",
-		.bus_num = 1,
-		.chip_select = 1,
-		.max_speed_hz = 13000000,
-		.platform_data = &a910_mci_platform_data,
-		.controller_data = &a910_mmcspi_chip_info,
-		.mode = SPI_MODE_0,
-	},
-};
-
-/* pcap-leds */
-static struct pcap_leds_platform_data a910_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "a910:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
-struct platform_device a910_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &a910_leds,
 	},
 };
 
@@ -1675,9 +1714,6 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 	&gen2_flash_device,
-	&a910_leds_device,
-	&pcap_rtc_device,
-	&pcap_keys_device,
 	&gen2_bp_device,
 };
 
@@ -1698,11 +1734,8 @@ static void __init a910_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
-	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
-//	platform_device_register(&pcap_regulator_SW1_device);
-	platform_device_register(&pcap_regulator_VAUX3_device);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1731,6 +1764,61 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+/* pcap-leds */
+static struct pcap_leds_platform_data e6_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e6:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
+static struct pcap_subdev e6_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e6_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e6_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
+	.subdevs	= e6_pcap_subdevs,
+};
+
+static struct spi_board_info e6_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e6_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button e6_buttons[] = {
 	[0] = {
@@ -1756,25 +1844,6 @@ static struct platform_device e6_gpio_keys = {
 	},
 };
 
-/* pcap-leds */
-static struct pcap_leds_platform_data e6_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "e6:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
-struct platform_device e6_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &e6_leds,
-	},
-};
-
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("tea5767", 0x81),
@@ -1787,9 +1856,6 @@ static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
 	&gen2_flash_device,
 	&pcap_ts_device,
-	&e6_leds_device,
-	&pcap_rtc_device,
-	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
 };
@@ -1811,11 +1877,8 @@ static void __init e6_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
-//	platform_device_register(&pcap_regulator_SW1_device);
-	platform_device_register(&pcap_regulator_VAUX2_device);
+	spi_register_board_info(ARRAY_AND_SIZE(e6_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
@@ -1846,7 +1909,7 @@ MACHINE_END
 
 #ifdef CONFIG_MACH_EZX_E2
 /* pcap-leds */
-static struct pcap_leds_platform_data e2_leds = {
+static struct pcap_leds_platform_data e2_pcap_leds = {
 	.leds = {
 		{
 			.type = PCAP_VIB,
@@ -1856,11 +1919,44 @@ static struct pcap_leds_platform_data e2_leds = {
 	.num_leds = 1,
 };
 
-struct platform_device e2_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &e2_leds,
+static struct pcap_subdev e2_pcap_subdevs[] = {
+	{
+		.name	= "pcap_adc",
+		.id	= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e2_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e2_pcap_platform_data = {
+	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
+	.subdevs	= e2_pcap_subdevs,
+};
+
+static struct spi_board_info e2_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e2_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
 	},
 };
 
@@ -1870,9 +1966,6 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 
 static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
-	&e2_leds_device,
-	&pcap_rtc_device,
-	&pcap_keys_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
 };
@@ -1894,11 +1987,8 @@ static void __init e2_init(void)
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
-	ezx_pcap_platform_data.config |= PCAP_CS_AH;
 	platform_device_add(spi_pd);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
-//	platform_device_register(&pcap_regulator_SW1_device);
-	platform_device_register(&pcap_regulator_VAUX2_device);
+	spi_register_board_info(ARRAY_AND_SIZE(e2_spi_boardinfo));
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
