@@ -2,7 +2,6 @@ ezx/mach/rfkill-bluetooth
 ezx/asoc
 ezx/defconfig
 pxa/sparsemem
-ezx/rfkill-bluetooth
 tmp/pxa2xx-spi_fix_PXA2XX_CS_ASSERT
 tmp/fix_CONFIG_OABI_COMPAT
 tmp/fix-low-gpio-irqs
