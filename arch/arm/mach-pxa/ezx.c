@@ -860,8 +860,8 @@ static struct platform_device gen2_flash_device = {
 #ifdef CONFIG_MACH_EZX_A780
 static struct pcap_subdev a780_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1027,8 +1027,8 @@ MACHINE_END
 #ifdef CONFIG_MACH_EZX_E680
 static struct pcap_subdev e680_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1130,8 +1130,8 @@ MACHINE_END
 #ifdef CONFIG_MACH_EZX_A1200
 static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1233,8 +1233,8 @@ MACHINE_END
 #ifdef CONFIG_MACH_EZX_A910
 static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1456,8 +1456,8 @@ MACHINE_END
 #ifdef CONFIG_MACH_EZX_E6
 static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1559,8 +1559,8 @@ MACHINE_END
 #ifdef CONFIG_MACH_EZX_E2
 static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
-		.name	= "pcap_adc",
-		.id	= -1,
+		.name		= "pcap-adc",
+		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
