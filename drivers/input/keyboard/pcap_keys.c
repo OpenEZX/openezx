@@ -17,6 +17,7 @@
 #include <linux/platform_device.h>
 #include <linux/input.h>
 #include <linux/mfd/ezx-pcap.h>
+#include <mach/irqs.h>
 
 /* PCAP2 interrupts us on keypress */
 static irqreturn_t pcap_pwrkey_handler(int irq, void *pcap_input)
