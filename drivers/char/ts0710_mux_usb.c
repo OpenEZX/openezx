@@ -65,13 +65,6 @@ EXPORT_SYMBOL(usb_mux_sender);
 
 static struct usb_ipc_tty *ipc;
 
-//#define BVD_DEBUG
-#ifdef BVD_DEBUG
-#define bvd_dbg(format, arg...) printk(__FILE__ ": " format "\n" , ## arg)
-#else
-#define bvd_dbg(format, arg...) do {} while (0)
-#endif
-
 /* USB device context */
 typedef struct {
 	struct list_head list;
@@ -101,28 +94,6 @@ struct ipc_usb_data {
 
 struct ipc_usb_data *bvd_ipc;
 
-#ifdef BVD_DEBUG
-static void bvd_dbg_hex(__u8 *buf, int len)
-{
-	static unsigned char tbuf[DBG_MAX_BUF_SIZE];
-	int i, c;
-
-	if (len <= 0)
-		return;
-
-	c = 0;
-	for (i=0; (i < len) && (c < (DBG_MAX_BUF_SIZE - 3)); i++) {
-		sprintf(&tbuf[c], "%02x ",buf[i]);
-		c += 3;
-	}
-	tbuf[c] = 0;
-
-	printk("%s: %s\n", __FUNCTION__, tbuf);
-}
-#else
-#define bvd_dbg_hex(buf, len)
-#endif
-
 static int unlink_urbs(struct urb *urb)
 {
 	unsigned long flags;
@@ -138,15 +109,10 @@ static int unlink_urbs(struct urb *urb)
 	return retval;
 }
 
-
-
-
 static void ipcusb_timeout(unsigned long data)
 {
 	struct tty_struct *tty = &ipcusb_tty;
 	struct urb *urb = (struct urb *)data;
-
-	bvd_dbg("ipcusb_timeout***");
 
 	spin_lock(&bvd_ipc->in_buf_lock);
 	while (!(list_empty(&bvd_ipc->in_buf_list))) {
@@ -162,10 +128,8 @@ static void ipcusb_timeout(unsigned long data)
 			kfree(inbuf->body);
 			inbuf->body = NULL;
 			kfree(inbuf);
-		} else {
-			bvd_dbg("ipcusb_timeout: bvd_ipc->in_buf_list empty!");
+		} else
 			break;
-		}
 	}
 	spin_unlock(&bvd_ipc->in_buf_lock);
 
@@ -173,9 +137,7 @@ static void ipcusb_timeout(unsigned long data)
 	if (list_empty(&bvd_ipc->in_buf_list)) {
 		urb->actual_length = 0;
 		urb->dev = bvd_ipc->ipc_dev;
-		if (usb_submit_urb(urb, GFP_ATOMIC))
-			bvd_dbg("ipcusb_timeout: failed resubmitting read urb");
-		bvd_dbg("ipcusb_timeout: resubmited read urb");
+		usb_submit_urb(urb, GFP_ATOMIC);
 	} else {
 		ipcusb_timer.data = (unsigned long)urb;
 		mod_timer(&ipcusb_timer, jiffies+(10*HZ/1000));
@@ -194,18 +156,13 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	if (!count)
 		return;
 
-	bvd_dbg_hex((unsigned char*)urb->transfer_buffer, urb->actual_length);
-
-	bvd_dbg("usb_ipc_read_bulk: inserting buffer into in_buf_list");
-
 	tty->ldisc.ops->receive_buf(
 		tty, (unsigned char*)urb->transfer_buffer,
 		NULL, urb->actual_length);
 
 	urb->actual_length = 0;
 	urb->dev = bvd_ipc->ipc_dev;
-	if (usb_submit_urb(urb, GFP_ATOMIC))
-		bvd_dbg("failed resubmitting read urb");
+	usb_submit_urb(urb, GFP_ATOMIC);
 }
 
 static void usb_ipc_write_bulk(struct urb *urb)
@@ -221,7 +178,7 @@ static void usb_ipc_write_bulk(struct urb *urb)
 	tasklet_schedule(&bvd_ipc->bh);
 }
 
-static void ipcusb_xmit_data(void)
+static void ipcusb_xmit_data(unsigned long unused)
 {
 	int c, count = IPC_URB_SIZE;
 	int buf_flag = 0;
@@ -249,10 +206,6 @@ static void ipcusb_xmit_data(void)
 	if (!buf_flag)
 		return;
 
-	bvd_dbg("ipcusb_xmit_data: buf_num=%d", buf_num);
-	bvd_dbg("ipcusb_xmit_data: bvd_ipc->obuf: ");
-	bvd_dbg_hex((bvd_ipc->obuf)-buf_num, buf_num);
-
 	bvd_ipc->writeurb_mux.transfer_buffer_length = buf_num;
 	ezx_wake_bp();
 
@@ -262,9 +215,9 @@ static void ipcusb_xmit_data(void)
 	usb_submit_urb(&bvd_ipc->writeurb_mux, GFP_ATOMIC);
 }
 
-static void usbipc_bh_bp_func(unsigned long param)
+static void usbipc_bh_bp_func(unsigned long unused)
 {
-	if (bvd_ipc->ipc_flag =! IPC_USB_PROBE_READY)
+	if (bvd_ipc->ipc_flag != IPC_USB_PROBE_READY)
 		return;
 
 	/*send a IN token*/
@@ -277,17 +230,12 @@ static int usb_ipc_write(struct tty_struct *tty,
 {
 	int c, ret = 0;
 
-	bvd_dbg("usb_ipc_write: count=%d, buf: ", count);
-	bvd_dbg_hex(buf, count);
-
 	if (count <= 0)
 		return 0;
 
 	if ((bvd_ipc->ipc_flag == IPC_USB_PROBE_READY) &&
-	    (bvd_ipc->xmit.head == bvd_ipc->xmit.tail)) {
-		bvd_dbg("usb_ipc_write: set write_flag");
+	    (bvd_ipc->xmit.head == bvd_ipc->xmit.tail))
 		bvd_ipc->write_flag = IPC_USB_WRITE_XMIT;
-	}
 
 	while (1) {
 		c = CIRC_SPACE_TO_END(bvd_ipc->xmit.head,
@@ -304,17 +252,12 @@ static int usb_ipc_write(struct tty_struct *tty,
 		count -= c;
 		ret += c;
 	}
-	bvd_dbg("usb_ipc_write: ret=%d, bvd_ipc->xmit.buf: ", ret);
-
-	bvd_dbg_hex(bvd_ipc->xmit.buf, ret);
 
 	if (bvd_ipc->write_flag == IPC_USB_WRITE_XMIT) {
 		bvd_ipc->write_flag = IPC_USB_WRITE_INIT;
-		bvd_dbg("usb_ipc_write: mark ipcusb_softint");
 		tasklet_schedule(&bvd_ipc->bh);
 	}
 
-	bvd_dbg("usb_ipc_write: ret=%d\n", ret);
 	return ret;
 }
 
@@ -329,9 +272,6 @@ static int usb_ipc_chars_in_buffer(struct tty_struct *tty)
 
 static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 {
-   
-    printk("open: %x, %x\n",tty,ipc);
-
     int index;
 
     /* initialize the pointer in case something fails */
@@ -359,20 +299,7 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
     ipc->tty = tty;
     ipc->open_count++;
 
-
-    if (ipc->open_count == 1) {
-	    printk("opened first time\n");
-    }
-
-    printk("ipc opened %d times\n",ipc->open_count);
-
-    printk("tty %x %x\n",ipc->tty,tty);
-    printk("&tty->ldisc %x\n",&tty->ldisc);
-    printk("tty->ldisc.ops %x\n",tty->ldisc.ops);
-
-
     return 0;
-
 }
 
 static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
@@ -410,9 +337,6 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	int ep_cnt, size_in, size_out;
 	char ep_in, ep_out;
 
-	bvd_dbg("usb_ipc_probe: vendor id 0x%x, device id 0x%x",
-		usbdev->descriptor.idVendor, usbdev->descriptor.idProduct);
-
 	if ((usbdev->descriptor.idVendor != MOTO_IPC_VID) ||
 	    (usbdev->descriptor.idProduct != MOTO_IPC_PID))
  		return -ENODEV;
@@ -421,12 +345,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	if (intf->minor == 2)	/* dsplog interface number is 2 */
 		return -1;
 
-	bvd_dbg("usb_ipc_probe: USB dev address:%p", usbdev);
-	bvd_dbg("usb_ipc_probe: ifnum:%u", intf->minor);
-
 	ipccfg = &usbdev->actconfig->desc;
-	bvd_dbg("usb_ipc_prob: config%d", ipccfg->bConfigurationValue);
-	bvd_dbg("usb_ipc_prob: bNumInterfaces = %d", ipccfg->bNumInterfaces);
 
 	/* After this point we can be a little noisy about what we are trying
 	 * to configure, hehe.  */
@@ -445,8 +364,6 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	interface = &intf->cur_altsetting->desc;
 	/* Start checking for two bulk endpoints or ... FIXME: This is a future
 	 * enhancement...*/
-	bvd_dbg("usb_ipc_probe: Number of Endpoints:%d",
-		(int) interface->bNumEndpoints);
 	if (interface->bNumEndpoints != 2) {
 		printk("usb_ipc_probe: Only two endpoints supported got %d\n.",
 				interface->bNumEndpoints
@@ -497,7 +414,6 @@ static int usb_ipc_probe(struct usb_interface *intf,
 		kfree(bvd_ipc);
 		return -1;
 	}
-	bvd_dbg("usb_ipc_probe: obuf address:%p", bvd_ipc->obuf);
 
 	if (!(bvd_ipc->ibuf = (char *)kmalloc(size_in, GFP_KERNEL))) {
 		err("usb_ipc_probe: Not enough memory for the input buffer.");
@@ -505,7 +421,6 @@ static int usb_ipc_probe(struct usb_interface *intf,
 		kfree(bvd_ipc);
 		return -1;
 	}
-	bvd_dbg("usb_ipc_probe: ibuf address:%p", bvd_ipc->ibuf);
 
 	bvd_ipc->write_finished_flag = 1;
 	bvd_ipc->ipc_dev = usbdev;
@@ -513,11 +428,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	bvd_ipc->in_buf_lock = SPIN_LOCK_UNLOCKED;
 
 	bvd_ipc->bh.func = ipcusb_xmit_data;
-	bvd_ipc->bh.data = (unsigned long) bvd_ipc;
-
 	bvd_ipc->bh_bp.func = usbipc_bh_bp_func;
-	bvd_ipc->bh_bp.data = (unsigned long) bvd_ipc;
-
 	
 	/*Build a write urb*/
 	usb_init_urb(&bvd_ipc->writeurb_mux);
@@ -526,29 +437,20 @@ static int usb_ipc_probe(struct usb_interface *intf,
 			  bvd_ipc->obuf, size_out, usb_ipc_write_bulk,
 			  bvd_ipc);
 
-	bvd_dbg("after write urb");
-
 	/*Build a read urb and send a IN token first time*/
 	usb_init_urb(&bvd_ipc->readurb_mux);
 	usb_fill_bulk_urb(&bvd_ipc->readurb_mux, usbdev,
 			  usb_rcvbulkpipe(usbdev, ep_in),
 			  bvd_ipc->ibuf, size_in, usb_ipc_read_bulk, bvd_ipc);
 
-	bvd_dbg("after read urb");
-
-	bvd_dbg("after claim interface");
-
 	/*send a IN token first time*/
 	bvd_ipc->readurb_mux.dev = bvd_ipc->ipc_dev;
-	bvd_dbg("after assignement");
 
 	usb_set_intfdata(intf, bvd_ipc);
 	bvd_ipc->ipc_flag = IPC_USB_PROBE_READY;
 
 	if (usb_submit_urb(&bvd_ipc->readurb_mux, GFP_ATOMIC))
 		printk("usb_ipc_prob: usb_submit_urb(read mux bulk) failed!\n");
-
-	bvd_dbg("usb_ipc_prob: Send a IN token successfully!");
 
 	if (bvd_ipc->xmit.head != bvd_ipc->xmit.tail) {
 		printk("usb_ipc_probe: mark ipcusb_softint!\n");
@@ -600,22 +502,17 @@ static int __init usb_ipc_init(void)
 {
 	int result;
 
-	bvd_dbg("init usb_ipc");
-
 	/*init the related mux interface*/
 	if (!(bvd_ipc = kzalloc(sizeof(struct ipc_usb_data), GFP_KERNEL))) {
 		err("usb_ipc_init: Out of memory.");
 		return -ENOMEM;
 	}
-	bvd_dbg("usb_ipc_init: Address of bvd_ipc:%p", bvd_ipc);
 
 	if (!(bvd_ipc->xmit.buf = kmalloc(IPC_USB_XMIT_SIZE, GFP_KERNEL))) {
 		err("usb_ipc_init: Not enough memory for the input buffer.");
 		kfree(bvd_ipc);
 		return -ENOMEM;
 	}
-	bvd_dbg("usb_ipc_init: bvd_ipc->xmit.buf address:%p",
-		bvd_ipc->xmit.buf);
 	bvd_ipc->ipc_dev = NULL;
 	bvd_ipc->xmit.head = bvd_ipc->xmit.tail = 0;
 	bvd_ipc->write_flag = IPC_USB_WRITE_INIT;
@@ -638,8 +535,7 @@ static int __init usb_ipc_init(void)
 	if (tty_register_driver(ipcusb_tty_driver))
 		printk("oops. cant register ipc tty\n");
 
-	printk("registering ipc tty dev %x\n",ipcusb_tty_driver);
-	if ( tty_register_device(ipcusb_tty_driver, 0, NULL))
+	if (tty_register_device(ipcusb_tty_driver, 0, NULL))
 		printk("oops cant register ipc tty dev\n");
 
 	usb_for_mux_driver = ipcusb_tty_driver;
@@ -666,8 +562,6 @@ static int __init usb_ipc_init(void)
 
 static void __exit usb_ipc_exit(void)
 {
-	bvd_dbg("cleanup bvd_ipc");
-
 	kfree(bvd_ipc->xmit.buf);
 	kfree(bvd_ipc);
 	usb_deregister(&usb_ipc_driver);
