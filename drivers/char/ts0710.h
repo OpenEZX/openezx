@@ -185,16 +185,7 @@ typedef struct {
 	__u8 value[0];
 } __attribute__ ((packed)) mcc_short_frame;
 
-typedef struct {
-	mcc_type type;
-	long_length length;
-	__u8 value[0];
-} __attribute__ ((packed)) mcc_long_frame_head;
 
-typedef struct {
-	mcc_long_frame_head h;
-	__u8 value[0];
-} __attribute__ ((packed)) mcc_long_frame;
 
 /* MSC-command */
 typedef struct {
@@ -215,87 +206,13 @@ typedef struct {
 	__u8 len:4;
 } __attribute__ ((packed)) brk_sigs;
 
+
 typedef struct {
-	short_frame_head s_head;
-	mcc_short_frame_head mcc_s_head;
 	address_field dlci;
 	__u8 v24_sigs;
-	//brk_sigs break_signals;
-	__u8 fcs;
-} __attribute__ ((packed)) msc_msg;
+} __attribute__ ((packed)) msc_t;
 
-#if 0
-/* conflict with termios.h */
-/* RPN command */
-#define B2400 0
-#define B4800 1
-#define B7200 2
-#define B9600 3
-#define B19200 4
-#define B38400 5
-#define B57600 6
-#define B115200 7
-#define D230400 8
-#endif
 
-/*
-typedef struct{
-  __u8 bit_rate:1;
-  __u8 data_bits:1;
-  __u8 stop_bit:1;
-  __u8 parity:1;
-  __u8 parity_type:1;
-  __u8 xon_u8:1;
-  __u8 xoff_u8:1;
-  __u8 res1:1;
-  __u8 xon_input:1;
-  __u8 xon_output:1;
-  __u8 rtr_input:1;
-  __u8 rtr_output:1;
-  __u8 rtc_input:1;
-  __u8 rtc_output:1;
-  __u8 res2:2;
-} __attribute__((packed)) parameter_mask;
-
-typedef struct{
-  __u8 bit_rate;
-  __u8 data_bits:2;
-  __u8 stop_bit:1;
-  __u8 parity:1;
-  __u8 parity_type:2;
-  __u8 res1:2;
-  __u8 xon_input:1;
-  __u8 xon_output:1;
-  __u8 rtr_input:1;
-  __u8 rtr_output:1;
-  __u8 rtc_input:1;
-  __u8 rtc_output:1;
-  __u8 res2:2;
-  __u8 xon_u8;
-  __u8 xoff_u8;
-  parameter_mask pm;
-} __attribute__((packed)) rpn_values;
-
-typedef struct{
-  short_frame_head s_head;
-  mcc_short_frame_head mcc_s_head;
-  address_field dlci;
-  rpn_values rpn_val;
-  __u8 fcs;
-} __attribute__((packed)) rpn_msg;
-*/
-
-/* RLS-command */
-/*
-typedef struct{
-  short_frame_head s_head;
-  mcc_short_frame_head mcc_s_head;
-  address_field dlci;
-  __u8 error:4;
-  __u8 res:4;
-  __u8 fcs;
-} __attribute__((packed)) rls_msg;
-*/
 
 /* PN-command */
 typedef struct {
@@ -315,6 +232,22 @@ typedef struct {
 	__u8 fcs;
 } __attribute__ ((packed)) pn_msg;
 
+/* PN-command */
+typedef struct {
+	__u8 dlci:6;
+	__u8 res1:2;
+	__u8 frame_type:4;
+	__u8 credit_flow:4;
+	__u8 prior:6;
+	__u8 res2:2;
+	__u8 ack_timer;
+	__u8 frame_sizel;
+	__u8 frame_sizeh;
+	__u8 max_nbrof_retrans;
+	__u8 credits;
+	__u8 fcs;
+} __attribute__ ((packed)) pn_t;
+
 /* NSC-command */
 typedef struct {
 	short_frame_head s_head;
@@ -327,15 +260,13 @@ typedef struct {
 #error Only littel-endianess supported now!
 #endif
 
-enum {
-	REJECTED = 0,
-	DISCONNECTED,
-	CONNECTING,
-	NEGOTIATING,
-	CONNECTED,
-	DISCONNECTING,
-	FLOW_STOPPED
-};
+#define REJECTED 0
+#define DISCONNECTED (1<<0)
+#define CONNECTING  (1<<1)
+#define NEGOTIATING  (1<<2)
+#define CONNECTED  (1<<3)
+#define DISCONNECTING (1<<4)
+#define FLOW_STOPPED (1<<5)
 
 enum ts0710_events {
 	CONNECT_IND,
@@ -364,3 +295,38 @@ typedef struct {
 
 	dlci_struct dlci[TS0710_MAX_CHN];
 } ts0710_con;
+
+#define valid_dlci(x) ( (x>0) && (x<TS0710_MAX_CHN) )
+#define valid_line(x) ( (x>0) && (x<NR_MUXS) )
+
+#define TS0710DEBUG
+#ifdef TS0710DEBUG
+#define TS0710_DEBUG(fmt, arg...) printk(KERN_INFO "TS07.10: " fmt , ## arg)
+#else
+#define TS0710_DEBUG(fmt...)
+#endif
+
+#define TS0710LOG
+#ifdef TS0710LOG
+#define TS0710_LOG(fmt, arg...) printk("TS07.10: "fmt, ## arg)
+#else
+#define TS0710_LOG(fmt...)
+#endif
+
+#define TS0710_PRINTK(fmt, arg...) printk(KERN_INFO "TS07.10: " fmt, ## arg)
+
+#define MUX_EA			1
+#define MUX_BASIC_FLAG_SEQ	0xf9
+#define MUX_ADVANCED_FLAG_SEQ	0x7e
+#define MUX_CONTROL_ESCAPE	0x7d
+
+enum mux_frametype {
+	MUX_SABM	= 0x2f,
+	MUX_UA		= 0x63,
+	MUX_DM		= 0x0f,
+	MUX_DISC	= 0x43,
+	MUX_UIH		= 0xef,
+	MUX_UI		= 0x03,
+        MUX_PN		= 0x20,
+};
+
