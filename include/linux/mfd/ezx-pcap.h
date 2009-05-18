@@ -21,6 +21,9 @@ struct pcap_platform_data {
 	struct pcap_subdev *subdevs;
 };
 
+int ezx_pcap_write(u8, u32);
+int ezx_pcap_read(u8, u32 *);
+
 #define PCAP_SECOND_PORT	1
 #define PCAP_CS_AH		2
 
@@ -218,28 +221,5 @@ struct pcap_platform_data {
 #define PCAP_RTC_TOD_MASK	0xffff
 #define PCAP_RTC_PC_MASK	0x7
 #define SEC_PER_DAY		86400
-
-int ezx_pcap_write(u8, u32);
-int ezx_pcap_read(u8, u32 *);
-int ezx_pcap_set_sw(u8, u8, u8);
-int ezx_pcap_set_vreg(u8, u8, u8);
-void ezx_pcap_start_adc(u8, u8, u32, void *, void *);
-void ezx_pcap_get_adc_channel_result(u8, u8, u32[]);
-void ezx_pcap_get_adc_bank_result(u32[]);
-void ezx_pcap_disable_adc(void);
-void ezx_pcap_do_general_adc(u8, u8, u32 *);
-void ezx_pcap_do_batt_adc(int, u32[]);
-int ezx_pcap_register_event(u32, void *, void *, char *);
-int ezx_pcap_unregister_event(u32);
-void ezx_pcap_mask_event(u32);
-void ezx_pcap_unmask_event(u32);
-
-struct pcap_event {
-	struct list_head node;
-	char *label;
-	u32 events;
-	void (*callback) (u32, void *);
-	void *data;
-};
 
 #endif
