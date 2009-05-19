@@ -101,3 +101,73 @@
 
 /* Special Error code might be return from open() to a MUX device file  */
 #define EREJECTED 901		/* Logical data link connection request is rejected */
+
+#define TS0710MUX_MAJOR 250
+#define TS0710MUX_MINOR_START 0
+
+
+
+
+#define TS0710MUX_TIME_OUT 250	/* 2500ms, for BP UART hardware flow control AP UART  */
+
+#define TS0710MUX_IO_DLCI_FC_ON 0x54F2
+#define TS0710MUX_IO_DLCI_FC_OFF 0x54F3
+#define TS0710MUX_IO_FC_ON 0x54F4
+#define TS0710MUX_IO_FC_OFF 0x54F5
+
+#define TS0710MUX_MAX_BUF_SIZE 2048
+
+#define TS0710MUX_SEND_BUF_OFFSET 10
+#define TS0710MUX_SEND_BUF_SIZE (DEF_TS0710_MTU + TS0710MUX_SEND_BUF_OFFSET + 34)
+#define TS0710MUX_RECV_BUF_SIZE TS0710MUX_SEND_BUF_SIZE
+
+#define ACK_SPACE 66		/* 6 * 11(ACK frame size)  */
+
+#define TS0710MUX_SERIAL_BUF_SIZE (DEF_TS0710_MTU + TS0710_MAX_HDR_SIZE + ACK_SPACE)	/* For BP UART problem: ACK_SPACE  */
+
+#define TS0710MUX_MAX_TOTAL_FRAME_SIZE (DEF_TS0710_MTU + TS0710_MAX_HDR_SIZE + FLAG_SIZE)
+#define TS0710MUX_MAX_CHARS_IN_BUF 65535
+#define TS0710MUX_THROTTLE_THRESHOLD DEF_TS0710_MTU
+
+#define TEST_PATTERN_SIZE 250
+
+#define CMDTAG 0x55
+#define DATATAG 0xAA
+
+#define ACK 0x4F		/*For BP UART problem */
+
+
+#define SLIDE_BP_SEQ_OFFSET 1	/*offset from start flag */
+#define SEQ_FIELD_SIZE 1
+
+#define ADDRESS_FIELD_OFFSET (1 + SEQ_FIELD_SIZE)	/*offset from start flag */
+
+#ifndef UNUSED_PARAM
+#define UNUSED_PARAM(v) (void)(v)
+#endif
+
+#define BUF_BUSY 0
+
+#define RECV_RUNNING 0
+
+#define MUX_INVALID(x) ( (x < 0) || (x >= NR_MUXS) )
+#define MUX_ALL_STOPPED(x) (x->dlci[0].state == FLOW_STOPPED)
+#define MUX_STOPPED(x,n) (x->dlci[n].state == FLOW_STOPPED)
+#define MUX_CONNECTED(x,n) (x->dlci[n].state == CONNECTED)
+#define MUX_STOPPED_FULL(x,n) (MUX_ALL_STOPPED(x) || MUX_STOPPED(x,n))
+#define MUX_USABLE(x,n) (MUX_CONNECTED(x,n) && !MUX_STOPPED_FULL(x,n))
+
+static void fcs_init(void);
+
+static void send_sabm(ts0710_con * ts0710, __u8 dlci);
+static void send_dm(ts0710_con * ts0710, __u8 dlci);
+static void send_disc(ts0710_con * ts0710, __u8 dlci);
+static void send_ua(ts0710_con * ts0710, __u8 dlci);
+static void send_pn_msg(ts0710_con * ts0710, __u8 prior, __u32 frame_size,
+		       __u8 credit_flow, __u8 credits, __u8 dlci, __u8 cr);
+
+static void send_nsc_msg(ts0710_con * ts0710, mcc_type cmd, __u8 cr);
+static void mux_send_uih(ts0710_con * ts0710, __u8 cr,__u8 type, __u8 *data, int len);
+static void ts0710_fcoff_msg(ts0710_con * ts0710, __u8 cr);
+static void ts0710_fcon_msg(ts0710_con * ts0710, __u8 cr);
+static void send_ack(ts0710_con * ts0710, __u8 seq_num);
