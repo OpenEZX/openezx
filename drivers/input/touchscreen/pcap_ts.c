@@ -47,6 +47,13 @@ struct pcap_ts *pcap_ts;
 /* if we try to read faster, pressure reading becomes unreliable */
 #define SAMPLE_INTERVAL		(HZ/50)
 
+void ezx_pcap_start_adc(u8 bank, u8 time, u32 flags,
+		void *adc_done, void *adc_data);
+void ezx_pcap_get_adc_channel_result(u8 ch1, u8 ch2, u32 res[]);
+
+void ezx_pcap_disable_adc(void);
+
+
 static void pcap_ts_read_xy(void)
 {
 	u32 res[2];
@@ -113,7 +120,6 @@ static void pcap_ts_work(struct work_struct *unused)
 		tmp &= ~PCAP_ADC_TS_M_MASK;
 		tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
 		ezx_pcap_write(PCAP_REG_ADC, tmp);
-		ezx_pcap_unmask_event(PCAP_IRQ_TS);
 		break;
 	case PCAP_ADC_TS_M_PRESSURE:
 	case PCAP_ADC_TS_M_XY:
@@ -125,12 +131,12 @@ static void pcap_ts_work(struct work_struct *unused)
 	}
 }
 
-static void pcap_ts_event_touch(u32 events, void *unused)
+static irqreturn_t pcap_ts_event_touch(int irq, void *unused)
 {
-	/* pen touch down, mask touch event and start reading pressure */
-	ezx_pcap_mask_event(PCAP_IRQ_TS);
 	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
-	schedule_work(&pcap_ts->work);
+	mod_timer(&pcap_ts->timer, jiffies + SAMPLE_INTERVAL);
+
+	return IRQ_HANDLED;
 }
 
 static void pcap_ts_timer_fn(unsigned long data)
@@ -173,8 +179,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
-	ezx_pcap_register_event(PCAP_IRQ_TS, pcap_ts_event_touch,
-							NULL, "Touch Screen");
+	request_irq(PCAP_IRQ_TS, pcap_ts_event_touch, 0, "Touch Screen", NULL);
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
@@ -185,7 +190,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	return 0;
 
 fail_touch:
-	ezx_pcap_unregister_event(PCAP_IRQ_TS);
+	free_irq(PCAP_IRQ_TS, NULL);
 fail:
 	input_free_device(input_dev);
 	kfree(pcap_ts);
@@ -195,7 +200,7 @@ fail:
 
 static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
-	ezx_pcap_unregister_event(PCAP_IRQ_TS);
+	free_irq(PCAP_IRQ_TS, NULL);
 
 	del_timer_sync(&pcap_ts->timer);
 
