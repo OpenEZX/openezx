@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.30-rc4
-# Fri May  8 12:02:34 2009
+# Linux kernel version: 2.6.30-rc6
+# Tue May 19 19:48:51 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1027,6 +1027,7 @@ CONFIG_SSB_POSSIBLE=y
 # CONFIG_MFD_WM8350_I2C is not set
 # CONFIG_MFD_PCF50633 is not set
 CONFIG_EZX_PCAP=y
+CONFIG_EZX_PCAP_ADC=y
 
 #
 # Multimedia devices
@@ -1371,9 +1372,9 @@ CONFIG_LEDS_CLASS=y
 #
 # CONFIG_LEDS_PCA9532 is not set
 # CONFIG_LEDS_GPIO is not set
+CONFIG_LEDS_LP3944=m
 # CONFIG_LEDS_LP5521 is not set
 # CONFIG_LEDS_PCA955X is not set
-CONFIG_LEDS_LP3944=m
 # CONFIG_LEDS_DAC124S085 is not set
 # CONFIG_LEDS_PWM is not set
 # CONFIG_LEDS_BD2802 is not set
