@@ -246,27 +246,27 @@
 
 /* PCAP2 Interrupts */
 #define PCAP_IRQ(x)		(IRQ_BOARD_START + (x))
-#define PCAP_IRQ_ADCDONE	PCAP_IRQ(0)
-#define PCAP_IRQ_TS		PCAP_IRQ(1)
-#define PCAP_IRQ_1HZ		PCAP_IRQ(2)
-#define PCAP_IRQ_WH		PCAP_IRQ(3)
-#define PCAP_IRQ_WL		PCAP_IRQ(4)
-#define PCAP_IRQ_TODA		PCAP_IRQ(5)
-#define PCAP_IRQ_USB4V		PCAP_IRQ(6)
-#define PCAP_IRQ_ONOFF		PCAP_IRQ(7)
-#define PCAP_IRQ_ONOFF2		PCAP_IRQ(8)
-#define PCAP_IRQ_USB1V		PCAP_IRQ(9)
+#define PCAP_IRQ_ADCDONE	PCAP_IRQ(0)	/* ADC done port 1 */
+#define PCAP_IRQ_TS		PCAP_IRQ(1)	/* Touch Screen */
+#define PCAP_IRQ_1HZ		PCAP_IRQ(2)	/* 1HZ timer */
+#define PCAP_IRQ_WH		PCAP_IRQ(3)	/* ADC above high limit */
+#define PCAP_IRQ_WL		PCAP_IRQ(4)	/* ADC below low limit */
+#define PCAP_IRQ_TODA		PCAP_IRQ(5)	/* Time of day alarm */
+#define PCAP_IRQ_USB4V		PCAP_IRQ(6)	/* USB above 4V */
+#define PCAP_IRQ_ONOFF		PCAP_IRQ(7)	/* On/Off button */
+#define PCAP_IRQ_ONOFF2		PCAP_IRQ(8)	/* On/Off button 2 */
+#define PCAP_IRQ_USB1V		PCAP_IRQ(9)	/* USB above 1V */
 #define PCAP_IRQ_MOBPORT	PCAP_IRQ(10)
-#define PCAP_IRQ_MIC		PCAP_IRQ(11)
-#define PCAP_IRQ_HEADJACK	PCAP_IRQ(12)
+#define PCAP_IRQ_MIC		PCAP_IRQ(11)	/* Mic attach/HS button */
+#define PCAP_IRQ_HS		PCAP_IRQ(12)	/* Headset attach */
 #define PCAP_IRQ_ST		PCAP_IRQ(13)
-#define PCAP_IRQ_PC		PCAP_IRQ(14)
+#define PCAP_IRQ_PC		PCAP_IRQ(14)	/* Power Cut */
 #define PCAP_IRQ_WARM		PCAP_IRQ(15)
-#define PCAP_IRQ_EOL		PCAP_IRQ(16)
+#define PCAP_IRQ_EOL		PCAP_IRQ(16)	/* Battery End Of Life */
 #define PCAP_IRQ_CLK		PCAP_IRQ(17)
-#define PCAP_IRQ_SYSRST		PCAP_IRQ(18)
+#define PCAP_IRQ_SYSRST		PCAP_IRQ(18)	/* System Reset */
 #define PCAP_IRQ_DUMMY		PCAP_IRQ(19)
-#define PCAP_IRQ_ADCDONE2	PCAP_IRQ(20)
+#define PCAP_IRQ_ADCDONE2	PCAP_IRQ(20)	/* ADC done port 2 */
 #define PCAP_IRQ_SOFTRESET	PCAP_IRQ(21)
 #define PCAP_IRQ_MNEXB		PCAP_IRQ(22)
 #define PCAP_LAST_IRQ		PCAP_IRQ(22)
