@@ -1,2 +1,3 @@
-ezx/mach/leds-lp3944_new
-ezx/local/pcap
+ezx/mach/pcap
+ezx/pcap_regulator
+mmc/pxamci-regulator-support
