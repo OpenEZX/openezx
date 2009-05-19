@@ -11,11 +11,7 @@
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
-#include <linux/kernel_stat.h>
-#include <linux/proc_fs.h>
 #include <linux/mfd/ezx-pcap.h>
-#include <linux/delay.h>
-#include <linux/gpio.h>
 #include <linux/spi/spi.h>
 
 struct pcap_chip {
