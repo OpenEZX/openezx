@@ -6,15 +6,11 @@
 #include <linux/input.h>
 #include <linux/gpio.h>
 #include <linux/irq.h>
-#include <linux/leds.h>
-
-#include <media/soc_camera.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
-#include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
 #include <mach/pxa2xx-regs.h>
@@ -25,29 +21,19 @@
 #include "devices.h"
 #include "generic.h"
 
-#define GPIO11_MOTOQ_SD_N 11
-#define GPIO18_MOTOQ_USB_VBUS 18
-
-static struct platform_pwm_backlight_data ezx_backlight_data = {
+static struct platform_pwm_backlight_data backlight_data = {
 	.pwm_id		= 0,
 	.max_brightness	= 1023,
 	.dft_brightness	= 1023,
 	.pwm_period_ns	= 78770,
 };
 
-static struct platform_device ezx_backlight_device = {
+static struct platform_device backlight_device = {
 	.name		= "pwm-backlight",
 	.dev		= {
 		.parent	= &pxa27x_device_pwm0.dev,
-		.platform_data = &ezx_backlight_data,
+		.platform_data = &backlight_data,
 	},
-};
-
-static void motoq_lcd_power(int on, struct fb_var_screeninfo *var)
-{
-	if(on) {
-		//udelay(6000);
-	}
 };
 
 static struct pxafb_mode_info motoq_lcd_mode = {
@@ -67,7 +53,6 @@ static struct pxafb_mach_info motoq_lcd_info = {
 	.modes			= &motoq_lcd_mode,
 	.num_modes		= 1,
 	.lcd_conn		= LCD_COLOR_TFT_16BPP,
-	.pxafb_lcd_power	= motoq_lcd_power,
 };
 
 static unsigned int motoq_matrix_key_map[] = {
@@ -84,63 +69,63 @@ static unsigned int motoq_matrix_key_map[] = {
 	KEY(1,1,KEY_V),
 	KEY(1,2,KEY_DOT),
 	KEY(1,3,KEY_0),
-	KEY(1,4,KEY_LEFTALT),	/* speakerphone correct */
-	KEY(1,5,KEY_LEFTCTRL),	/* mail !!!!! */
+	KEY(1,4,KEY_LEFTALT),		/* speakerphone correct */
+	KEY(1,5,KEY_LEFTCTRL),		/* mail !!!!! */
 	KEY(1,6,KEY_8),
-	KEY(1,7,KEY_ENTER),	/* ok */
+	KEY(1,7,KEY_ENTER),		/* ok */
 
 	KEY(2,0,KEY_F),
 	KEY(2,1,KEY_O),
 	KEY(2,2,KEY_O),
 	KEY(2,3,KEY_Z),
-	KEY(2,4,KEY_ENTER),	/* wheel click correct */
-	KEY(2,5,KEY_BACKSPACE),	/* backspace (left arrow softkey) */
+	KEY(2,4,KEY_ENTER),		/* wheel click correct */
+	KEY(2,5,KEY_BACKSPACE),		/* backspace (left arrow softkey) */
 	KEY(2,6,KEY_RIGHTSHIFT),	/* shift ! */
 	KEY(2,7,KEY_R),
 
 	KEY(3,0,KEY_T),
 	KEY(3,1,KEY_E),
-	KEY(3,2,KEY_RIGHTALT),	/* fn !?? */
+	KEY(3,2,KEY_RIGHTALT),		/* fn !?? */
 	KEY(3,3,KEY_I),
-	KEY(3,4,KEY_ESC),	/* wheel back correct */
+	KEY(3,4,KEY_ESC),		/* wheel back correct */
 	KEY(3,5,KEY_B),
-	KEY(3,6,KEY_TAB),	/* right softkey correct */
+	KEY(3,6,KEY_TAB),		/* right softkey correct */
 	KEY(3,7,KEY_4),
 
 	KEY(4,0,KEY_H),
-	KEY(4,1,KEY_LEFTCTRL), /* mail */
+	KEY(4,1,KEY_LEFTCTRL),		/* mail */
 	KEY(4,2,KEY_X),
 	KEY(4,3,KEY_V),
-	KEY(4,4,KEY_LEFTCTRL),	/* left softkey correct */
+	KEY(4,4,KEY_LEFTCTRL),		/* left softkey correct */
 	KEY(4,5,KEY_P),
 	KEY(4,6,KEY_M),
-	KEY(4,7,KEY_UP),	/* up ? */
+	KEY(4,7,KEY_UP),		/* up ? */
 
 	KEY(5,0,KEY_K),
-	KEY(5,1,KEY_ENTER),	/* ok (center button) */
+	KEY(5,1,KEY_ENTER),		/* ok (center button) */
 	KEY(5,2,KEY_N),
-	KEY(5,3,KEY_DOWN),	/* not B? */
-	KEY(5,4,KEY_LEFT),	/* left (widescreen) correct */
+	KEY(5,3,KEY_DOWN),		/* not B? */
+	KEY(5,4,KEY_LEFT),		/* left (widescreen) correct */
 	KEY(5,5,KEY_C),
-	KEY(5,6,KEY_UP),	/* up (widescreen) correct */
+	KEY(5,6,KEY_UP),		/* up (widescreen) correct */
 	KEY(5,7,KEY_Q),
 
 	KEY(6,0,KEY_S),
 	KEY(6,1,KEY_SPACE),
-	KEY(6,2,KEY_ENTER),	/* return key */
+	KEY(6,2,KEY_ENTER),		/* return key */
 	KEY(6,3,KEY_N),
-	KEY(6,4,KEY_RIGHT),	/* right (widescreen) correct */
-	KEY(6,5,KEY_MINUS),	/* call? (green phone) !!!!! */
-	KEY(6,6,KEY_RIGHTALT),	/* cmaera correct */
-	KEY(6,7,KEY_SLASH),	/* home (house) correct */
+	KEY(6,4,KEY_RIGHT),		/* right (widescreen) correct */
+	KEY(6,5,KEY_MINUS),		/* call? (green phone) !!!!! */
+	KEY(6,6,KEY_RIGHTALT),		/* cmaera correct */
+	KEY(6,7,KEY_SLASH),		/* home (house) correct */
 
-	KEY(7,0,KEY_LEFTBRACE),	/* alt/fn ? */
+	KEY(7,0,KEY_LEFTBRACE),		/* alt/fn ? */
 	KEY(7,1,KEY_Y),
-	KEY(7,2,KEY_BACKSLASH),	/* backspace ? */
-	KEY(7,3,KEY_SEMICOLON), /* backspace !? */
+	KEY(7,2,KEY_BACKSLASH),		/* backspace ? */
+	KEY(7,3,KEY_SEMICOLON), 	/* backspace !? */
 	KEY(7,4,KEY_K),
 	KEY(7,5,KEY_C),
-	KEY(7,6,KEY_RIGHTALT), /* fn correct */
+	KEY(7,6,KEY_RIGHTALT),		/* fn correct */
 	KEY(7,7,KEY_9),
 };
 
@@ -151,14 +136,6 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
 	.matrix_key_map_size = ARRAY_SIZE(motoq_matrix_key_map),
 	.debounce_interval = 30,  /* from littleton.c */
 };
-
-
-/*
-static void __init motoq_fixup(struct machine_desc *desc, struct tag *tags,
-			char **cmdlne, struct meminfo *mi)
-{
-};
-*/
 
 static unsigned long pin_config[] = {
 	GPIO18_GPIO,
@@ -173,26 +150,13 @@ static unsigned long pin_config[] = {
 	GPIO44_BTUART_CTS,
 	GPIO45_BTUART_RTS,
 
-	/* For A780 support (connected with Neptune GSM chip) */
+	/* OHCI Connected to MSM */
 	GPIO30_USB_P3_2,	/* ICL_TXENB */
 	GPIO31_USB_P3_6,	/* ICL_VPOUT */
 	GPIO90_USB_P3_5,	/* ICL_VPIN */
 	GPIO91_USB_P3_1,	/* ICL_XRXD */
 	GPIO56_USB_P3_4,	/* ICL_VMOUT */
 	GPIO113_USB_P3_3,	/* /ICL_VMIN */
-
-
-	/* sound */
-//	GPIO52_SSP3_SCLK,
-//	GPIO83_SSP3_SFRM,
-//	GPIO81_SSP3_TXD,
-//	GPIO89_SSP3_RXD,
-
-//	/* ssp2 pins to in */
-//	GPIO22_GPIO,				/* SSP2_SCLK */
-//	GPIO37_GPIO,				/* SSP2_SFRM */
-//	GPIO38_GPIO,				/* SSP2_TXD */
-//	GPIO88_GPIO,				/* SSP2_RXD */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -207,30 +171,18 @@ static unsigned long pin_config[] = {
 	GPIO94_CIF_DD_5,
 	GPIO17_CIF_DD_6,
 	GPIO108_CIF_DD_7,
-//	GPIO50_GPIO | MFP_DIR_OUT,		/* CAM_EN */
-//	GPIO19_GPIO | MFP_DIR_OUT,		/* CAM_RST */
-
-	/* EMU */
-//	GPIO120_GPIO,				/* EMU_MUX1 */
-//	GPIO119_GPIO,				/* EMU_MUX2 */
-//	GPIO86_GPIO,				/* SNP_INT_CTL */
-//	GPIO87_GPIO,				/* SNP_INT_IN */
-
 };
 
 static struct platform_device *devices[] __initdata = {
-	&ezx_backlight_device,
+	&backlight_device,
 };
 
 static void __init motoq_init(void)
 {
-	set_pxa_fb_info(&motoq_lcd_info);
-
-	pxa_set_keypad_info(&motoq_keypad_info);
-
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(pin_config));
-
 	pxa_set_i2c_info(NULL);
+	set_pxa_fb_info(&motoq_lcd_info);
+	pxa_set_keypad_info(&motoq_keypad_info);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 };
