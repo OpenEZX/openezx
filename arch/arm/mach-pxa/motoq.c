@@ -1,21 +1,31 @@
+/*
+ *  motoq.c - Board code for Motorola Q CDMA (Franklin)
+ *
+ *  Copyright (c) 2009 Timothy Meade <zt.tmzt@gmail.com>
+ *  		  2009 Daniel Ribeiro <drwyrm@gmail.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
+ *
+ */
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
-#include <linux/gpio.h>
-#include <linux/irq.h>
 
 #include <asm/setup.h>
-#include <mach/pxafb.h>
-#include <mach/i2c.h>
-#include <mach/pxa27x_keypad.h>
-#include <mach/mfp-pxa27x.h>
-#include <mach/pxa2xx-regs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
-#include <asm/io.h>
+
+#include <mach/pxa27x.h>
+#include <mach/pxafb.h>
+#include <mach/i2c.h>
+#include <mach/hardware.h>
+#include <mach/pxa27x_keypad.h>
 
 #include "devices.h"
 #include "generic.h"
