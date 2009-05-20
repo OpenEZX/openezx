@@ -167,32 +167,6 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
 
 };
 
-static int motoq_mci_init(struct device *dev,
-				irq_handler_t detect_irq, void *data)
-{
-	int err;
-	err = request_irq(gpio_to_irq(GPIO11_MOTOQ_SD_N), detect_irq,
-				(IRQF_DISABLED | IRQF_TRIGGER_FALLING 
-				| IRQF_TRIGGER_RISING),
-				"MMC card detect", data);
-	if (err) {
-		printk("could not request mmc card detect irq\n");
-		return -ENODEV;
-	};
-	return 0;
-};
-
-static void motoq_mci_exit(struct device *dev, void *data)
-{
-	free_irq(gpio_to_irq(GPIO11_MOTOQ_SD_N), data);
-};
-
-static struct pxamci_platform_data motoq_mci_info = {
-	.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
-	.init = motoq_mci_init,
-	.exit = motoq_mci_exit,
-};
-
 static void motoq_udc_command(int cmd)
 {
 	unsigned int tmp;
@@ -466,8 +440,6 @@ static void __init motoq_init(void)
 	pxa_set_keypad_info(&motoq_keypad_info);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
-
-	pxa_set_mci_info(&motoq_mci_info);
 
 	pxa_set_udc_info(&motoq_udc_info);
 
