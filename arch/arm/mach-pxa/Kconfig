@@ -464,7 +464,7 @@ config MACH_EZX_E2
 endmenu
 
 config MACH_MOTOQ
-	bool "Motorola Q CDMA (Franklin)
+	bool "Motorola Q CDMA (Franklin)"
 	default y
 	select PXA27x
 	select IWMMXT
