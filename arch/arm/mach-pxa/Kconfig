@@ -461,14 +461,14 @@ config MACH_EZX_E2
 	default y
 	depends on PXA_EZX
 
-endmenu
-
 config MACH_MOTOQ
 	bool "Motorola Q CDMA (Franklin)"
 	default y
 	select PXA27x
 	select IWMMXT
 	select HAVE_PWM
+
+endmenu
 
 config PXA25x
 	bool
