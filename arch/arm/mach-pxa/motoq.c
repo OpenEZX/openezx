@@ -7,7 +7,6 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
-#include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
@@ -20,7 +19,6 @@
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
-#include <mach/mmc.h>
 #include <mach/camera.h>
 #include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
