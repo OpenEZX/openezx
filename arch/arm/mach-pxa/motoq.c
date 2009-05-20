@@ -5,24 +5,15 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
 #include <linux/gpio.h>
-#include <linux/spi/spi.h>
-#include <linux/mfd/ezx-pcap.h>
-#include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
 #include <linux/leds.h>
-#include <linux/leds-pcap.h>
 
 #include <media/soc_camera.h>
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
-#include <mach/ohci.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
-#include <mach/pxa2xx_spi.h>
-#include <mach/mmc.h>
-#include <mach/udc.h>
-#include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
 #include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
@@ -167,98 +158,7 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
 
 };
 
-static int motoq_mci_init(struct device *dev,
-				irq_handler_t detect_irq, void *data)
-{
-	int err;
-	err = request_irq(gpio_to_irq(GPIO11_MOTOQ_SD_N), detect_irq,
-				(IRQF_DISABLED | IRQF_TRIGGER_FALLING 
-				| IRQF_TRIGGER_RISING),
-				"MMC card detect", data);
-	if (err) {
-		printk("could not request mmc card detect irq\n");
-		return -ENODEV;
-	};
-	return 0;
-};
-
-static void motoq_mci_exit(struct device *dev, void *data)
-{
-	free_irq(gpio_to_irq(GPIO11_MOTOQ_SD_N), data);
-};
-
-static struct pxamci_platform_data motoq_mci_info = {
-	.ocr_mask = MMC_VDD_32_33 | MMC_VDD_33_34,
-	.init = motoq_mci_init,
-	.exit = motoq_mci_exit,
-};
-
-static void motoq_udc_command(int cmd)
-{
-	unsigned int tmp;
-	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
-	switch(cmd) {
-	case PXA2XX_UDC_CMD_DISCONNECT:
-		tmp &= ~PCAP_BUSCTRL_USB_PU;
-		break;
-	case PXA2XX_UDC_CMD_CONNECT:
-		tmp |= PCAP_BUSCTRL_USB_PU;
-		break;
-	};
-	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
-};
-
-static struct pxa2xx_udc_mach_info motoq_udc_info __initdata = {
-	.udc_command		= motoq_udc_command,
-	.gpio_vbus		= GPIO18_MOTOQ_USB_VBUS,
-};
-
-
-/* OHCI Controller */
-static int ezx_ohci_init(struct device *dev)
-{
-	void __iomem *iobase;
-
-	iobase = ioremap(0x40600000,0x1000);
-	__raw_writel(0x00000002, iobase+0x24);
-	iounmap(iobase);
-
-	iobase = ioremap(0x4C000000,0x1000);
-	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)), iobase+0x64);
-	iounmap(iobase);
-
-	return 0;
-}
-
-static struct pxaohci_platform_data ezx_ohci_platform_data = {
-	.port_mode	= PMM_NPS_MODE,
-	.init		= ezx_ohci_init,
-};
-
 /* SOC Camera (based on A780) */
-
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
-static struct pcap_leds_platform_data motoq_leds = {
-	.leds = {
-		{
-			.type = PCAP_BL0,
-			.name = "a780:main",
-		}, {
-			.type = PCAP_BL1,
-			.name = "motoq:keylight",
-		},
-	},
-	.num_leds = 2,
-};
-
-struct platform_device motoq_leds_device = {
-	.name           = "pcap-leds",
-	.id             = -1,
-	.dev = {
-		.platform_data = &motoq_leds,
-	},
-};
-#endif
 
 static int motoq_pxacamera_init(struct device *dev)
 {
@@ -314,73 +214,6 @@ static struct soc_camera_link motoq_iclink = {
 };
 
 
-
-static void ezx_pcap_init(void)
-{
-	/* set SW1 sleep to keep SW1 1.3v in sync mode */
-	/*  SW1 active in sync mode */
-	//ezx_pcap_set_sw(SW1, SW_MODE, 0x1);
-
-	/*  set core voltage */
-	//ezx_pcap_set_sw(SW1, SW_VOLTAGE, SW_VOLTAGE_1250);
-
-	ezx_pcap_write(PCAP_REG_BUSCTRL,
-			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
-
-	ezx_pcap_set_vreg(V6, V_EN, 1);
-
-	//gpio_direction_output(120, 0);
-	//gpio_direction_output(119, 0);
-};
-
-
-static struct pcap_platform_data ezx_pcap_platform_data = {
-/*	.cs	=	24,	*/
-	.cs	=	28,	/* from drwyrm */
-				/* rxd: 26?? */
-	.irq	=	gpio_to_irq(1),
-/*	.irq	=	gpio_to_irq(18),	*/
-	.config =	0,
-/*	.config =	PCAP_CS_INVERTED,	*/
-	.init	=	ezx_pcap_init,
-};
-
-static void pcap_cs_control(u32 command)
-{
-	if (command & PXA2XX_CS_ASSERT) {
-		gpio_set_value(ezx_pcap_platform_data.cs,
-		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 0 : 1 );
-	} else {
-		gpio_set_value(ezx_pcap_platform_data.cs,
-		 (ezx_pcap_platform_data.config & PCAP_CS_INVERTED) ? 1 : 0 );
-	}
-}
-
-static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
-	.tx_threshold = 1,
-	.rx_threshold = 1,
-	.dma_burst_size = 0,
-	.timeout = 100,
-	.cs_control = pcap_cs_control,
-};
-
-static struct pxa2xx_spi_master ezx_spi_masterinfo = {
-	.clock_enable = CKEN_SSP1,
-	.num_chipselect = 1,
-	.enable_dma = 1,
-};
-
-static struct spi_board_info ezx_spi_boardinfo[] __initdata = {
-	{
-		.modalias = "ezx-pcap",
-		.bus_num = 1,
-		.chip_select = 0,
-		.max_speed_hz = 13000000,
-		.platform_data = &ezx_pcap_platform_data,
-		.controller_data = &ezx_pcap_chip_info,
-		.mode = SPI_MODE_0,
-	},
-};
 
 /*
 static void __init motoq_fixup(struct machine_desc *desc, struct tag *tags,
@@ -465,23 +298,11 @@ static void __init motoq_init(void)
 
 	pxa_set_keypad_info(&motoq_keypad_info);
 
-	pxa_set_ohci_info(&ezx_ohci_platform_data);
-
-	pxa_set_mci_info(&motoq_mci_info);
-
-	pxa_set_udc_info(&motoq_udc_info);
-
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(pin_config));
-
-	pxa2xx_set_spi_info(1, &ezx_spi_masterinfo);
-	spi_register_board_info(ARRAY_AND_SIZE(ezx_spi_boardinfo));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(motoq_i2c_board_info));
 
-#if defined(CONFIG_LEDS_PCAP) || defined(CONFIG_LEDS_PCAP_MODULES)
-	platform_device_register(&motoq_leds_device);
-#endif
 #if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
 	pxa_set_camera_info(&motoq_pxacamera_platform_data);
 #endif
