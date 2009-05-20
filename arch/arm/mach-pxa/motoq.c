@@ -12,7 +12,6 @@
 
 #include <asm/setup.h>
 #include <mach/pxafb.h>
-#include <mach/ohci.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
 #include <mach/camera.h>
@@ -159,27 +158,6 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
 
 };
 
-/* OHCI Controller */
-static int ezx_ohci_init(struct device *dev)
-{
-	void __iomem *iobase;
-
-	iobase = ioremap(0x40600000,0x1000);
-	__raw_writel(0x00000002, iobase+0x24);
-	iounmap(iobase);
-
-	iobase = ioremap(0x4C000000,0x1000);
-	__raw_writel(__raw_readl(iobase + 0x64) & ~((1<<10)|(1<<11)|(1<<5)), iobase+0x64);
-	iounmap(iobase);
-
-	return 0;
-}
-
-static struct pxaohci_platform_data ezx_ohci_platform_data = {
-	.port_mode	= PMM_NPS_MODE,
-	.init		= ezx_ohci_init,
-};
-
 /* SOC Camera (based on A780) */
 
 static int motoq_pxacamera_init(struct device *dev)
@@ -319,8 +297,6 @@ static void __init motoq_init(void)
 	set_pxa_fb_info(&motoq_lcd_info);
 
 	pxa_set_keypad_info(&motoq_keypad_info);
-
-	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(pin_config));
 
