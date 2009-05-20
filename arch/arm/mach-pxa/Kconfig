@@ -392,13 +392,6 @@ config MACH_PALMLD
 	  Say Y here if you intend to run this kernel on a Palm LifeDrive
 	  handheld computer.
 
-config MACH_MOTOQ
-	bool "Motorola Q CDMA (Franklin)
-	default y
-	select PXA27x
-	select IWMMXT
-	select EZX_PCAP
-
 config MACH_PCM990_BASEBOARD
 	bool "PHYTEC PCM-990 development board"
 	select HAVE_PWM
@@ -465,6 +458,11 @@ config MACH_EZX_E6
 
 config MACH_EZX_E2
 	bool "Motorola EZX E2"
+	default y
+	depends on PXA_EZX
+
+config MACH_EZX_MOTOQ
+	bool "Motorola Q CDMA (Franklin)
 	default y
 	depends on PXA_EZX
 
