@@ -21,8 +21,6 @@
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
-#include <mach/udc.h>
-#include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
 #include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
@@ -166,27 +164,6 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
   .debounce_interval = 30,  /* from littleton.c */
 
 };
-
-static void motoq_udc_command(int cmd)
-{
-	unsigned int tmp;
-	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
-	switch(cmd) {
-	case PXA2XX_UDC_CMD_DISCONNECT:
-		tmp &= ~PCAP_BUSCTRL_USB_PU;
-		break;
-	case PXA2XX_UDC_CMD_CONNECT:
-		tmp |= PCAP_BUSCTRL_USB_PU;
-		break;
-	};
-	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
-};
-
-static struct pxa2xx_udc_mach_info motoq_udc_info __initdata = {
-	.udc_command		= motoq_udc_command,
-	.gpio_vbus		= GPIO18_MOTOQ_USB_VBUS,
-};
-
 
 /* OHCI Controller */
 static int ezx_ohci_init(struct device *dev)
@@ -440,8 +417,6 @@ static void __init motoq_init(void)
 	pxa_set_keypad_info(&motoq_keypad_info);
 
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
-
-	pxa_set_udc_info(&motoq_udc_info);
 
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(pin_config));
 
