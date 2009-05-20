@@ -14,7 +14,6 @@
 #include <mach/pxafb.h>
 #include <mach/i2c.h>
 #include <mach/pxa27x_keypad.h>
-#include <mach/camera.h>
 #include <mach/ezx-bp.h>
 #include <mach/mfp-pxa27x.h>
 #include <mach/pxa-regs.h>
@@ -153,62 +152,6 @@ static struct pxa27x_keypad_platform_data motoq_keypad_info = {
 	.debounce_interval = 30,  /* from littleton.c */
 };
 
-/* SOC Camera (based on A780) */
-
-static int motoq_pxacamera_init(struct device *dev)
-{
-	/* 
-	 * GPIO50_GPIO is CAM_EN: active low
-	 * GPIO19_GPIO is CAM_RST: active high
-	 */
-	gpio_set_value(MFP_PIN_GPIO50, 0);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
-
-	return 0;
-}
-
-static int motoq_pxacamera_power(struct device *dev, int on)
-{
-	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
-
-	/* 
-	 * This is reported to resolve the vertical line in view finder issue
-	 * (LIBff11930), is this still needed?
-	 *
-	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
-	 * and TC_MM_EN to high when camera stops.
-	 *
-	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
-	 * BP can sleep itself.
-	 */
-	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
-
-	return 0;
-}
-
-static int motoq_pxacamera_reset(struct device *dev)
-{
-	gpio_set_value(MFP_PIN_GPIO19, 0);
-	msleep(10);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
-
-	return 0;
-}
-
-struct pxacamera_platform_data motoq_pxacamera_platform_data = {
-	.init	= motoq_pxacamera_init,
-	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
-		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN | PXA_CAMERA_PCP,
-	.mclk_10khz = 1000,
-};
-
-static struct soc_camera_link motoq_iclink = {
-	.bus_id	= 0,
-	.power = motoq_pxacamera_power,
-	.reset = motoq_pxacamera_reset,
-};
-
-
 
 /*
 static void __init motoq_fixup(struct machine_desc *desc, struct tag *tags,
@@ -275,14 +218,6 @@ static unsigned long pin_config[] = {
 
 };
 
-static struct i2c_board_info __initdata motoq_i2c_board_info[] = {
-/*	{ I2C_BOARD_INFO("ezx-eoc", 0x17) },	*/
-	{
-		I2C_BOARD_INFO("mt9m11", 0x5d),
-		.platform_data = &motoq_iclink,
-	},
-};
-
 static struct platform_device *devices[] __initdata = {
 	&ezx_backlight_device,
 };
@@ -296,14 +231,8 @@ static void __init motoq_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(pin_config));
 
 	pxa_set_i2c_info(NULL);
-	i2c_register_board_info(0, ARRAY_AND_SIZE(motoq_i2c_board_info));
-
-#if defined(CONFIG_VIDEO_PXA27x) || defined(CONFIG_VIDEO_PXA27x_MODULE)
-	pxa_set_camera_info(&motoq_pxacamera_platform_data);
-#endif
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
-
 };
 
 MACHINE_START(MOTOQ, "Motorola Q CDMA (Franklin)")
