@@ -134,8 +134,8 @@ static struct resource ezx_usb20_resources[] = {
 		.flags      = IORESOURCE_IRQ,
 	},
 	[2] = {
-		.start      = PCAP_IRQ_MOBPORT,
-		.end        = PCAP_IRQ_MOBPORT,
+		.start      = IRQ_BOARD_START + PCAP_IRQ_MOBPORT,
+		.end        = IRQ_BOARD_START + PCAP_IRQ_MOBPORT,
 		.flags      = IORESOURCE_IRQ,
 	},
 };
