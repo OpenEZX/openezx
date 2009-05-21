@@ -49,6 +49,7 @@
 #include <mach/pxa27x-udc.h>
 #include <mach/ezx-bp.h>
 #include <mach/camera.h>
+#include <mach/irqs.h>
 #include <mach/reset.h>
 
 #include "devices.h"
@@ -1067,6 +1068,7 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 
 static struct pcap_platform_data a780_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_SECOND_PORT,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
@@ -1279,6 +1281,7 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 
 static struct pcap_platform_data e680_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_SECOND_PORT,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
@@ -1421,6 +1424,7 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 
 static struct pcap_platform_data a1200_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_CS_AH,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
@@ -1564,6 +1568,7 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 
 static struct pcap_platform_data a910_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_CS_AH,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
@@ -1828,6 +1833,7 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 
 static struct pcap_platform_data e6_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_CS_AH,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
@@ -1973,6 +1979,7 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 
 static struct pcap_platform_data e2_pcap_platform_data = {
 	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
+	.irq_base	= PCAP_IRQ(0);
 	.config 	= PCAP_CS_AH,
 	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
