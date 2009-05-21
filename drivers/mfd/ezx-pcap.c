@@ -162,10 +162,12 @@ static int pcap_add_subdev(struct spi_device *spi, struct pcap_subdev *subdev)
 
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
-	struct pcap_platform_data *pdata = spi->dev.platform_data;
+	int i;
+
+	for (i = pcap.irq_base; i < (pcap.irq_base + PCAP_NIRQS); i++)
+		set_irq_chip_and_handler(i, NULL, NULL);
 
 	destroy_workqueue(pcap.workqueue);
-	free_irq(pdata->irq, NULL);
 
 	/* remove all registered subdevs */
 	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
