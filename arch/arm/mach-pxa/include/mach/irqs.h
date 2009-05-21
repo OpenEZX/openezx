@@ -190,6 +190,8 @@
 #define NR_IRQS			(IRQ_BOARD_END)
 #elif defined(CONFIG_MACH_ZYLONITE)
 #define NR_IRQS			(IRQ_BOARD_START + 32)
+#elif define(CONFIG_PXA_EZX)
+#define NR_IRQS			(IRQ_BOARD_START + 23)
 #else
 #define NR_IRQS			(IRQ_BOARD_START)
 #endif
