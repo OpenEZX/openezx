@@ -16,6 +16,7 @@
 
 struct pcap_chip {
 	struct spi_device *spi;
+	unsigned int irq_base;
 	u32 msr;
 	struct work_struct work;
 	struct work_struct msr_work;
@@ -73,7 +74,7 @@ EXPORT_SYMBOL_GPL(ezx_pcap_read);
 /* IRQ */
 static inline unsigned int irq2pcap(int irq)
 {
-	return 1 << (irq - PCAP_IRQ(0));
+	return 1 << (irq - pcap.irq_base);
 }
 
 static void pcap_mask_irq(unsigned int irq)
@@ -111,7 +112,7 @@ static void pcap_work(struct work_struct *_pcap)
 	local_irq_disable();
 	service = isr & ~msr;
 
-	for (irq = PCAP_IRQ(0); service; service >>= 1, irq++) {
+	for (irq = pcap.irq_base; service; service >>= 1, irq++) {
 		if (service & 1) {
 			struct irq_desc *desc = irq_to_desc(irq);
 
@@ -194,6 +195,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	pcap.spi = spi;
 
 	/* setup irq */
+	pcap.irq_base = pdata->irq_base;
 	INIT_WORK(&pcap.work, pcap_work);
 	INIT_WORK(&pcap.msr_work, pcap_msr_work);
 	pcap.workqueue = create_singlethread_workqueue("pcapd");
@@ -207,7 +209,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		ezx_pcap_write(PCAP_REG_INT_SEL, 0);
 
 	/* setup irq chip */
-	for (i = PCAP_IRQ(0); i <= PCAP_LAST_IRQ; i++) {
+	for (i = pcap.irq_base; i < (pcap.irq_base + PCAP_NIRQS); i++) {
 		set_irq_chip_and_handler(i, &pcap_irq_chip, handle_simple_irq);
 #ifdef CONFIG_ARM
 		set_irq_flags(i, IRQF_VALID);
@@ -240,7 +242,7 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 remove_subdevs:
 	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
-	for (i = PCAP_IRQ(0); i <= PCAP_LAST_IRQ; i++)
+	for (i = pcap.irq_base; i < (pcap.irq_base + PCAP_NIRQS); i++)
 		set_irq_chip_and_handler(i, NULL, NULL);
 	destroy_workqueue(pcap.workqueue);
 	pcap.workqueue = NULL;
