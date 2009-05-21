@@ -77,6 +77,12 @@ static inline unsigned int irq2pcap(int irq)
 	return 1 << (irq - pcap.irq_base);
 }
 
+int pcap_irq(int irq)
+{
+	return pcap.irq_base + irq;
+}
+EXPORT_SYMBOL_GPL(pcap_irq);
+
 static void pcap_mask_irq(unsigned int irq)
 {
 	pcap.msr |= irq2pcap(irq);
