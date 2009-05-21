@@ -74,7 +74,31 @@ int ezx_pcap_read(u8, u32 *);
 #define PCAP_REG_VENDOR_REV	0x17
 #define PCAP_REG_PERIPH_MASK	0x19	/* Peripheral Mask */
 
-#define PCAP_NIRQS	23
+/* PCAP2 Interrupts */
+#define PCAP_NIRQS		23
+#define PCAP_IRQ_ADCDONE	0	/* ADC done port 1 */
+#define PCAP_IRQ_TS		1	/* Touch Screen */
+#define PCAP_IRQ_1HZ		2	/* 1HZ timer */
+#define PCAP_IRQ_WH		3	/* ADC above high limit */
+#define PCAP_IRQ_WL		4	/* ADC below low limit */
+#define PCAP_IRQ_TODA		5	/* Time of day alarm */
+#define PCAP_IRQ_USB4V		6	/* USB above 4V */
+#define PCAP_IRQ_ONOFF		7	/* On/Off button */
+#define PCAP_IRQ_ONOFF2		8	/* On/Off button 2 */
+#define PCAP_IRQ_USB1V		9	/* USB above 1V */
+#define PCAP_IRQ_MOBPORT	10
+#define PCAP_IRQ_MIC		11	/* Mic attach/HS button */
+#define PCAP_IRQ_HS		12	/* Headset attach */
+#define PCAP_IRQ_ST		13
+#define PCAP_IRQ_PC		14	/* Power Cut */
+#define PCAP_IRQ_WARM		15
+#define PCAP_IRQ_EOL		16	/* Battery End Of Life */
+#define PCAP_IRQ_CLK		17
+#define PCAP_IRQ_SYSRST		18	/* System Reset */
+#define PCAP_IRQ_DUMMY		19
+#define PCAP_IRQ_ADCDONE2	20	/* ADC done port 2 */
+#define PCAP_IRQ_SOFTRESET	21
+#define PCAP_IRQ_MNEXB		22
 
 /* voltage regulators */
 #define V1		0
