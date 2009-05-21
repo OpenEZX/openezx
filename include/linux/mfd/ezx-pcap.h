@@ -15,6 +15,7 @@ struct pcap_subdev {
 
 struct pcap_platform_data {
 	unsigned int irq;
+	unsigned int irq_base;
 	unsigned int config;
 	void (*init) (void);	/* board specific init */
 	int num_subdevs;
@@ -72,6 +73,8 @@ int ezx_pcap_read(u8, u32 *);
 #define PCAP_REG_AUXVREG_MASK	0x16	/* Auxiliary Regulator Mask */
 #define PCAP_REG_VENDOR_REV	0x17
 #define PCAP_REG_PERIPH_MASK	0x19	/* Peripheral Mask */
+
+#define PCAP_NIRQS	23
 
 /* voltage regulators */
 #define V1		0
