@@ -24,6 +24,7 @@ struct pcap_platform_data {
 
 int ezx_pcap_write(u8, u32);
 int ezx_pcap_read(u8, u32 *);
+int pcap_irq(int);
 
 #define PCAP_SECOND_PORT	1
 #define PCAP_CS_AH		2
