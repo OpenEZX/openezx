@@ -179,10 +179,8 @@ static int __devinit pcap_adc_probe(struct platform_device *pdev)
 {
 	mutex_init(&adc.mutex);
 
-	request_irq(pcap_irq(PCAP_IRQ_ADCDONE2),
-					pcap_adc_irq, 0, "ADC", NULL);
-	request_irq(pcap_irq(PCAP_IRQ_ADCDONE),
-					pcap_adc_irq, 0, "ADC", NULL);
+	request_irq(pcap_irq(PCAP_IRQ_ADCDONE2), pcap_adc_irq, 0, "ADC", NULL);
+	request_irq(pcap_irq(PCAP_IRQ_ADCDONE), pcap_adc_irq, 0, "ADC", NULL);
 
 	return 0;
 }
