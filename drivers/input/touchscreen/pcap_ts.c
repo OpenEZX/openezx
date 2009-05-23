@@ -47,21 +47,11 @@ struct pcap_ts *pcap_ts;
 /* if we try to read faster, pressure reading becomes unreliable */
 #define SAMPLE_INTERVAL		(HZ/50)
 
-void ezx_pcap_start_adc(u8 bank, u8 time, u32 flags,
-		void *adc_done, void *adc_data);
-void ezx_pcap_get_adc_channel_result(u8 ch1, u8 ch2, u32 res[]);
+int pcap_adc_async(u8 bank, u32 flags, u8 ch[], void *callback, void *data);
+int pcap_adc_sync(u8 bank, u32 flags, u8 ch[], u16 res[]);
 
-void ezx_pcap_disable_adc(void);
-
-
-static void pcap_ts_read_xy(void)
+static void pcap_ts_read_xy(void *data, u16 res[2])
 {
-	u32 res[2];
-
-	ezx_pcap_get_adc_channel_result(PCAP_ADC_CH_TS_X1, PCAP_ADC_CH_TS_Y1,
-									res);
-	ezx_pcap_disable_adc();
-
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
 		/* 
@@ -112,6 +102,7 @@ static void pcap_ts_read_xy(void)
 static void pcap_ts_work(struct work_struct *unused)
 {
 	u32 tmp;
+	u8 ch[2];
 
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_STANDBY:
@@ -124,14 +115,16 @@ static void pcap_ts_work(struct work_struct *unused)
 	case PCAP_ADC_TS_M_PRESSURE:
 	case PCAP_ADC_TS_M_XY:
 		/* start adc conversion */
-		ezx_pcap_start_adc(PCAP_ADC_BANK_1, PCAP_ADC_T_NOW,
-			(pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT),
-						pcap_ts_read_xy, NULL);
+		ch[0] = PCAP_ADC_CH_TS_X1;
+		ch[1] = PCAP_ADC_CH_TS_Y1;
+		pcap_adc_async(PCAP_ADC_BANK_1,
+				(pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT),
+				ch, pcap_ts_read_xy, NULL);
 		break;
 	}
 }
 
-static irqreturn_t pcap_ts_event_touch(int irq, void *unused)
+static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
 {
 	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
 	mod_timer(&pcap_ts->timer, jiffies + SAMPLE_INTERVAL);
@@ -179,7 +172,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
-	request_irq(PCAP_IRQ_TS, pcap_ts_event_touch, 0, "Touch Screen", NULL);
+	request_irq(pcap_irq(PCAP_IRQ_TS), pcap_ts_event_touch, 0, "Touch Screen", NULL);
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
@@ -190,7 +183,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	return 0;
 
 fail_touch:
-	free_irq(PCAP_IRQ_TS, NULL);
+	free_irq(pcap_irq(PCAP_IRQ_TS), NULL);
 fail:
 	input_free_device(input_dev);
 	kfree(pcap_ts);
@@ -200,7 +193,7 @@ fail:
 
 static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
-	free_irq(PCAP_IRQ_TS, NULL);
+	free_irq(pcap_irq(PCAP_IRQ_TS), NULL);
 
 	del_timer_sync(&pcap_ts->timer);
 
