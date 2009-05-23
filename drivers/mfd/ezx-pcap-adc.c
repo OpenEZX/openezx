@@ -16,85 +16,29 @@
 #include <linux/platform_device.h>
 #include <linux/mfd/ezx-pcap.h>
 
-static DEFINE_MUTEX(adc_lock);
-static void (* ezx_pcap_adc_done)(void *);
-static void *ezx_pcap_adc_data;
+#define PCAP_ADC_MAXQ		8
 
-static irqreturn_t ezx_pcap_adc_irq(int irq, void *unused)
-{
-	void (*adc_done)(void *);
-	void *adc_data;
+struct pcap_adc_request {
+	u8 bank;
+	u8 ch[2];
+	u16 res[2];
+	u32 flags;
 
-	printk(KERN_DEBUG "ezx_pcap_adc_irq: called!\n");
+	void (*callback)(void *, u16[]);
+	void *data;
 
-	if (!ezx_pcap_adc_done)
-		return IRQ_HANDLED;
+	struct completion completion;
+};
 
-	adc_done = ezx_pcap_adc_done;
-	adc_data = ezx_pcap_adc_data;
-	ezx_pcap_adc_done = ezx_pcap_adc_data = NULL;
+struct pcap_adc {
+	struct pcap_adc_request *queue[PCAP_ADC_MAXQ];
+	u8 head;
+	u8 tail;
+	struct mutex mutex;
+};
+struct pcap_adc adc;
 
-	/* let caller get the results */
-	adc_done(adc_data);
-
-	return IRQ_HANDLED;
-}
-
-void ezx_pcap_start_adc(u8 bank, u8 time, u32 flags,
-		void *adc_done, void *adc_data)
-{
-	u32 adc;
-	u32 adr;
-
-	printk(KERN_DEBUG "ezx_pcap_start_adc: called!\n");
-
-	mutex_lock(&adc_lock);
-
-	adc = flags | PCAP_ADC_ADEN;
-
-	if (bank == PCAP_ADC_BANK_1)
-		adc |= PCAP_ADC_AD_SEL1;
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	ezx_pcap_adc_done = adc_done;
-	ezx_pcap_adc_data = adc_data;
-
-	if (time == PCAP_ADC_T_NOW) {
-		ezx_pcap_read(PCAP_REG_ADR, &adr);
-		adr = PCAP_ADR_ASC;
-		ezx_pcap_write(PCAP_REG_ADR, adr);
-		return;
-	}
-
-	if (time == PCAP_ADC_T_IN_BURST)
-		adc |= (PCAP_ADC_ATO_IN_BURST << PCAP_ADC_ATO_SHIFT);
-
-	ezx_pcap_write(PCAP_REG_ADC, adc);
-
-	ezx_pcap_read(PCAP_REG_ADR, &adr);
-	adr &= ~PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-	adr |= PCAP_ADR_ONESHOT;
-	ezx_pcap_write(PCAP_REG_ADR, adr);
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_start_adc);
-
-void ezx_pcap_get_adc_channel_result(u8 ch1, u8 ch2, u32 res[])
-{
-	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADA1_MASK | PCAP_ADC_ADA2_MASK);
-	tmp |= (ch1 << PCAP_ADC_ADA1_SHIFT) | (ch2 << PCAP_ADC_ADA2_SHIFT);
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	ezx_pcap_read(PCAP_REG_ADR, &tmp);
-	res[0] = (tmp & PCAP_ADR_ADD1_MASK) >> PCAP_ADR_ADD1_SHIFT;
-	res[1] = (tmp & PCAP_ADR_ADD2_MASK) >> PCAP_ADR_ADD2_SHIFT;
-}
-EXPORT_SYMBOL_GPL(ezx_pcap_get_adc_channel_result);
-
-void ezx_pcap_disable_adc()
+static void ezx_pcap_disable_adc(void)
 {
 	u32 tmp;
 
@@ -102,31 +46,166 @@ void ezx_pcap_disable_adc()
 	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC | PCAP_ADC_BATT_I_POLARITY);
 	tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
 	ezx_pcap_write(PCAP_REG_ADC, tmp);
-	mutex_unlock(&adc_lock);
 }
-EXPORT_SYMBOL_GPL(ezx_pcap_disable_adc);
 
-
-static int __devinit ezx_pcap_adc_probe(struct platform_device *plat_dev)
+static void ezx_pcap_adc_trigger(void)
 {
-	struct pcap_platform_data *ppdata = (plat_dev->dev.parent)->platform_data;
+	u32 tmp;
+	u8 head;
 
-	if (ppdata->config & PCAP_SECOND_PORT)
-		request_irq(PCAP_IRQ_ADCDONE2, ezx_pcap_adc_irq, 0, "ADC", NULL);
+	mutex_lock(&adc.mutex);
+	head = adc.head;
+	if (!adc.queue[head]) {
+		/* queue is empty */
+		mutex_unlock(&adc.mutex);
+		ezx_pcap_disable_adc();
+		return;
+	}
+	mutex_unlock(&adc.mutex);
+
+	/* start conversion on requested bank */
+	tmp = adc.queue[head]->flags | PCAP_ADC_ADEN;
+
+	if (adc.queue[head]->bank == PCAP_ADC_BANK_1)
+		tmp |= PCAP_ADC_AD_SEL1;
+
+	ezx_pcap_write(PCAP_REG_ADC, tmp);
+	ezx_pcap_write(PCAP_REG_ADR, PCAP_ADR_ASC);
+}
+
+static int ezx_pcap_adc_enqueue(struct pcap_adc_request *req)
+{
+	mutex_lock(&adc.mutex);
+	if (adc.queue[adc.tail]) {
+		mutex_unlock(&adc.mutex);
+		return -EBUSY;
+	}
+	adc.queue[adc.tail] = req;
+	adc.tail = (adc.tail + 1) & (PCAP_ADC_MAXQ - 1);
+	mutex_unlock(&adc.mutex);
+	ezx_pcap_adc_trigger();
+	
+	return 0;
+}
+
+static irqreturn_t ezx_pcap_adc_irq(int irq, void *unused)
+{
+	struct pcap_adc_request *req;
+	u16 res[2];
+	u32 tmp;
+
+	mutex_lock(&adc.mutex);
+	req = adc.queue[adc.head];
+
+	if (!req) { /* huh? */
+		printk("%s: spurious adc irq???\n", __func__);
+		return IRQ_HANDLED;
+	}
+
+	/* read requested channels results */
+	ezx_pcap_read(PCAP_REG_ADC, &tmp);
+	tmp &= ~(PCAP_ADC_ADA1_MASK | PCAP_ADC_ADA2_MASK);
+	tmp |= (req->ch[0] << PCAP_ADC_ADA1_SHIFT);
+	tmp |= (req->ch[1] << PCAP_ADC_ADA2_SHIFT);
+	ezx_pcap_write(PCAP_REG_ADC, tmp);
+	ezx_pcap_read(PCAP_REG_ADR, &tmp);
+	res[0] = (tmp & PCAP_ADR_ADD1_MASK) >> PCAP_ADR_ADD1_SHIFT;
+	res[1] = (tmp & PCAP_ADR_ADD2_MASK) >> PCAP_ADR_ADD2_SHIFT;
+
+	adc.queue[adc.head] = NULL;
+	adc.head = (adc.head + 1) & (PCAP_ADC_MAXQ - 1);
+	mutex_unlock(&adc.mutex);
+
+	req->callback(req->data, res);
+	kfree(req);
+	ezx_pcap_adc_trigger();
+
+	return IRQ_HANDLED;
+}
+
+int ezx_pcap_adc_async(u8 bank, u32 flags, u8 ch[], void *callback, void *data)
+{
+	struct pcap_adc_request *req;
+	int ret = -ENOMEM;
+
+	req = kmalloc(sizeof(struct pcap_adc_request), GFP_KERNEL);
+	if (!req)
+		return ret;
+
+	req->bank = bank;
+	req->flags = flags;
+	req->ch[0] = ch[0];
+	req->ch[1] = ch[1];
+	req->callback = callback;
+	req->data = data;
+
+
+	ret = ezx_pcap_adc_enqueue(req);
+	if (ret)
+		kfree(req);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ezx_pcap_adc_async);
+
+static void ezx_pcap_adc_sync_callback(void *param, u16 res[])
+{
+	struct pcap_adc_request *req = param;
+
+	req->res[0] = res[0];
+	req->res[1] = res[1];
+	complete(&req->completion);
+}
+
+int ezx_pcap_adc_sync(u8 bank, u32 flags, u8 ch[], u16 res[])
+{
+	struct pcap_adc_request *req;
+	int ret = -ENOMEM;
+
+	req = kmalloc(sizeof(struct pcap_adc_request), GFP_KERNEL);
+	if (!req)
+		return ret;
+
+	req->bank = bank;
+	req->flags = flags;
+	req->ch[0] = ch[0];
+	req->ch[1] = ch[1];
+	req->callback = ezx_pcap_adc_sync_callback;
+	req->data = req;
+
+	init_completion(&req->completion);
+	ret = ezx_pcap_adc_enqueue(req);
+	if (ret)
+		kfree(req);
 	else
-		request_irq(PCAP_IRQ_ADCDONE, ezx_pcap_adc_irq, 0, "ADC", NULL);
+		wait_for_completion(&req->completion);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ezx_pcap_adc_sync);
+
+static int __devinit ezx_pcap_adc_probe(struct platform_device *pdev)
+{
+	mutex_init(&adc.mutex);
+
+	request_irq(pcap_irq(PCAP_IRQ_ADCDONE2),
+					ezx_pcap_adc_irq, 0, "ADC", NULL);
+	request_irq(pcap_irq(PCAP_IRQ_ADCDONE),
+					ezx_pcap_adc_irq, 0, "ADC", NULL);
 
 	return 0;
 }
 
-static int __devexit ezx_pcap_adc_remove(struct platform_device *plat_dev)
+static int __devexit ezx_pcap_adc_remove(struct platform_device *pdev)
 {
-	struct pcap_platform_data *ppdata = (plat_dev->dev.parent)->platform_data;
+	int i;
 
-	if (ppdata->config & PCAP_SECOND_PORT)
-		free_irq(PCAP_IRQ_ADCDONE2, NULL);
-	else
-		free_irq(PCAP_IRQ_ADCDONE, NULL);
+	free_irq(pcap_irq(PCAP_IRQ_ADCDONE2), NULL);
+	free_irq(pcap_irq(PCAP_IRQ_ADCDONE), NULL);
+
+	mutex_lock(&adc.mutex);
+	for (i = 0; i < PCAP_ADC_MAXQ; i++)
+		kfree(adc.queue[i]);
+	mutex_unlock(&adc.mutex);
 
 	return 0;
 }
@@ -152,6 +231,6 @@ static void __exit ezx_pcap_adc_exit(void)
 module_init(ezx_pcap_adc_init);
 module_exit(ezx_pcap_adc_exit);
 
-MODULE_DESCRIPTION("Motorola EzX pcap ADC driver");
+MODULE_DESCRIPTION("Motorola EZX pcap ADC driver");
 MODULE_AUTHOR("Daniel Ribeiro <drwyrm@gmail.com>");
 MODULE_LICENSE("GPL");
