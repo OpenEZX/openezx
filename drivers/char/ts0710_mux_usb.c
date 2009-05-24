@@ -94,6 +94,7 @@ struct ipc_usb_data {
 
 struct ipc_usb_data *bvd_ipc;
 
+/*
 static int unlink_urbs(struct urb *urb)
 {
 	unsigned long flags;
@@ -108,6 +109,7 @@ static int unlink_urbs(struct urb *urb)
 	spin_unlock_irqrestore(&bvd_ipc->lock, flags);
 	return retval;
 }
+*/
 
 static void ipcusb_timeout(unsigned long data)
 {
@@ -281,8 +283,6 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
     index = tty->index;
     
     if (ipc  == NULL) {
-
-	printk("alloc\n");
         /* first time accessing this device, let's create it */
         ipc = kmalloc(sizeof(*ipc), GFP_KERNEL);
         if (!ipc)
@@ -290,9 +290,6 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 
         ipc->open_count = 0;
     }
-
-    printk("after alloc\n");
-
 
     /* save our structure within the tty structure */
     tty->driver_data = ipc;
@@ -331,37 +328,13 @@ static int usb_ipc_probe(struct usb_interface *intf,
 			 const struct usb_device_id *id)
 {
 	struct usb_device *usbdev = interface_to_usbdev(intf);
-	struct usb_config_descriptor *ipccfg;
 	struct usb_interface_descriptor *interface;
 	struct usb_endpoint_descriptor *endpoint;
 	int ep_cnt, size_in, size_out;
 	char ep_in, ep_out;
 
-	if ((usbdev->descriptor.idVendor != MOTO_IPC_VID) ||
-	    (usbdev->descriptor.idProduct != MOTO_IPC_PID))
- 		return -ENODEV;
-
-	/* a2590c : dsplog interface is not supported by this driver */
-	if (intf->minor == 2)	/* dsplog interface number is 2 */
-		return -1;
-
-	ipccfg = &usbdev->actconfig->desc;
-
-	/* After this point we can be a little noisy about what we are trying
-	 * to configure, hehe.  */
-	if (usbdev->descriptor.bNumConfigurations != 1) {
-		printk("usb_ipc_probe: Only one device configuration "
-		     "is supported.");
-		return -1;
-	}
-
-	if (usbdev->config[0].desc.bNumInterfaces != 3) {
-		printk("usb_ipc_probe: Only three device interfaces are "
-		     "supported.");
-		return -1;
-	}
-
 	interface = &intf->cur_altsetting->desc;
+
 	/* Start checking for two bulk endpoints or ... FIXME: This is a future
 	 * enhancement...*/
 	if (interface->bNumEndpoints != 2) {
@@ -379,29 +352,22 @@ static int usb_ipc_probe(struct usb_interface *intf,
 
                 switch(endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) {
                   case USB_DIR_IN:
-                    printk("in\n");
 		    ep_in =  endpoint->bEndpointAddress;
 		    size_in = endpoint->wMaxPacketSize;
                     break;
                   case USB_DIR_OUT:
-                    printk("out\n");
 		    ep_out = endpoint->bEndpointAddress;
 		    size_out = endpoint->wMaxPacketSize;
                     break;
                   default:
-                    printk("wtf is this? %d\n",ep_cnt);
+                    printk("unknown endpoint in ipc driver\n");
 
                 }
 
 
                 ep_cnt++;
 
-		printk("usb_ipc_probe: Undetected endpoint\n");
 	}
-
-        printk("endpoints: %x/%x, sizes: %d/%d\n",
-            ep_in, ep_out, size_in, size_out
-        );
 
 	if (! (ep_in && ep_out) ) {
 		printk("usb_ipc_probe: Two bulk endpoints required.");
@@ -483,6 +449,8 @@ static struct usb_device_id usb_ipc_id_table[] = {
 	{ }						/* Terminating entry */
 };
 
+MODULE_DEVICE_TABLE(usb, usb_ipc_id_table);
+
 static struct usb_driver usb_ipc_driver = {
 	.name		= "usb_ipc",
 	.probe		= usb_ipc_probe,
@@ -504,7 +472,7 @@ static int __init usb_ipc_init(void)
 
 	/*init the related mux interface*/
 	if (!(bvd_ipc = kzalloc(sizeof(struct ipc_usb_data), GFP_KERNEL))) {
-		err("usb_ipc_init: Out of memory.");
+		err("usb_ipc_init: Not enough memory for ipc data\n");
 		return -ENOMEM;
 	}
 
@@ -532,11 +500,13 @@ static int __init usb_ipc_init(void)
 	ipcusb_tty_driver->flags = TTY_DRIVER_RESET_TERMIOS | TTY_DRIVER_REAL_RAW;
 	
 	tty_set_operations(ipcusb_tty_driver, &ipc_tty_ops);
-	if (tty_register_driver(ipcusb_tty_driver))
-		printk("oops. cant register ipc tty\n");
 
-	if (tty_register_device(ipcusb_tty_driver, 0, NULL))
-		printk("oops cant register ipc tty dev\n");
+        result = tty_register_driver(ipcusb_tty_driver);
+	if (result) {
+		printk("Cant register IPC tty driver %d\n",result);
+                goto fail;
+        }
+
 
 	usb_for_mux_driver = ipcusb_tty_driver;
 	usb_for_mux_tty = &ipcusb_tty;
@@ -544,8 +514,8 @@ static int __init usb_ipc_init(void)
 	/* register driver at the USB subsystem */
 	result = usb_register(&usb_ipc_driver);
 	if (result < 0) {
-		err ("usb ipc driver could not be registered");
-		return result;
+                printk("Cant register IPC usb driver: %d\n",result);
+                goto fail;
 	}
 
 	ipc = NULL;
@@ -558,6 +528,13 @@ static int __init usb_ipc_init(void)
 	printk(DRIVER_VERSION ":" DRIVER_DESC "\n");
 
 	return 0;
+
+fail:
+        printk("Neptune IPC initialization failed with ret %d\n",result);
+        kfree(bvd_ipc);
+        kfree(bvd_ipc->xmit.buf);
+
+        return result;
 }
 
 static void __exit usb_ipc_exit(void)
