@@ -102,7 +102,7 @@ struct mux_data {
 	int collected;
 	int frame;
 	int seq;
-	const u8 *data
+	const u8 *data;
 };
 
 /* Bit number in flags of mux_send_struct */
@@ -402,22 +402,12 @@ static int mux_send_frame(__u8 dlci, int initiator,
 	//else
 	//	framebuf[pos ++] = MUX_ADVANCED_FLAG_SEQ;
 
-        /*
-	if (port->write(port, (const char *) framebuf, pos) < pos)
-		return -EIO;
-	else
-		return 0;
-        */
-
-        
-	printk("ipc tty: write %d to %x\n",pos,ipc_tty);
         res = ipc_tty->ops->write(ipc_tty, framebuf, pos);
-	printk("ipc tty: %d written\n",res);
+
 	if (res != pos) {
 		TS0710_PRINTK("mux_send_frame error %d\n",res);
 		return -1;
 	}
-
 
         return 0;
 
@@ -526,14 +516,14 @@ static void send_pn_msg(ts0710_con * ts0710, __u8 prior, __u32 frame_size,
 
 static void send_nsc_msg(ts0710_con * ts0710, mcc_type cmd, __u8 cr)
 {
-	mux_send_uih(ts0710, cr, NSC, &cmd, 1);
+	mux_send_uih(ts0710, cr, NSC, (__u8 *)&cmd, 1);
 }
 
 static void mux_send_uih(ts0710_con * ts0710, __u8 cr,__u8 type, __u8 *data, int len)
 {
 	__u8 *send = kmalloc(len+2,GFP_KERNEL);
 
-	mcc_short_frame_head *head = send;
+	mcc_short_frame_head *head = (mcc_short_frame_head*)send;
 	head->type.ea = 1;
 	head->type.cr = cr;
 	head->type.type = type;
@@ -700,53 +690,10 @@ void process_mcc(__u8 * data, __u32 len, ts0710_con * ts0710, int longpkt)
 	}
 }
 
-static mux_recv_packet *get_mux_recv_packet(__u32 size)
-{
-	mux_recv_packet *recv_packet;
-
-	TS0710_DEBUG("Enter into get_mux_recv_packet");
-
-	recv_packet = (mux_recv_packet *) kmalloc(sizeof(mux_recv_packet), GFP_ATOMIC);
-
-	if (!recv_packet) 
-		return 0;
-
-
-	recv_packet->data = (__u8 *) kmalloc(size, GFP_ATOMIC);
-
-	if (!(recv_packet->data)) {
-		kfree(recv_packet);
-		return 0;
-	}
-	recv_packet->length = 0;
-	recv_packet->next = 0;
-	return recv_packet;
-}
-
-static void free_mux_recv_packet(mux_recv_packet * recv_packet)
-{
-	if (!recv_packet) 
-		return;
-
-	if (recv_packet->data) 
-		kfree(recv_packet->data);
-	
-	kfree(recv_packet);
-}
-
 static void free_mux_recv_struct(mux_recv_struct * recv_info)
 {
-	mux_recv_packet *recv_packet1, *recv_packet2;
-
 	if (!recv_info) 
 		return;
-
-	recv_packet1 = recv_info->mux_packet;
-	while (recv_packet1) {
-		recv_packet2 = recv_packet1->next;
-		free_mux_recv_packet(recv_packet1);
-		recv_packet1 = recv_packet2;
-	}
 
 	kfree(recv_info);
 }
@@ -760,9 +707,6 @@ static inline void add_post_recv_queue(mux_recv_struct ** head,
 
 static void ts0710_flow_on(__u8 dlci, ts0710_con * ts0710)
 {
-	int i;
-	struct tty_struct *tty;
-	mux_recv_struct *recv_info;
 
 	if (!(ts0710->dlci[0].state) & (CONNECTED | FLOW_STOPPED))
 		return;
@@ -910,7 +854,7 @@ __u8 *uih_data_start;
 		}
 
 			TS0710_DEBUG("UIH on serv_channel 0\n");
-			process_mcc(short_pkt, len, ts0710,
+			process_mcc((__u8*)short_pkt, len, ts0710,
 				    !(short_pkt->h.length.ea));
 
 		break;
@@ -936,7 +880,6 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 	__u8 flow_control;
 	mux_recv_struct *recv_info;
 	int recv_room;
-	mux_recv_packet *recv_packet, *recv_packet2;
 
 
 	if ((ts0710->dlci[dlci].state != CONNECTED)
@@ -1025,6 +968,7 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 	}
 
 
+        /*
 	int iter;
 	printk("muxed data3: %d bytes to %d\n",uih_len, dlci);
 
@@ -1032,6 +976,7 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 		printk("%x:",uih_data_start[iter]);
 
 	printk("\n");
+        */
 
 	tty->ldisc.ops->receive_buf(tty, uih_data_start, NULL, uih_len);
 
@@ -1047,11 +992,7 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 void ts0710_recv_data(ts0710_con * ts0710, char *data, int len)
 {
 	short_frame *short_pkt;
-	long_frame *long_pkt;
-	__u8 *uih_data_start;
-	__u32 uih_len;
 	__u8 dlci;
-	__u8 be_connecting;
 
 	short_pkt = (short_frame *) data;
 
@@ -1130,7 +1071,7 @@ void ts0710_recv_data(ts0710_con * ts0710, char *data, int len)
 		TS0710_PRINTK("illegal packet\n");
 		break;
 	}
-	return 0;
+
 }
 
 /* Close ts0710 channel */
@@ -1262,7 +1203,7 @@ int ts0710_open_channel(__u8 dlci)
 				TS0710_PRINTK
 					("MUX DLCI:%d Send SABM timeout!\n",
 					 dlci);
-				retval -ENODEV;
+				retval = -ENODEV;
 			}
 
 			if (ts0710->dlci[0].state == CONNECTING) {
@@ -1755,7 +1696,6 @@ static int mux_open(struct tty_struct *tty, struct file *filp)
 		}
 		recv_info->length = 0;
 		recv_info->total = 0;
-		recv_info->mux_packet = 0;
 		recv_info->next = 0;
 		recv_info->no_tty = line;
 		recv_info->post_unthrottle = 0;
@@ -1837,7 +1777,7 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 	if(!disc_data->data)
 		disc_data->data = kzalloc(framelen, GFP_KERNEL);
 
-	memcpy(disc_data->data + disc_data->collected,data,count);
+	memcpy((void*)(disc_data->data + disc_data->collected),data,count);
 
 	if ((disc_data->collected + count) < framelen) {
 		printk("waiting more data\n");
@@ -1866,7 +1806,10 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 		printk("sending ack\n");
 		send_ack (&ts0710_connection, expect_seq);
 
-		ts0710_recv_data (&ts0710_connection, data + ADDRESS_FIELD_OFFSET, framelen - 2 - SEQ_FIELD_SIZE);
+		ts0710_recv_data (&ts0710_connection,
+				(char*)(data + ADDRESS_FIELD_OFFSET),
+				framelen - 2 - SEQ_FIELD_SIZE
+		);
 
 	}
 
@@ -2017,7 +1960,6 @@ static void send_worker(struct work_struct *work)
 static int ts_ldisc_open(struct tty_struct *tty)
 {
 	struct mux_data* disc_data;
-	printk("ts line %x\n",tty);
 
 	tty->receive_room = 65536;
 
@@ -2037,14 +1979,13 @@ static int ts_ldisc_open(struct tty_struct *tty)
 
 static void ts_ldisc_close(struct tty_struct *tty)
 {
-	printk("ts close line %x\n",tty);
 	ipc_tty = 0;
 
 }
 
 static void ts_ldisc_wake(struct tty_struct *tty)
 {
-	printk("ts wake %x\n",tty);
+	printk("ts wake\n");
 }
 
 static ssize_t ts_ldisc_read(struct tty_struct *tty, struct file *file,
