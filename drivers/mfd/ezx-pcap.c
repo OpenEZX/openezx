@@ -21,6 +21,7 @@ struct pcap_chip {
 	struct work_struct work;
 	struct work_struct msr_work;
 	struct workqueue_struct *workqueue;
+	u32 *buf;
 };
 static struct pcap_chip pcap;
 
@@ -31,24 +32,19 @@ static int ezx_pcap_putget(u32 *data)
 	struct spi_transfer t;
 	struct spi_message m;
 	int status;
-	u32 *buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
-
-	if (!buf)
-		return -ENOMEM;
 
 	memset(&t, 0, sizeof t);
 	spi_message_init(&m);
 	t.len = PCAP_BUFSIZE;
 	spi_message_add_tail(&t, &m);
 
-	*buf = *data;
-	t.tx_buf = (u8 *) buf;
-	t.rx_buf = (u8 *) buf;
+	*pcap.buf = *data;
+	t.tx_buf = (u8 *) pcap.buf;
+	t.rx_buf = (u8 *) pcap.buf;
 	status = spi_sync(pcap.spi, &m);
 
 	if (status == 0)
-		*data = *buf;
-	kfree(buf);
+		*data = *pcap.buf;
 
 	return status;
 }
@@ -173,6 +169,7 @@ static int __devexit ezx_pcap_remove(struct spi_device *spi)
 	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
 
 	pcap.spi = NULL;
+	kfree(pcap.buf);
 
 	return 0;
 }
@@ -193,12 +190,18 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		goto ret;
 	}
 
+	pcap.buf = kmalloc(PCAP_BUFSIZE, GFP_KERNEL);
+	if (!pcap.buf) {
+		ret = -ENOMEM;
+		goto ret;
+	}
+
 	/* setup spi */
 	spi->bits_per_word = 32;
 	spi->mode = SPI_MODE_0 | (pdata->config & PCAP_CS_AH ? SPI_CS_HIGH : 0);
 	ret = spi_setup(spi);
 	if (ret)
-		goto ret;
+		goto free_buf;
 
 	pcap.spi = spi;
 
@@ -256,6 +259,8 @@ remove_subdevs:
 	pcap.workqueue = NULL;
 null_spi:
 	pcap.spi = NULL;
+free_buf:
+	kfree(pcap.buf);
 ret:
 	return ret;
 }
