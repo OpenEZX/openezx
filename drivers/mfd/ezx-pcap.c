@@ -104,11 +104,17 @@ static void pcap_msr_work(struct work_struct *msr_work)
 
 static void pcap_work(struct work_struct *_pcap)
 {
-	u32 msr, isr, service;
+	u32 msr, isr, int_sel, service;
 	int irq;
 
 	ezx_pcap_read(PCAP_REG_MSR, &msr);
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
+
+	/* We cant service/ack irqs that are assigned to port 2 */
+	if (!(pcap.spi->dev.platform_data & PCAP_SECOND_PORT)) {
+		ezx_pcap_read(PCAP_REG_INT_SEL, &int_sel);
+		isr &= ~int_sel;
+	}
 	ezx_pcap_write(PCAP_REG_ISR, isr);
 
 	local_irq_disable();
@@ -215,9 +221,9 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 		goto null_spi;
 	}
 
-	/* redirect interrupts to AP */
+	/* redirect interrupts to AP, except adcdone2 */
 	if (!(pdata->config & PCAP_SECOND_PORT))
-		ezx_pcap_write(PCAP_REG_INT_SEL, 0);
+		ezx_pcap_write(PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
 
 	/* setup irq chip */
 	for (i = pcap.irq_base; i < (pcap.irq_base + PCAP_NIRQS); i++) {
