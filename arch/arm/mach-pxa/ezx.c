@@ -976,6 +976,7 @@ static void __init a780_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
@@ -1077,6 +1078,7 @@ static void __init e680_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e680_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
@@ -1178,6 +1180,7 @@ static void __init a1200_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a1200_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
@@ -1374,6 +1377,7 @@ static void __init a910_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
@@ -1475,6 +1479,7 @@ static void __init e6_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e6_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
@@ -1550,6 +1555,7 @@ static void __init e2_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
