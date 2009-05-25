@@ -104,6 +104,7 @@ static void pcap_msr_work(struct work_struct *msr_work)
 
 static void pcap_work(struct work_struct *_pcap)
 {
+	struct pcap_platform_data *pdata = pcap.spi->dev.platform_data;
 	u32 msr, isr, int_sel, service;
 	int irq;
 
@@ -111,7 +112,7 @@ static void pcap_work(struct work_struct *_pcap)
 	ezx_pcap_read(PCAP_REG_ISR, &isr);
 
 	/* We cant service/ack irqs that are assigned to port 2 */
-	if (!(pcap.spi->dev.platform_data & PCAP_SECOND_PORT)) {
+	if (!(pdata->config & PCAP_SECOND_PORT)) {
 		ezx_pcap_read(PCAP_REG_INT_SEL, &int_sel);
 		isr &= ~int_sel;
 	}
