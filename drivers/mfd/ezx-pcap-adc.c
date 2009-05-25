@@ -182,21 +182,6 @@ static int __devinit pcap_adc_probe(struct platform_device *pdev)
 	request_irq(pcap_irq(PCAP_IRQ_ADCDONE2), pcap_adc_irq, 0, "ADC", NULL);
 	request_irq(pcap_irq(PCAP_IRQ_ADCDONE), pcap_adc_irq, 0, "ADC", NULL);
 
-	{
-		u16 res[2];
-		u8 ch[2];
-		u8 bank;
-		int i;
-		for(i = 0; i < 2000; i++) {
-			ch[0] = i % 6;
-			ch[1] = ch[0] + 1;
-			bank = i < 1000 ? 0 : 1;
-			pcap_adc_sync(bank, 0, ch, res);
-			printk("ADC TEST! %d %d %d > %d %d\n", bank, ch[0], ch[1], res[0], res[1]);
-		}
-	}
-	
-
 	return 0;
 }
 
