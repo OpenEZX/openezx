@@ -277,6 +277,13 @@ static int __devinit pcap_regulator_probe(struct platform_device *pdev)
 	if (IS_ERR(rdev))
 		return PTR_ERR(rdev);
 
+	/*
+	 * The mmc subsystem doesn't like regulators which default
+	 * to ON at boot time, so we just disable it here.
+	 */
+	if (pdev->id == VAUX2 || pdev->id == VAUX3)
+		pcap_regulator_disable(rdev);
+
 	return 0;
 }
 
