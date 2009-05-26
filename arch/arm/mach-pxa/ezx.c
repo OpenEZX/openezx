@@ -713,10 +713,10 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 #endif /* CONFIG_MACH_EZX_E2 */
 
 /* FIXME: EMU driver */
-static void ezx_pcap_init(void)
+static void ezx_pcap_init(void *pcap)
 {
-	ezx_pcap_write(PCAP_REG_BUSCTRL,
-			(PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	ezx_pcap_write(pcap, PCAP_REG_BUSCTRL, (PCAP_BUSCTRL_USB_PU |
+			PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
 	gpio_request(120, "EMU mux1");
 	gpio_request(119, "EMU mux2");
 	gpio_direction_output(120, 0);
