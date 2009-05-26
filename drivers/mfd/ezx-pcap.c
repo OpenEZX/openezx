@@ -204,8 +204,6 @@ static void pcap_disable_adc(struct pcap_chip *pcap)
 
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
 	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
-	/* REVIEW: WTF this is doing here? should be set by the TS driver */
-	/* tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT); */
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
 }
 
