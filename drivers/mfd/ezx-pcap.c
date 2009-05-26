@@ -299,7 +299,7 @@ int pcap_adc_async(void *_pcap, u8 bank, u32 flags, u8 ch[],
 
 	/* start conversion */
 	pcap_adc_trigger(pcap);
-	
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(pcap_adc_async);
@@ -339,7 +339,8 @@ static int pcap_remove_subdev(struct device *dev, void *unused)
 	return 0;
 }
 
-static int __devinit pcap_add_subdev(struct pcap_chip *pcap, struct pcap_subdev *subdev)
+static int __devinit pcap_add_subdev(struct pcap_chip *pcap,
+						struct pcap_subdev *subdev)
 {
 	struct platform_device *pdev;
 
