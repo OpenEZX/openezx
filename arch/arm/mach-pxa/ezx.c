@@ -790,21 +790,22 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 /* UDC */
 static void ezx_udc_command(int cmd)
 {
-	unsigned int tmp;
-	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
-	switch (cmd) {
-	case PXA2XX_UDC_CMD_DISCONNECT:
-		if (machine_is_ezx_a780() || machine_is_ezx_e680())
-			tmp &= ~PCAP_BUSCTRL_USB_PU;
-		break;
-	case PXA2XX_UDC_CMD_CONNECT:
-		/* temp. set UP2OCR here until we have a transceiver driver */
-		UP2OCR = UP2OCR_SEOS(2);
-		if (machine_is_ezx_a780() || machine_is_ezx_e680())
-			tmp |= PCAP_BUSCTRL_USB_PU;
-		break;
-	}
-	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+	/* FIXME: This cant work anymore, sorry :( */
+//	unsigned int tmp;
+//	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+//	switch (cmd) {
+//	case PXA2XX_UDC_CMD_DISCONNECT:
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp &= ~PCAP_BUSCTRL_USB_PU;
+//		break;
+//	case PXA2XX_UDC_CMD_CONNECT:
+//		/* temp. set UP2OCR here until we have a transceiver driver */
+//		UP2OCR = UP2OCR_SEOS(2);
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp |= PCAP_BUSCTRL_USB_PU;
+//		break;
+//	}
+//	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
 }
 
 static struct pxa2xx_udc_mach_info ezx_udc_info = {
