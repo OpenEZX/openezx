@@ -204,8 +204,6 @@ static void pcap_disable_adc(struct pcap_chip *pcap)
 
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
 	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
-	/* REVIEW: WTF this is doing here? should be set by the TS driver */
-	/* tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT); */
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
 }
 
@@ -301,7 +299,7 @@ int pcap_adc_async(void *_pcap, u8 bank, u32 flags, u8 ch[],
 
 	/* start conversion */
 	pcap_adc_trigger(pcap);
-	
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(pcap_adc_async);
@@ -341,7 +339,8 @@ static int pcap_remove_subdev(struct device *dev, void *unused)
 	return 0;
 }
 
-static int __devinit pcap_add_subdev(struct pcap_chip *pcap, struct pcap_subdev *subdev)
+static int __devinit pcap_add_subdev(struct pcap_chip *pcap,
+						struct pcap_subdev *subdev)
 {
 	struct platform_device *pdev;
 
