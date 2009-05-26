@@ -19,30 +19,38 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 
-static irqreturn_t pcap_rtc_irq(int irq, void *rtc)
+struct pcap_rtc {
+	void *pcap;
+	struct rtc_device *rtc;
+};
+
+static irqreturn_t pcap_rtc_irq(int irq, void *_pcap_rtc)
 {
+	struct pcap_rtc *pcap_rtc = _pcap_rtc;
 	unsigned long rtc_events = 0;
 
-	if (irq == pcap_irq(PCAP_IRQ_1HZ))
+	if (irq == pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_1HZ))
 		rtc_events |= RTC_IRQF | RTC_UF;
-	else if (irq == pcap_irq(PCAP_IRQ_TODA))
+	else if (irq == pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_TODA))
 		rtc_events |= RTC_IRQF | RTC_AF;
 
-	rtc_update_irq(rtc, 1, rtc_events);
+	rtc_update_irq(pcap_rtc->rtc, 1, rtc_events);
 	return IRQ_HANDLED;
 }
 
 static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
 	u32 value;
 
-	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TODA, &value);
 	value &= PCAP_RTC_TOD_MASK;
 	secs = value;
 
-	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, &value);
 	value &= PCAP_RTC_DAY_MASK;
 	secs += value * SEC_PER_DAY;
 
@@ -53,35 +61,39 @@ static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
 	u32 value;
 
 	rtc_tm_to_time(tm, &secs);
 
-	ezx_pcap_read(PCAP_REG_RTC_TODA, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TODA, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
 	value |= secs % SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_TODA, value);
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TODA, value);
 
-	ezx_pcap_read(PCAP_REG_RTC_DAYA, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
 	value |= secs / SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_DAYA, value);
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, value);
 
 	return 0;
 }
 
 static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	unsigned long secs;
 	u32 value;
 
-	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TOD, &value);
 	value &= PCAP_RTC_TOD_MASK;
 	secs = value;
 
-	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAY, &value);
 	value &= PCAP_RTC_DAY_MASK;
 	secs += value * SEC_PER_DAY;
 
@@ -92,39 +104,45 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	u32 value;
 	
-	ezx_pcap_read(PCAP_REG_RTC_TOD, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TOD, &value);
 	value &= ~PCAP_RTC_TOD_MASK;
 	value |= secs % SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_TOD, value);
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TOD, value);
 
-	ezx_pcap_read(PCAP_REG_RTC_DAY, &value);
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAY, &value);
 	value &= ~PCAP_RTC_DAY_MASK;
 	value |= secs / SEC_PER_DAY;
-	ezx_pcap_write(PCAP_REG_RTC_DAY, value);
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAY, value);
 
 	return 0;
 }
 
-static inline int pcap_rtc_irq_enable(int pirq, unsigned int en)
+static inline int pcap_rtc_irq_enable(struct device *dev, int pirq,
+							unsigned int en)
 {
+	struct platform_device *pdev = to_platform_device(dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
+
 	if (en)
-		enable_irq(pcap_irq(pirq));
+		enable_irq(pcap_to_irq(pcap_rtc->pcap, pirq));
 	else
-		disable_irq(pcap_irq(pirq));
+		disable_irq(pcap_to_irq(pcap_rtc->pcap, pirq));
 
 	return 0;
 }
 
 static int pcap_rtc_alarm_irq_enable(struct device *dev, unsigned int en)
 {
-	return pcap_rtc_irq_enable(PCAP_IRQ_TODA, en);
+	return pcap_rtc_irq_enable(dev, PCAP_IRQ_TODA, en);
 }
 
 static int pcap_rtc_update_irq_enable(struct device *dev, unsigned int en)
 {
-	return pcap_rtc_irq_enable(PCAP_IRQ_1HZ, en);
+	return pcap_rtc_irq_enable(dev, PCAP_IRQ_1HZ, en);
 }
 
 static const struct rtc_class_ops pcap_rtc_ops = {
@@ -136,36 +154,50 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 	.update_irq_enable = pcap_rtc_update_irq_enable,
 };
 
-static int __init pcap_rtc_probe(struct platform_device *plat_dev)
+static int __devinit pcap_rtc_probe(struct platform_device *pdev)
 {
+	struct pcap_rtc *pcap_rtc;
 	struct rtc_device *rtc;
+	int timer_irq, alarm_irq;
 
-	rtc = rtc_device_register("pcap", &plat_dev->dev,
+	pcap_rtc = kmalloc(sizeof(struct pcap_rtc), GFP_KERNEL);
+	if (!pcap_rtc)
+		return -ENOMEM;
+
+	pcap_rtc->pcap = platform_get_drvdata(pdev);
+
+	rtc = rtc_device_register("pcap", &pdev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
-	if (IS_ERR(rtc))
+	if (IS_ERR(rtc)) {
+		kfree(pcap_rtc);
 		return PTR_ERR(rtc);
+	}
 
-	platform_set_drvdata(plat_dev, rtc);
+	platform_set_drvdata(pdev, pcap_rtc);
 
-	request_irq(pcap_irq(PCAP_IRQ_1HZ), pcap_rtc_irq, 0, "RTC Timer", rtc);
-	request_irq(pcap_irq(PCAP_IRQ_TODA), pcap_rtc_irq, 0, "RTC Alarm", rtc);
+	timer_irq = pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_1HZ);
+	alarm_irq = pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_TODA);
+
+	request_irq(timer_irq, pcap_rtc_irq, 0, "RTC Timer", pcap_rtc);
+	request_irq(alarm_irq, pcap_rtc_irq, 0, "RTC Alarm", pcap_rtc);
 
 	return 0;
 }
 
-static int __exit pcap_rtc_remove(struct platform_device *plat_dev)
+static int __devexit pcap_rtc_remove(struct platform_device *pdev)
 {
-	struct rtc_device *rtc = platform_get_drvdata(plat_dev);
+	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 
-	free_irq(pcap_irq(PCAP_IRQ_1HZ), rtc);
-	free_irq(pcap_irq(PCAP_IRQ_TODA), rtc);
-	rtc_device_unregister(rtc);
+	free_irq(pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_1HZ), pcap_rtc);
+	free_irq(pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_TODA), pcap_rtc);
+	rtc_device_unregister(pcap_rtc->rtc);
+	kfree(pcap_rtc);
 
 	return 0;
 }
 
 static struct platform_driver pcap_rtc_driver = {
-	.remove = __exit_p(pcap_rtc_remove),
+	.remove = __devexit_p(pcap_rtc_remove),
 	.driver = {
 		.name  = "pcap_rtc",
 		.owner = THIS_MODULE,
