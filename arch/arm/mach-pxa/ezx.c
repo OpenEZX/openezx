@@ -874,7 +874,6 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data a780_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
 	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
@@ -884,6 +883,7 @@ static struct pcap_platform_data a780_pcap_platform_data = {
 static struct spi_board_info a780_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
@@ -1046,7 +1046,6 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data e680_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
 	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
@@ -1056,6 +1055,7 @@ static struct pcap_platform_data e680_pcap_platform_data = {
 static struct spi_board_info e680_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
@@ -1154,7 +1154,6 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data a1200_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
 	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
@@ -1164,6 +1163,7 @@ static struct pcap_platform_data a1200_pcap_platform_data = {
 static struct spi_board_info a1200_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
@@ -1259,7 +1259,6 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data a910_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
 	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
@@ -1289,6 +1288,7 @@ static struct mmc_spi_platform_data a910_mci_platform_data = {
 static struct spi_board_info a910_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
@@ -1487,7 +1487,6 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data e6_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
 	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
@@ -1497,6 +1496,7 @@ static struct pcap_platform_data e6_pcap_platform_data = {
 static struct spi_board_info e6_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
@@ -1592,7 +1592,6 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 };
 
 static struct pcap_platform_data e2_pcap_platform_data = {
-	.irq    	= gpio_to_irq(GPIO1_PCAP_IRQ),
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
 	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
@@ -1602,6 +1601,7 @@ static struct pcap_platform_data e2_pcap_platform_data = {
 static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 	{
 		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
 		.bus_num         = 1,
 		.chip_select     = 0,
 		.max_speed_hz    = 13000000,
