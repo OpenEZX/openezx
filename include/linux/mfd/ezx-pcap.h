@@ -14,17 +14,18 @@ struct pcap_subdev {
 };
 
 struct pcap_platform_data {
-	unsigned int irq;
 	unsigned int irq_base;
 	unsigned int config;
-	void (*init) (void);	/* board specific init */
+	void (*init) (void *);	/* board specific init */
 	int num_subdevs;
 	struct pcap_subdev *subdevs;
 };
 
-int ezx_pcap_write(u8, u32);
-int ezx_pcap_read(u8, u32 *);
-int pcap_irq(int);
+int ezx_pcap_write(void *, u8, u32);
+int ezx_pcap_read(void *, u8, u32 *);
+int pcap_to_irq(void *, int);
+int pcap_adc_async(void *, u8, u32, u8[], void *, void *);
+int pcap_adc_sync(void *, u8, u32, u8[], u16[]);
 
 #define PCAP_SECOND_PORT	1
 #define PCAP_CS_AH		2
