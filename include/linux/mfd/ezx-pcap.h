@@ -1,5 +1,5 @@
 /*
- * Copyright 2007 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * For further information, please see http://wiki.openezx.org/PCAP2
  */
@@ -21,11 +21,13 @@ struct pcap_platform_data {
 	struct pcap_subdev *subdevs;
 };
 
-int ezx_pcap_write(void *, u8, u32);
-int ezx_pcap_read(void *, u8, u32 *);
-int pcap_to_irq(void *, int);
-int pcap_adc_async(void *, u8, u32, u8[], void *, void *);
-int pcap_adc_sync(void *, u8, u32, u8[], u16[]);
+struct pcap_chip;
+
+int ezx_pcap_write(struct pcap_chip *, u8, u32);
+int ezx_pcap_read(struct pcap_chip *, u8, u32 *);
+int pcap_to_irq(struct pcap_chip *, int);
+int pcap_adc_async(struct pcap_chip *, u8, u32, u8[], void *, void *);
+int pcap_adc_sync(struct pcap_chip *, u8, u32, u8[], u16[]);
 
 #define PCAP_SECOND_PORT	1
 #define PCAP_CS_AH		2
