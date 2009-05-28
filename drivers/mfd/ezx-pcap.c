@@ -76,9 +76,8 @@ static int ezx_pcap_putget(struct pcap_chip *pcap, u32 *data)
 	return status;
 }
 
-int ezx_pcap_write(void *_pcap, u8 reg_num, u32 value)
+int ezx_pcap_write(struct pcap_chip *pcap, u8 reg_num, u32 value)
 {
-	struct pcap_chip *pcap = _pcap;
 	int ret;
 
 	mutex_lock(&pcap->io_mutex);
@@ -92,9 +91,8 @@ int ezx_pcap_write(void *_pcap, u8 reg_num, u32 value)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_write);
 
-int ezx_pcap_read(void *_pcap, u8 reg_num, u32 *value)
+int ezx_pcap_read(struct pcap_chip *pcap, u8 reg_num, u32 *value)
 {
-	struct pcap_chip *pcap = _pcap;
 	int ret;
 
 	mutex_lock(&pcap->io_mutex);
@@ -114,10 +112,8 @@ static inline unsigned int irq2pcap(struct pcap_chip *pcap, int irq)
 	return 1 << (irq - pcap->irq_base);
 }
 
-int pcap_to_irq(void *_pcap, int irq)
+int pcap_to_irq(struct pcap_chip *pcap, int irq)
 {
-	struct pcap_chip *pcap = _pcap;
-
 	return pcap->irq_base + irq;
 }
 EXPORT_SYMBOL_GPL(pcap_to_irq);
@@ -269,10 +265,9 @@ static irqreturn_t pcap_adc_irq(int irq, void *_pcap)
 	return IRQ_HANDLED;
 }
 
-int pcap_adc_async(void *_pcap, u8 bank, u32 flags, u8 ch[],
+int pcap_adc_async(struct pcap_chip *pcap, u8 bank, u32 flags, u8 ch[],
 						void *callback, void *data)
 {
-	struct pcap_chip *pcap = _pcap;
 	struct pcap_adc_request *req;
 
 	/* This will be freed after we have a result */
@@ -313,9 +308,9 @@ static void pcap_adc_sync_cb(void *param, u16 res[])
 	complete(&req->completion);
 }
 
-int pcap_adc_sync(void *_pcap, u8 bank, u32 flags, u8 ch[], u16 res[])
+int pcap_adc_sync(struct pcap_chip *pcap, u8 bank, u32 flags, u8 ch[],
+								u16 res[])
 {
-	struct pcap_chip *pcap = _pcap;
 	struct pcap_adc_sync_request sync_data;
 	int ret;
 
