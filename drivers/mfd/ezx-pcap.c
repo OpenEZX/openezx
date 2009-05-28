@@ -423,7 +423,8 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 
 	/* redirect interrupts to AP, except adcdone2 */
 	if (!(pdata->config & PCAP_SECOND_PORT))
-		ezx_pcap_write(pcap, PCAP_REG_INT_SEL, PCAP_IRQ_ADCDONE2);
+		ezx_pcap_write(pcap, PCAP_REG_INT_SEL,
+					(1 << PCAP_IRQ_ADCDONE2));
 
 	/* setup irq chip */
 	for (i = pcap->irq_base; i < (pcap->irq_base + PCAP_NIRQS); i++) {
@@ -483,11 +484,11 @@ ret:
 }
 
 static struct spi_driver ezxpcap_driver = {
-	.probe  = ezx_pcap_probe,
+	.probe	= ezx_pcap_probe,
 	.remove = __devexit_p(ezx_pcap_remove),
 	.driver = {
-		.name   = "ezx-pcap",
-		.owner  = THIS_MODULE,
+		.name	= "ezx-pcap",
+		.owner	= THIS_MODULE,
 	},
 };
 
