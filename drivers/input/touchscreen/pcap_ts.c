@@ -25,6 +25,7 @@
 #include <linux/mfd/ezx-pcap.h>
 
 struct pcap_ts {
+	struct pcap_chip *pcap;
 	struct input_dev *input;
 	struct timer_list timer;
 	struct work_struct work;
@@ -47,14 +48,12 @@ struct pcap_ts *pcap_ts;
 /* if we try to read faster, pressure reading becomes unreliable */
 #define SAMPLE_INTERVAL		(HZ/50)
 
-int pcap_adc_async(u8 bank, u32 flags, u8 ch[], void *callback, void *data);
-int pcap_adc_sync(u8 bank, u32 flags, u8 ch[], u16 res[]);
 
 static void pcap_ts_read_xy(void *data, u16 res[2])
 {
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
-		/* 
+		/*
 		 * pressure reading is unreliable, case it fails use the last
 		 * valid pressure.
 		 */
@@ -107,17 +106,17 @@ static void pcap_ts_work(struct work_struct *unused)
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_STANDBY:
 		/* set TS to standby */
-		ezx_pcap_read(PCAP_REG_ADC, &tmp);
+		ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
 		tmp &= ~PCAP_ADC_TS_M_MASK;
 		tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
-		ezx_pcap_write(PCAP_REG_ADC, tmp);
+		ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
 		break;
 	case PCAP_ADC_TS_M_PRESSURE:
 	case PCAP_ADC_TS_M_XY:
 		/* start adc conversion */
 		ch[0] = PCAP_ADC_CH_TS_X1;
 		ch[1] = PCAP_ADC_CH_TS_Y1;
-		pcap_adc_async(PCAP_ADC_BANK_1,
+		pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1,
 				(pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT),
 				ch, pcap_ts_read_xy, NULL);
 		break;
@@ -143,6 +142,11 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	int err = -ENOMEM;
 
 	pcap_ts = kzalloc(sizeof(*pcap_ts), GFP_KERNEL);
+	if (!pcap_ts)
+		return -ENOMEM;
+
+	pcap_ts->pcap = platform_get_drvdata(pdev);
+
 	input_dev = input_allocate_device();
 	if (!pcap_ts || !input_dev)
 		goto fail;
@@ -172,7 +176,8 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
-	request_irq(pcap_irq(PCAP_IRQ_TS), pcap_ts_event_touch, 0, "Touch Screen", NULL);
+	request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
+			pcap_ts_event_touch, 0, "Touch Screen", NULL);
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
@@ -183,7 +188,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	return 0;
 
 fail_touch:
-	free_irq(pcap_irq(PCAP_IRQ_TS), NULL);
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
 fail:
 	input_free_device(input_dev);
 	kfree(pcap_ts);
@@ -193,7 +198,7 @@ fail:
 
 static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
-	free_irq(pcap_irq(PCAP_IRQ_TS), NULL);
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
 
 	del_timer_sync(&pcap_ts->timer);
 
@@ -208,18 +213,18 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
 {
 	u32 tmp;
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
+	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
 	tmp |= PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
+	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
 	return 0;
 }
 
 static int pcap_ts_resume(struct platform_device *dev)
 {
 	u32 tmp;
-	ezx_pcap_read(PCAP_REG_ADC, &tmp);
+	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
 	tmp &= ~PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(PCAP_REG_ADC, tmp);
+	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
 	return 0;
 }
 #endif
