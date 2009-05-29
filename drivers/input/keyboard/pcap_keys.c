@@ -48,7 +48,7 @@ static irqreturn_t pcap_jack_handler(int irq, void *_pcap_keys)
 	pstat &= (1 << PCAP_IRQ_HS);
 
 	input_report_switch(pcap_keys->pcap_input, SW_HEADPHONE_INSERT,
-			(pstat  ? 0 : 1));
+			(pstat ? 0 : 1));
 	input_sync(pcap_keys->pcap_input);
 
 	return IRQ_HANDLED;
@@ -74,8 +74,9 @@ static int __init pcap_keys_probe(struct platform_device *pdev)
 	pcap_keys->pcap_input->phys = "pcap-keys/input0";
 	pcap_keys->pcap_input->dev.parent = &pdev->dev;
 
-	pcap_keys->pcap_input->evbit[0] = BIT_MASK(EV_KEY)  | BIT_MASK(EV_SW);
-	pcap_keys->pcap_input->keybit[BIT_WORD(KEY_POWER)] = BIT_MASK(KEY_POWER);
+	pcap_keys->pcap_input->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_SW);
+	pcap_keys->pcap_input->keybit[BIT_WORD(KEY_POWER)] =
+		BIT_MASK(KEY_POWER);
 	set_bit(SW_HEADPHONE_INSERT, pcap_keys->pcap_input->swbit);
 
 	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_ONOFF),
@@ -88,7 +89,7 @@ static int __init pcap_keys_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_pwrkey;
 
-	err =  input_register_device(pcap_keys->pcap_input);
+	err = input_register_device(pcap_keys->pcap_input);
 	if (err)
 		goto fail_jack;
 
