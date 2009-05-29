@@ -53,7 +53,7 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 {
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
-		/* 
+		/*
 		 * pressure reading is unreliable, case it fails use the last
 		 * valid pressure.
 		 */
@@ -176,8 +176,8 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
-	request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts_event_touch,
-			0, "Touch Screen", NULL);
+	request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
+			pcap_ts_event_touch, 0, "Touch Screen", NULL);
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
