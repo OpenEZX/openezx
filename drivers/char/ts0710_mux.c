@@ -41,6 +41,7 @@
 /*
  * Copyright (C) 2002-2004  Motorola
  * Copyright (C) 2006 Harald Welte <laforge@openezx.org>
+ * Copyright (C) 2009 Ilya Petrov <ilya.muromec@gmail.com>
  *
  *  07/28/2002  Initial version
  *  11/18/2002  Second version
@@ -138,10 +139,6 @@ static mux_recv_struct *mux_recv_queue = NULL;
 // Local for 2.6?
 static struct tty_driver *mux_driver;
 
-static struct work_struct send_tqueue;
-//static struct work_struct receive_tqueue;
-//static struct work_struct post_recv_tqueue;
-
 static struct tty_struct *mux_table[23];
 static struct ktermios *mux_termios[23];
 static struct ktermios *mux_termios_locked[23];
@@ -152,102 +149,9 @@ static volatile short int mux_tty[23];
 #define min(a,b)    ( (a)<(b) ? (a):(b) )
 #endif
 
-static void queue_uih(mux_send_struct * send_info, __u16 len,
-		      ts0710_con * ts0710, __u8 dlci);
-static void set_uih_hdr(short_frame * uih_pkt, __u8 dlci, __u32 len, __u8 cr);
-
-static __u8 crc_calc(__u8 * data, __u32 length);
-static void create_crctable(__u8 table[]);
-static __u8 crctable[256];
-
-static void mux_sched_send(void);
-
-
 static ts0710_con ts0710_connection;
 
-static int basic_write(ts0710_con * ts0710, __u8 * buf, int len)
-{
-	int res;
 
-	UNUSED_PARAM(ts0710);
-
-        len+=2;
-
-	buf[0] = MUX_BASIC_FLAG_SEQ;
-	buf[len - 1] = MUX_BASIC_FLAG_SEQ;
-
-	res = ipc_tty->ops->write(ipc_tty, buf, len);
-
-	if (res != len) {
-		TS0710_PRINTK("MUX basic_write: Write Error! %d\n",res);
-		return -1;
-	}
-
-	return len;
-}
-
-/*
-static void basic_dump(__u8 * buf, int len)
-{
-        len+=2;
-
-	buf[0] = MUX_BASIC_FLAG_SEQ;
-	buf[len - 1] = MUX_BASIC_FLAG_SEQ;
-
-        printk("dump   (%d):",len);
-        
-        int i;
-        for(i=0;i<len;i++)
-          printk("%2x:",buf[i]);
-
-        printk(" \n");
-
-
-}
-*/
-
-/* Calculates the checksum according to the ts0710 specification */
-
-static __u8 crc_calc(__u8 * data, __u32 length)
-{
-	__u8 fcs = 0xff;
-
-	while (length--) {
-		fcs = crctable[fcs ^ *data++];
-	}
-
-	return 0xff - fcs;
-}
-
-/* Calulates a reversed CRC table for the FCS check */
-
-static void create_crctable(__u8 table[])
-{
-	int i, j;
-
-	__u8 data;
-	__u8 code_word = (__u8) 0xe0;
-	__u8 sr = (__u8) 0;
-
-	for (j = 0; j < 256; j++) {
-		data = (__u8) j;
-
-		for (i = 0; i < 8; i++) {
-			if ((data & 0x1) ^ (sr & 0x1)) {
-				sr >>= 1;
-				sr ^= code_word;
-			} else {
-				sr >>= 1;
-			}
-
-			data >>= 1;
-			sr &= 0xff;
-		}
-
-		table[j] = sr;
-		sr = 0;
-	}
-}
 
 static void ts0710_reset_dlci(__u8 j)
 {
@@ -280,7 +184,6 @@ static void ts0710_reset_con(void)
 
 static void ts0710_init(void)
 {
-	create_crctable(crctable);
         fcs_init();
 
 	ts0710_reset_con();
@@ -409,7 +312,7 @@ static int mux_send_frame(__u8 dlci, int initiator,
 		return -1;
 	}
 
-        return 0;
+        return res;
 
 
 }
@@ -436,36 +339,6 @@ static void send_sabm(ts0710_con * ts0710, __u8 dlci)
 static void send_disc(ts0710_con * ts0710, __u8 dlci)
 {
 	mux_send_frame(dlci, !ts0710->initiator, MUX_DISC, 0, 0);
-}
-
-static void queue_uih(mux_send_struct * send_info, __u16 len,
-		      ts0710_con * ts0710, __u8 dlci)
-{
-	__u32 size;
-
-	TS0710_DEBUG
-	    ("queue_uih: Creating UIH packet with %d bytes data to DLCI %d\n",
-	     len, dlci);
-
-	if (len > SHORT_PAYLOAD_SIZE) {
-		long_frame *l_pkt;
-
-		size = sizeof(long_frame) + len + FCS_SIZE;
-		l_pkt = (long_frame *) (send_info->frame - sizeof(long_frame));
-		set_uih_hdr((void *)l_pkt, dlci, len, ts0710->initiator);
-		l_pkt->data[len] = crc_calc((__u8 *) l_pkt, LONG_CRC_CHECK);
-		send_info->frame = ((__u8 *) l_pkt) - 1;
-	} else {
-		short_frame *s_pkt;
-
-		size = sizeof(short_frame) + len + FCS_SIZE;
-		s_pkt =
-		    (short_frame *) (send_info->frame - sizeof(short_frame));
-		set_uih_hdr((void *)s_pkt, dlci, len, ts0710->initiator);
-		s_pkt->data[len] = crc_calc((__u8 *) s_pkt, SHORT_CRC_CHECK);
-		send_info->frame = ((__u8 *) s_pkt) - 1;
-	}
-	send_info->length = size;
 }
 
 /* Multiplexer command packets functions */
@@ -540,6 +413,24 @@ static void mux_send_uih(ts0710_con * ts0710, __u8 cr,__u8 type, __u8 *data, int
 
 }
 
+static int mux_send_uih_data(ts0710_con * ts0710, __u8 dlci, __u8 *data, int len)
+{
+	int ret;
+        __u8 *send = kmalloc(len+2,GFP_ATOMIC);
+        *send = CMDTAG;
+
+        if (len)
+		memcpy(send+1 ,data,len);
+
+	ret = mux_send_frame(dlci, ts0710->initiator, MUX_UIH, send, len+1);
+
+	kfree(send);
+
+
+	return ret;
+
+}
+
 static int ts0710_msc_msg(ts0710_con * ts0710, __u8 value, __u8 cr, __u8 dlci)
 {
 	__u8 buf[2];
@@ -555,22 +446,6 @@ static int ts0710_msc_msg(ts0710_con * ts0710, __u8 value, __u8 cr, __u8 dlci)
 	mux_send_uih(ts0710, cr, MSC, buf, 2);
 
 	return 0;
-}
-
-static void set_uih_hdr(short_frame * uih_pkt, __u8 dlci, __u32 len, __u8 cr)
-{
-	uih_pkt->h.addr.ea = 1;
-	uih_pkt->h.addr.cr = cr;
-	uih_pkt->h.addr.d = dlci & 0x1;
-	uih_pkt->h.addr.server_chn = dlci >> 1;
-	uih_pkt->h.control = CLR_PF(UIH);
-
-	if (len > SHORT_PAYLOAD_SIZE) {
-		SET_LONG_LENGTH(((long_frame *) uih_pkt)->h.length, len);
-	} else {
-		uih_pkt->h.length.ea = 1;
-		uih_pkt->h.length.len = len;
-	}
 }
 
 /* Parses a multiplexer control channel packet */
@@ -593,7 +468,6 @@ void process_mcc(__u8 * data, __u32 len, ts0710_con * ts0710, int longpkt)
 		if (mcc_short_pkt->h.type.cr == MCC_CMD) {
 			ts0710->dlci[0].state = CONNECTED;
 			ts0710_fcon_msg(ts0710, MCC_RSP);
-			mux_sched_send();
 		}
 		break;
 
@@ -630,7 +504,6 @@ void process_mcc(__u8 * data, __u32 len, ts0710_con * ts0710, int longpkt)
 				} else if (MUX_STOPPED(ts0710,dlci)) {
 					ts0710->dlci[dlci].state = CONNECTED;
 					TS0710_LOG ("MUX Received Flow on on dlci %d\n", dlci);
-					mux_sched_send();
 				}
 
 				ts0710_msc_msg(ts0710, v24_sigs, MCC_RSP, dlci);
@@ -875,8 +748,6 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 	__u8 tag;
 	__u8 tty_idx;
 	struct tty_struct *tty;
-	__u8 queue_data;
-	__u8 post_recv;
 	__u8 flow_control;
 	mux_recv_struct *recv_info;
 	int recv_room;
@@ -924,7 +795,7 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 
 	printk("uih tag %x on dlci %d\n",tag,dlci);
 
-	tty_idx = dlci-1;
+	tty_idx = dlci;
 	tty = mux_table[tty_idx];
 
 	if ((!mux_tty[tty_idx]) || (!tty)) {
@@ -951,32 +822,16 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 		return;
 	}
 
-	queue_data = 0;
-	post_recv = 0;
 	flow_control = 0;
 	recv_room = 65535;
 	if (tty->receive_room)
 		recv_room = tty->receive_room;
-
-	if (recv_info->total)
-		post_recv = 1;
-
 
 	if ((recv_room - (uih_len + recv_info->total)) <
 			ts0710->dlci[dlci].mtu) {
 		flow_control = 1;
 	}
 
-
-        /*
-	int iter;
-	printk("muxed data3: %d bytes to %d\n",uih_len, dlci);
-
-	for(iter=0;iter< uih_len; iter++)
-		printk("%x:",uih_data_start[iter]);
-
-	printk("\n");
-        */
 
 	tty->ldisc.ops->receive_buf(tty, uih_data_start, NULL, uih_len);
 
@@ -985,8 +840,6 @@ void process_uih(ts0710_con * ts0710, char *data, int len, __u8 dlci){
 		ts0710_flow_off(tty, dlci, ts0710);
 
 
-	//if (post_recv)
-	//	schedule_work(&post_recv_tqueue);
 }
 
 void ts0710_recv_data(ts0710_con * ts0710, char *data, int len)
@@ -1301,11 +1154,6 @@ int ts0710_open_channel(__u8 dlci)
 	return retval;
 }
 
-static void mux_sched_send(void)
-{
-	schedule_work(&send_tqueue);
-}
-
 /****************************
  * TTY driver routines
 *****************************/
@@ -1325,7 +1173,7 @@ static void mux_close(struct tty_struct *tty, struct file *filp)
 	if (mux_tty[line] > 0)
 		mux_tty[line]--;
 
-	dlci = line+1;
+	dlci = line;
 	if (mux_tty[line] == 0)
 		ts0710_close_channel(dlci);
 
@@ -1351,7 +1199,6 @@ static void mux_close(struct tty_struct *tty, struct file *filp)
 	}
 
 	ts0710_flow_on(dlci, ts0710);
-	//schedule_work(&post_recv_tqueue);
 
 	wake_up_interruptible(&tty->read_wait);
 	wake_up_interruptible(&tty->write_wait);
@@ -1374,7 +1221,7 @@ static void mux_throttle(struct tty_struct *tty)
 	TS0710_DEBUG("Enter into %s, minor number is: %d\n", __FUNCTION__,
 		     line);
 
-	dlci = line+1;
+	dlci = line;
 	if ((ts0710->dlci[0].state != CONNECTED)
 	    && (ts0710->dlci[0].state != FLOW_STOPPED)) {
 		return;
@@ -1418,7 +1265,7 @@ static void mux_unthrottle(struct tty_struct *tty)
 		     line);
 
 	recv_info = mux_recv_info[line];
-	dlci = line+1;
+	dlci = line;
 
 	if (recv_info->total) {
 		recv_info->post_unthrottle = 1;
@@ -1443,7 +1290,7 @@ static int mux_chars_in_buffer(struct tty_struct *tty)
 		goto out;
 	}
 
-	dlci = line+1;
+	dlci = line;
 
 	if (! MUX_USABLE(ts0710,dlci))
 		goto out;
@@ -1465,97 +1312,26 @@ static int mux_chars_in_buffer(struct tty_struct *tty)
 	return retval;
 }
 
-static int mux_chars_in_serial_buffer(struct tty_struct *tty)
-{
-	UNUSED_PARAM(tty);
-
-	return ipc_tty->ops->chars_in_buffer(ipc_tty);
-}
-
 static int mux_write(struct tty_struct *tty,
 		     const unsigned char *buf, int count)
 {
 	ts0710_con *ts0710 = &ts0710_connection;
-	int line;
 	__u8 dlci;
-	mux_send_struct *send_info;
-	__u8 *d_buf;
-	__u16 c;
+	int written;
 
-	if (count <= 0) {
-		return 0;
-	}
-
-	line = tty->index;
-	if (MUX_INVALID(line))
-		return -ENODEV;
-
-	dlci = line+1;
-	if (ts0710->dlci[0].state == FLOW_STOPPED) {
-		TS0710_DEBUG
-		    ("Flow stopped on all channels, returning zero /dev/mux%d\n",
-		     line);
-		return 0;
-	} else if (ts0710->dlci[dlci].state == FLOW_STOPPED) {
-		TS0710_DEBUG("Flow stopped, returning zero /dev/mux%d\n", line);
-		return 0;
-	} else if (ts0710->dlci[dlci].state != CONNECTED) {
-		TS0710_PRINTK("MUX mux_write: DLCI %d not connected\n", dlci);
-		return -EDISCONNECTED;
-	}
-
-	if (!(mux_send_info_flags[line])) {
-		TS0710_PRINTK
-		    ("MUX Error: mux_write: mux_send_info_flags[%d] == 0\n",
-		     line);
-		return -ENODEV;
-	}
-	send_info = mux_send_info[line];
-	if (!send_info) {
-		TS0710_PRINTK
-		    ("MUX Error: mux_write: mux_send_info[%d] == 0\n",
-		     line);
-		return -ENODEV;
-	}
-
-	c = min(count, (ts0710->dlci[dlci].mtu - 1));
-	if (c <= 0) {
-		return 0;
-	}
-
-	if (test_and_set_bit(BUF_BUSY, &send_info->flags))
+	if (!count)
 		return 0;
 
-	if (send_info->filled) {
-		clear_bit(BUF_BUSY, &send_info->flags);
-		return 0;
-	}
+	dlci = tty->index;
 
-	d_buf = ((__u8 *) send_info->buf) + TS0710MUX_SEND_BUF_OFFSET;
-	memcpy(&d_buf[1], buf, c);
+	/*
+	 * FIXME: split big packets into small one
+	 * FIXME: support DATATAG
+	 * */
 
-	TS0710_DEBUG("Prepare to send %d bytes from /dev/mux%d\n", c,
-		     line);
+        written =  mux_send_uih_data(ts0710, dlci,(__u8*)buf, count) - 7;
 
-	if (iscmdtty[line]) {
-		TS0710_DEBUG("send CMDTAG\n");
-		d_buf[0] = CMDTAG;
-	} else {
-		TS0710_DEBUG("send DATATAG\n");
-		d_buf[0] = DATATAG;
-	}
-
-	send_info->frame = d_buf;
-	queue_uih(send_info, c + 1, ts0710, dlci);
-	send_info->filled = 1;
-	clear_bit(BUF_BUSY, &send_info->flags);
-
-	if (mux_chars_in_serial_buffer(ipc_tty) == 0) {
-		/* Sending bottom half should be
-		   run after return from this function */
-		mux_sched_send();
-	}
-	return c;
+	return written;
 		
 }
 
@@ -1574,7 +1350,7 @@ static int mux_write_room(struct tty_struct *tty)
 		goto out;
 	
 
-	dlci = line+1;
+	dlci = line;
 	if (ts0710->dlci[0].state == FLOW_STOPPED) {
 		TS0710_DEBUG("Flow stopped on all channels, returning ZERO\n");
 		goto out;
@@ -1621,12 +1397,10 @@ static void mux_flush_buffer(struct tty_struct *tty)
 	}
 
 	wake_up_interruptible(&tty->write_wait);
-#ifdef SERIAL_HAVE_POLL_WAIT
-	wake_up_interruptible(&tty->poll_wait);
-#endif
+
 	if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP)) &&
 	    tty->ldisc.ops->write_wakeup) {
-		(tty->ldisc.ops->write_wakeup) (tty);
+		tty->ldisc.ops->write_wakeup(tty);
 	}
 
 }
@@ -1644,12 +1418,12 @@ static int mux_open(struct tty_struct *tty, struct file *filp)
 	retval = -ENODEV;
 
 	line = tty->index;
-	if (MUX_INVALID(line))
-		goto out;
 
+        if(! (ipc_tty && line) )
+		return -ENODEV;
 
 	mux_tty[line]++;
-	dlci = line+1;
+	dlci = line;
 	mux_table[line] = tty;
 
 	/* Open server channel 0 first */
@@ -1705,7 +1479,7 @@ static int mux_open(struct tty_struct *tty, struct file *filp)
 	}
 
 	/* Now establish DLCI connection */
-	if (mux_tty[dlci-1] > 0) {
+	if (mux_tty[dlci] > 0) {
 		if ((retval = ts0710_open_channel(dlci)) != 0) {
 			TS0710_PRINTK("MUX: Can't connected channel %d!\n",
 				      dlci);
@@ -1752,7 +1526,6 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 	short_frame *short_pkt;
 	long_frame *long_pkt;
 	struct mux_data *disc_data =  (struct mux_data*)tty->disc_data;
-	int i;
 
 	if (disc_data->frame) {
 		framelen = disc_data->frame;
@@ -1766,21 +1539,12 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 		}
 	}
 
-	printk("data from lowlewel driver %d bytes from %d+%d=%d (%d)\n",
-			count, framelen, disc_data->collected,
-			disc_data->collected + count, expect_seq);
-
-	for(i=0;i<count;i++)
-		printk("%x:",data[i]);
-	printk("\n");
-
 	if(!disc_data->data)
 		disc_data->data = kzalloc(framelen, GFP_KERNEL);
 
 	memcpy((void*)(disc_data->data + disc_data->collected),data,count);
 
 	if ((disc_data->collected + count) < framelen) {
-		printk("waiting more data\n");
 		disc_data->frame = framelen;
 		disc_data->seq = expect_seq;
 
@@ -1788,22 +1552,18 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 
 		return;
 	} else {
-		printk("all data ^_^\n");
 		disc_data->collected = 0;
 		disc_data->frame = 0;
 	}
 
 	data = disc_data->data;
 
-	printk("expect %d, got %d\n", expect_seq, *(data + SLIDE_BP_SEQ_OFFSET));
-
 	if (expect_seq == *(data + SLIDE_BP_SEQ_OFFSET)) {
 		expect_seq++;
-		if (expect_seq >= 4) {
+		if (expect_seq >= 4)
 			expect_seq = 0;
-		}
 
-		printk("sending ack\n");
+
 		send_ack (&ts0710_connection, expect_seq);
 
 		ts0710_recv_data (&ts0710_connection,
@@ -1817,144 +1577,6 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 		kfree(disc_data->data);
 		disc_data->data = NULL;
 	}
-}
-
-/* mux sender, call from serial.c transmit_chars() */
-void mux_sender(void)
-{
-	mux_send_struct *send_info;
-	int chars;
-	__u8 idx;
-
-	chars = mux_chars_in_serial_buffer(ipc_tty);
-	if (!chars) {
-		/* chars == 0 */
-		TS0710_DEBUG("<[]\n");
-		mux_sched_send();
-		return;
-	}
-
-	idx = mux_send_info_idx;
-	if ((idx < NR_MUXS) && (mux_send_info_flags[idx])) {
-		send_info = mux_send_info[idx];
-		if ((send_info)
-		    && (send_info->filled)
-		    && (send_info->length <=
-			(TS0710MUX_SERIAL_BUF_SIZE - chars))) {
-
-			mux_sched_send();
-		}
-	}
-}
-
-static void send_worker(struct work_struct *work)
-{
-	ts0710_con *ts0710 = &ts0710_connection;
-	__u8 j;
-	mux_send_struct *send_info;
-	int chars;
-	struct tty_struct *tty;
-	__u8 dlci;
-
-	UNUSED_PARAM(work);
-
-	TS0710_DEBUG("Enter into send_worker\n");
-
-	mux_send_info_idx = NR_MUXS;
-
-	if (MUX_ALL_STOPPED(ts0710))
-		return;
-
-
-	for (j = 0; j < NR_MUXS; j++) {
-
-		if (!(mux_send_info_flags[j])) {
-			continue;
-		}
-
-		send_info = mux_send_info[j];
-		if (!send_info) {
-			continue;
-		}
-
-		if (!(send_info->filled)) {
-			continue;
-		}
-
-		dlci = j+1;
-
-		if (MUX_STOPPED(ts0710,dlci))
-			continue;
-		
-		if (! MUX_CONNECTED(ts0710,dlci)) {
-			TS0710_DEBUG("DLCI %d not connected\n", dlci);
-			send_info->filled = 0;
-			continue;
-		}
-
-		chars = mux_chars_in_serial_buffer(ipc_tty);
-		if (send_info->length <= (TS0710MUX_SERIAL_BUF_SIZE - chars)) {
-			TS0710_DEBUG("Send queued UIH for /dev/mux%d\n", j);
-			basic_write(ts0710, (__u8 *) send_info->frame,
-				    send_info->length);
-			send_info->length = 0;
-			send_info->filled = 0;
-		} else {
-			mux_send_info_idx = j;
-			break;
-		}
-	}			/* End for() loop */
-
-	/* Queue UIH data to be transmitted */
-	for (j = 0; j < NR_MUXS; j++) {
-
-		if (!(mux_send_info_flags[j])) {
-			continue;
-		}
-
-		send_info = mux_send_info[j];
-		if (!send_info) {
-			continue;
-		}
-
-		if (send_info->filled) {
-			continue;
-		}
-
-		/* Now queue UIH data to send_info->buf */
-
-		if (!mux_tty[j]) {
-			continue;
-		}
-
-		tty = mux_table[j];
-		if (!tty) {
-			continue;
-		}
-
-		dlci = j+1;
-		if (MUX_STOPPED(ts0710,dlci))
-			continue;
-
-		if (! MUX_CONNECTED(ts0710,dlci))
-			continue;
-
-		if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP))
-		    && tty->ldisc.ops->write_wakeup) {
-			(tty->ldisc.ops->write_wakeup) (tty);
-		}
-		wake_up_interruptible(&tty->write_wait);
-
-#ifdef SERIAL_HAVE_POLL_WAIT
-		wake_up_interruptible(&tty->poll_wait);
-#endif
-
-		if (send_info->filled) {
-			if (j < mux_send_info_idx) {
-				mux_send_info_idx = j;
-			}
-		}
-	}			/* End for() loop */
 }
 
 static int ts_ldisc_open(struct tty_struct *tty)
@@ -2073,10 +1695,6 @@ static int __init mux_init(void)
 	mux_send_info_idx = NR_MUXS;
 	mux_recv_queue = NULL;
 	mux_recv_flags = 0;
-
-	INIT_WORK(&send_tqueue, send_worker);
-	//INIT_WORK(&receive_tqueue, receive_worker);
-	//INIT_WORK(&post_recv_tqueue, post_recv_worker);
 
 	mux_driver = alloc_tty_driver(NR_MUXS);
 	if (!mux_driver)
