@@ -321,7 +321,7 @@ static void cfi_fixup_major_minor(struct cfi_private *cfi,
 {
 	if (cfi->mfr == MANUFACTURER_INTEL &&
 			cfi->id == PF38F4476 && extp->MinorVersion == '3')
-	extp->MinorVersion = '1';
+		extp->MinorVersion = '1';
 }
 
 static inline struct cfi_pri_intelext *
