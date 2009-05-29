@@ -34,7 +34,7 @@ static void pcap_led_work(struct work_struct *work)
 	u8 t, c, e;
 	struct pcap_led *led = container_of(work, struct pcap_led, work);
 
-	ezx_pcap_read(PCAP_REG_PERIPH, &tmp);
+	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 	switch (led->type) {
 	case PCAP_LED0:
 		t = PCAP_LED0_T_SHIFT;
@@ -55,17 +55,17 @@ static void pcap_led_work(struct work_struct *work)
 			led->brightness = PCAP_BL_MASK;
 		tmp &= ~(PCAP_BL_MASK << PCAP_BL0_SHIFT);
 		tmp |= led->brightness << PCAP_BL0_SHIFT;
-		ezx_pcap_write(PCAP_REG_PERIPH, tmp);
+		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 		return;
 	case PCAP_BL1:
 		if (led->brightness > PCAP_BL_MASK)
 			led->brightness = PCAP_BL_MASK;
 		tmp &= ~(PCAP_BL_MASK << PCAP_BL1_SHIFT);
 		tmp |= led->brightness << PCAP_BL1_SHIFT;
-		ezx_pcap_write(PCAP_REG_PERIPH, tmp);
+		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 		return;
 	case PCAP_VIB:
-		ezx_pcap_read(PCAP_REG_AUXVREG, &tmp);
+		ezx_pcap_read(led->pcap, PCAP_REG_AUXVREG, &tmp);
 
 		/* turn off */
 		tmp &= ~PCAP_VIB_EN;
@@ -81,7 +81,7 @@ static void pcap_led_work(struct work_struct *work)
 			/* turn on */
 			tmp |= PCAP_VIB_EN;
 		}
-		ezx_pcap_write(PCAP_REG_AUXVREG, tmp);
+		ezx_pcap_write(led->pcap, PCAP_REG_AUXVREG, tmp);
 		return;
 	default:
 		return;
@@ -97,7 +97,7 @@ static void pcap_led_work(struct work_struct *work)
 			((led->gpio & PCAP_LED_GPIO_INVERT) ?
 			!led->brightness : led->brightness));
 
-	ezx_pcap_write(PCAP_REG_PERIPH, tmp);
+	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
 
 static int __devinit pcap_led_probe(struct platform_device *pdev)
@@ -113,6 +113,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		struct pcap_led *led = &pdata->leds[i];
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
+                led->pcap = platform_get_drvdata(pdev);
 		if (led->gpio & PCAP_LED_GPIO_EN) {
 			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
 			err = gpio_request(gpio, "PCAP LED");
