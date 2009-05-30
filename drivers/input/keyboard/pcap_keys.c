@@ -61,7 +61,7 @@ static int __init pcap_keys_probe(struct platform_device *pdev)
 
 	pcap_keys = kmalloc(sizeof(struct pcap_keys), GFP_KERNEL);
 	if (!pcap_keys)
-		return -ENOMEM;
+		return err;
 
 	pcap_keys->pcap = platform_get_drvdata(pdev);
 
