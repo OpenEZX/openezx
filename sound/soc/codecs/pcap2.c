@@ -46,7 +46,9 @@ static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 {
 	unsigned int tmp;
 
-	ezx_pcap_read((reg & 0x1f), &tmp);
+	struct pcap_chip *pcap = (struct pcap_chip *)codec->dai->private_data;
+
+	ezx_pcap_read(pcap, (reg & 0x1f), &tmp);
 
 	if (reg & SL) {
 		tmp &= 0xffff0000;
@@ -63,15 +65,16 @@ static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	else
 	tmp = value;
 
-	ezx_pcap_write((reg & 0x1f), tmp);
+	ezx_pcap_write(pcap, (reg & 0x1f), tmp);
 	return 0;
 }
 
 static unsigned int pcap2_codec_read(struct snd_soc_codec *codec, unsigned int reg)
 {
 	unsigned int tmp, ret;
+	struct pcap_chip *pcap = (struct pcap_chip *)codec->dai->private_data;
 
-	ezx_pcap_read((reg & 0x1f), &tmp);
+	ezx_pcap_read(pcap, (reg & 0x1f), &tmp);
 	ret = tmp;
 	if (reg & SL)
 		ret = (tmp & 0xffff);
@@ -735,6 +738,19 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 	return 0;
 }
+static int pcap2_driver_probe(struct platform_device *pdev)
+{
+        pcap2_dai[0].private_data =
+		(void*) platform_get_drvdata(pdev);
+
+	return snd_soc_register_dai(&pcap2_dai[0]);
+}
+
+static int __devexit pcap2_driver_remove(struct platform_device *pdev)
+{
+	snd_soc_unregister_dai(&pcap2_dai[0]);
+	return 0;
+}
 
 /* codec device ops */
 struct snd_soc_codec_device soc_codec_dev_pcap2 = {
@@ -744,14 +760,24 @@ struct snd_soc_codec_device soc_codec_dev_pcap2 = {
 	.resume =	pcap2_codec_resume,
 };
 
+static struct platform_driver pcap2_driver = {
+	.probe		= pcap2_driver_probe,
+	.remove		= __devexit_p(pcap2_driver_remove),
+	.driver		= {
+		.name		= "pcap-audio",
+		.owner		= THIS_MODULE,
+	},
+};
+
+
 static int __devinit pcap2_init(void)
 {
-	return snd_soc_register_dai(&pcap2_dai[0]);
+	return platform_driver_register(&pcap2_driver);
 }
 
 static void __exit pcap2_exit(void)
 {
-	snd_soc_unregister_dai(&pcap2_dai[0]);
+	platform_driver_unregister(&pcap2_driver);
 }
 
 module_init(pcap2_init);
