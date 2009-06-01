@@ -755,12 +755,12 @@ static struct platform_device gen2_flash_device = {
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
 	[0] = {
-		.code = SW_LID,
-		.gpio = GPIO12_A780_FLIP_LID,
+		.code       = SW_LID,
+		.gpio       = GPIO12_A780_FLIP_LID,
 		.active_low = 0,
-		.desc = "A780 flip lid",
-		.type = EV_SW,
-		.wakeup = 1,
+		.desc       = "A780 flip lid",
+		.type       = EV_SW,
+		.wakeup     = 1,
 	},
 };
 
@@ -882,12 +882,12 @@ MACHINE_END
 /* gpio_keys */
 static struct gpio_keys_button e680_buttons[] = {
 	[0] = {
-		.code = KEY_SCREENLOCK,
-		.gpio = GPIO12_E680_LOCK_SWITCH,
+		.code       = KEY_SCREENLOCK,
+		.gpio       = GPIO12_E680_LOCK_SWITCH,
 		.active_low = 0,
-		.desc = "E680 lock switch",
-		.type = EV_KEY,
-		.wakeup = 1,
+		.desc       = "E680 lock switch",
+		.type       = EV_KEY,
+		.wakeup     = 1,
 	},
 };
 
@@ -945,12 +945,12 @@ MACHINE_END
 /* gpio_keys */
 static struct gpio_keys_button a1200_buttons[] = {
 	[0] = {
-		.code = SW_LID,
-		.gpio = GPIO15_A1200_FLIP_LID,
+		.code       = SW_LID,
+		.gpio       = GPIO15_A1200_FLIP_LID,
 		.active_low = 0,
-		.desc = "A1200 flip lid",
-		.type = EV_SW,
-		.wakeup = 1,
+		.desc       = "A1200 flip lid",
+		.type       = EV_SW,
+		.wakeup     = 1,
 	},
 };
 
@@ -1008,12 +1008,12 @@ MACHINE_END
 /* gpio_keys */
 static struct gpio_keys_button a910_buttons[] = {
 	[0] = {
-		.code = SW_LID,
-		.gpio = GPIO15_A910_FLIP_LID,
+		.code       = SW_LID,
+		.gpio       = GPIO15_A910_FLIP_LID,
 		.active_low = 0,
-		.desc = "A910 flip lid",
-		.type = EV_SW,
-		.wakeup = 1,
+		.desc       = "A910 flip lid",
+		.type       = EV_SW,
+		.wakeup     = 1,
 	},
 };
 
@@ -1119,12 +1119,12 @@ MACHINE_END
 /* gpio_keys */
 static struct gpio_keys_button e6_buttons[] = {
 	[0] = {
-		.code = KEY_SCREENLOCK,
-		.gpio = GPIO15_E6_LOCK_SWITCH,
+		.code       = KEY_SCREENLOCK,
+		.gpio       = GPIO15_E6_LOCK_SWITCH,
 		.active_low = 0,
-		.desc = "E6 lock switch",
-		.type = EV_KEY,
-		.wakeup = 1,
+		.desc       = "E6 lock switch",
+		.type       = EV_KEY,
+		.wakeup     = 1,
 	},
 };
 
@@ -1200,8 +1200,8 @@ static void __init e2_init(void)
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
-	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
