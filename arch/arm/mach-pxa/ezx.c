@@ -978,8 +978,8 @@ static void __init e2_init(void)
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
-	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
+	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
