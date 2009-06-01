@@ -1,6 +1,7 @@
-From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/gpio-keys
+From: Antonio Ospite <ospite@studenti.unina.it>
+Cc: Daniel Ribeiro <drwyrm@gmail.com>, Eric Miao <eric.y.miao@gmail.com>, openezx-devel <openezx-devel@lists.openezx.org>
+Subject: [PATCH] ezx: setup gpio-keys for EzX phones
 
-Add gpio-keys handling to ezx phones
+Setup gpio-keys for EzX phones
 
-Signed-off-by: Antonio Ospite <ao2@openezx.org>
+Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
