@@ -1,6 +1,6 @@
-From: Ilya Petrov <ilya.muromec@gmail.com>
-Subject: [PATCH] ezx/mach/pcap_battery
+From: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Subject: [PATCH] ezx/mach/rfkill-bluetooth
 
-Add PCAP battery controller to machine file
+rfkill-bluetooth arch data
 
-Signed-off-by: Ilya Petrov <ilya.muromec@gmail.com>
+Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
