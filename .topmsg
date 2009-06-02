@@ -1,6 +1,6 @@
-From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] ezx/mach/reboot-poweroff
+From: Ilya Petrov <ilya.muromec@gmail.com>
+Subject: [PATCH] ezx/mach/pcap_battery
 
-<patch description>
+Add PCAP battery controller to machine file
 
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: Ilya Petrov <ilya.muromec@gmail.com>
