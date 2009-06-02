@@ -1,2 +1,3 @@
+ezx/mach/pcap_battery
 ezx/mach/reboot-poweroff
-ezx/pcap_battery
+ezx/rfkill-bluetooth
