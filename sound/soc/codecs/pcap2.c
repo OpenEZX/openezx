@@ -46,7 +46,7 @@ static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 {
 	unsigned int tmp;
 
-	struct pcap_chip *pcap = (struct pcap_chip *)codec->dai->private_data;
+	struct pcap_chip *pcap = codec->dai->private_data;
 
 	ezx_pcap_read(pcap, (reg & 0x1f), &tmp);
 
@@ -72,7 +72,7 @@ static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 static unsigned int pcap2_codec_read(struct snd_soc_codec *codec, unsigned int reg)
 {
 	unsigned int tmp, ret;
-	struct pcap_chip *pcap = (struct pcap_chip *)codec->dai->private_data;
+	struct pcap_chip *pcap = codec->dai->private_data;
 
 	ezx_pcap_read(pcap, (reg & 0x1f), &tmp);
 	ret = tmp;
@@ -740,8 +740,7 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 }
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
-        pcap2_dai[0].private_data =
-		(void*) platform_get_drvdata(pdev);
+        pcap2_dai[0].private_data = platform_get_drvdata(pdev);
 
 	return snd_soc_register_dai(&pcap2_dai[0]);
 }
