@@ -1,9 +1,3 @@
-ezx/mach/rfkill-bluetooth
-ezx/asoc
-ezx/defconfig
-pxa/sparsemem
-tmp/pxa2xx-spi_fix_PXA2XX_CS_ASSERT
-tmp/fix_CONFIG_OABI_COMPAT
-tmp/fix-low-gpio-irqs
-tmp/fix-pgsr-restore
-tmp/pxa2xx_spi-fix-SPI_CS_HIGH
+ezx/mach/pcap_battery
+ezx/mach/reboot-poweroff
+ezx/rfkill-bluetooth
