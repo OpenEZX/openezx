@@ -67,6 +67,8 @@ static const char gadget_name[] = "isp1583_udc";
 static const char driver_desc[] = DRIVER_DESC;
 
 static struct isp1583_udc *the_controller;
+static struct workqueue_struct *workqueue;
+
 
 /*************************** DEBUG FUNCTION ***************************/
 #define DEBUG_NORMAL	1
@@ -1639,7 +1641,7 @@ static void isp1583_udc_enable(struct isp1583_udc *dev)
 	dev->gadget.speed = USB_SPEED_FULL;
 	dev->disabled = 0;
 
-	check_vbus();
+	queue_delayed_work(workqueue, &dev->vbus_check, 100);
 
 }
 
@@ -2046,7 +2048,7 @@ int udc_init(void)
 	return 0;
 }
 
-int check_vbus(void)
+void check_vbus(struct work_struct *work)
 {
 	unsigned long vbus = the_controller->regs[ISP1583_MODE_REG];
 	vbus &= (1 << 8);
@@ -2054,14 +2056,14 @@ int check_vbus(void)
 
 	if (the_controller->disabled) {
 		the_controller->vbus = 0;
-		return 1;
+		return;
 	}
 
 	if (the_controller->vbus == 0 && vbus) {
 		the_controller->vbus = 1;
 		printk(KERN_DEBUG "isp1583_check vbus got vbus\n");
 		udc_init();
-		return 1;
+		return;
 	}
 
 	if (!vbus) {
@@ -2076,21 +2078,20 @@ int check_vbus(void)
 			the_controller->gadget.speed = USB_SPEED_UNKNOWN;
 		}
 		gpio_set_value(94, 0);
-		return 1;
+		return;
 	}
-	return 0;
 }
 
 static irqreturn_t vbus_detect_irq(int dummy, void *_dev)
 {
-
+	unsigned long vbus = the_controller->regs[ISP1583_MODE_REG];
+	vbus &= (1 << 8);
+	vbus = !!vbus;
+	if (the_controller->vbus != vbus) {
+		queue_delayed_work(workqueue, &the_controller->vbus_check, 0);
+		return IRQ_HANDLED;
+	}
 	isp1583_udc_irq(dummy, _dev);
-	return IRQ_HANDLED;
-}
-
-static irqreturn_t sys_event_vbusdetect(int events, void *data)
-{
-	check_vbus();
 	return IRQ_HANDLED;
 }
 
@@ -2159,15 +2160,13 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	}
 
 	the_controller->vbus = 0;
-	request_irq(platform_get_irq(pdev, 1),
-		    sys_event_vbusdetect, 0, "vbusdetect", the_controller);
+	INIT_DELAYED_WORK(&the_controller->vbus_check, check_vbus);
 
 	the_controller->dma_channel = pxa_request_dma("isp1583",
 						      DMA_PRIO_LOW,
 						      cpu_dma_handler,
 						      the_controller);
 
-	check_vbus();
 	dev_dbg(dev, "probe ok\n");
 
 	return 0;
@@ -2232,6 +2231,9 @@ static struct platform_driver udc_driver_isp1583 = {
 static int __init isp1583_udc_init(void)
 {
 	int retval;
+	workqueue = create_singlethread_workqueue("kvbusd");
+	if (!workqueue)
+		return -ENOMEM;
 	retval = platform_driver_register(&udc_driver_isp1583);
 	return retval;
 
@@ -2240,6 +2242,7 @@ static int __init isp1583_udc_init(void)
 static void __exit isp1583_udc_exit(void)
 {
 	platform_driver_unregister(&udc_driver_isp1583);
+	destroy_workqueue(workqueue);
 }
 
 module_init(isp1583_udc_init);
