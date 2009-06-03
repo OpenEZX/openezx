@@ -203,6 +203,19 @@ static void pcap_disable_adc(struct pcap_chip *pcap)
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
 }
 
+void pcap_set_ts_bits(struct pcap_chip *pcap, u32 bits)
+{
+	u32 tmp;
+
+	mutex_lock(&pcap->adc_mutex);
+	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
+	tmp &= ~(PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
+	tmp |= bits;
+	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
+	mutex_unlock(&pcap->adc_mutex);
+}
+EXPORT_SYMBOL_GPL(pcap_set_ts_bits);
+
 static void pcap_adc_trigger(struct pcap_chip *pcap)
 {
 	u32 tmp;
