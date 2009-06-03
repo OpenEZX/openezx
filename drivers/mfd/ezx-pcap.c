@@ -203,6 +203,19 @@ static void pcap_disable_adc(struct pcap_chip *pcap)
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
 }
 
+void pcap_set_ts_bits(struct pcap_chip *pcap, u32 bits)
+{
+	u32 tmp;
+
+	mutex_lock(&pcap->adc_mutex);
+	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
+	tmp &= ~(PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
+	tmp |= bits & (PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
+	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
+	mutex_unlock(&pcap->adc_mutex);
+}
+EXPORT_SYMBOL_GPL(pcap_set_ts_bits);
+
 static void pcap_adc_trigger(struct pcap_chip *pcap)
 {
 	u32 tmp;
@@ -218,8 +231,10 @@ static void pcap_adc_trigger(struct pcap_chip *pcap)
 	}
 	mutex_unlock(&pcap->adc_mutex);
 
-	/* start conversion on requested bank */
-	tmp = pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
+	/* start conversion on requested bank, preserve TS_M bits */
+	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
+	tmp &= PCAP_ADC_TS_M_MASK;
+	tmp |= pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
 
 	if (pcap->adc_queue[head]->bank == PCAP_ADC_BANK_1)
 		tmp |= PCAP_ADC_AD_SEL1;
@@ -238,8 +253,10 @@ static irqreturn_t pcap_adc_irq(int irq, void *_pcap)
 	mutex_lock(&pcap->adc_mutex);
 	req = pcap->adc_queue[pcap->adc_head];
 
-	if (WARN(!req, KERN_WARNING "adc irq without pending request\n"))
+	if (WARN(!req, KERN_WARNING "adc irq without pending request\n")) {
+		mutex_unlock(&pcap->adc_mutex);
 		return IRQ_HANDLED;
+	}
 
 	/* read requested channels results */
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
