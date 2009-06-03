@@ -67,8 +67,6 @@ static const char gadget_name[] = "isp1583_udc";
 static const char driver_desc[] = DRIVER_DESC;
 
 static struct isp1583_udc *the_controller;
-static struct workqueue_struct *workqueue;
-
 
 /*************************** DEBUG FUNCTION ***************************/
 #define DEBUG_NORMAL	1
@@ -1641,7 +1639,7 @@ static void isp1583_udc_enable(struct isp1583_udc *dev)
 	dev->gadget.speed = USB_SPEED_FULL;
 	dev->disabled = 0;
 
-	queue_delayed_work(workqueue, &dev->vbus_check, 100);
+	schedule_work(&dev->vbus_check);
 
 }
 
@@ -2088,7 +2086,7 @@ static irqreturn_t vbus_detect_irq(int dummy, void *_dev)
 	vbus &= (1 << 8);
 	vbus = !!vbus;
 	if (the_controller->vbus != vbus) {
-		queue_delayed_work(workqueue, &the_controller->vbus_check, 0);
+		schedule_work(&the_controller->vbus_check);
 		return IRQ_HANDLED;
 	}
 	isp1583_udc_irq(dummy, _dev);
@@ -2231,9 +2229,6 @@ static struct platform_driver udc_driver_isp1583 = {
 static int __init isp1583_udc_init(void)
 {
 	int retval;
-	workqueue = create_singlethread_workqueue("kvbusd");
-	if (!workqueue)
-		return -ENOMEM;
 	retval = platform_driver_register(&udc_driver_isp1583);
 	return retval;
 
@@ -2242,7 +2237,6 @@ static int __init isp1583_udc_init(void)
 static void __exit isp1583_udc_exit(void)
 {
 	platform_driver_unregister(&udc_driver_isp1583);
-	destroy_workqueue(workqueue);
 }
 
 module_init(isp1583_udc_init);
