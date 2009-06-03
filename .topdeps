@@ -1,1 +1,3 @@
-ezx/mach/usb2.0
+ezx/mach/pcap_battery
+ezx/mach/reboot-poweroff
+ezx/rfkill-bluetooth
