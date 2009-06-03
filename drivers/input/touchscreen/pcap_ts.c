@@ -209,7 +209,7 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
 {
-	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_REF_LOWPWR);
+	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
 	return 0;
 }
 
