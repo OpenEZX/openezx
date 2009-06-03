@@ -1,6 +1,6 @@
-From: Ilya Petrov <ilya.muromec@gmail.com>
-Subject: [PATCH] ezx/mach/pcap_battery
+From: gmzhuo <gmzhuo@gmail.com>
+Subject: [PATCH] ezx/current
 
-Add PCAP battery controller to machine file
+placeholder to checkout all the ezx patches
 
-Signed-off-by: Ilya Petrov <ilya.muromec@gmail.com>
+Signed-off-by: gmzhuo <gmzhuo@gmail.com>
