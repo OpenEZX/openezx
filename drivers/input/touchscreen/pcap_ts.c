@@ -1,11 +1,8 @@
 /*
- * pcap_ts.c - Touchscreen driver for Motorola PCAP2 based touchscreen as found
- * 	       in the EZX phone platform.
+ * Driver for Motorola PCAP2 touchscreen as found in the EZX phone platform.
  *
  *  Copyright (C) 2006 Harald Welte <laforge@openezx.org>
- *  Copyright (C) 2007-2008 Daniel Ribeiro <drwyrm@gmail.com>
- *
- *  Based on information found in the original Motorola 2.4.x ezx-ts.c driver.
+ *  Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -67,6 +64,10 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 		pcap_ts->x = res[1];
 		if (pcap_ts->x <= X_AXIS_MIN || pcap_ts->x >= X_AXIS_MAX ||
 		    pcap_ts->y <= Y_AXIS_MIN || pcap_ts->y >= Y_AXIS_MAX) {
+			/* FIXME: Check if we can detect release with a better
+			 * way (using the TOUCH interrupt, if its not possible
+			 * then we really need to disable the touch interrupt
+			 * and re-enable it here. */
 			/* pen has been released */
 			input_report_abs(pcap_ts->input, ABS_PRESSURE, 0);
 			input_report_key(pcap_ts->input, BTN_TOUCH, 0);
@@ -103,30 +104,26 @@ static void pcap_ts_work(struct work_struct *unused)
 	u32 tmp;
 	u8 ch[2];
 
-	switch (pcap_ts->read_state) {
-	case PCAP_ADC_TS_M_STANDBY:
-		/* set TS to standby */
-		ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-		tmp &= ~PCAP_ADC_TS_M_MASK;
-		tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
-		ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
-		break;
-	case PCAP_ADC_TS_M_PRESSURE:
-	case PCAP_ADC_TS_M_XY:
-		/* start adc conversion */
-		ch[0] = PCAP_ADC_CH_TS_X1;
-		ch[1] = PCAP_ADC_CH_TS_Y1;
-		pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1,
-				(pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT),
-				ch, pcap_ts_read_xy, NULL);
-		break;
-	}
+	pcap_set_ts_bits(pcap_ts->pcap,
+			pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
+
+	if (pcap_ts->read_state == PCAP_ADC_TS_M_STANDBY)
+		return;
+
+	/* start adc conversion */
+	ch[0] = PCAP_ADC_CH_TS_X1;
+	ch[1] = PCAP_ADC_CH_TS_Y1;
+	pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1, 0, ch,
+							pcap_ts_read_xy, NULL);
 }
 
 static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
 {
+	/* FIXME: We get interrupted on release too, in this case we dont
+	 * want to read anything from ADC. Check if we can read touch/release
+	 * status on PCAP_REG_PSTAT, and only change state when its a touch */
 	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
-	mod_timer(&pcap_ts->timer, jiffies + SAMPLE_INTERVAL);
+	schedule_work(&pcap_ts->work);
 
 	return IRQ_HANDLED;
 }
@@ -212,19 +209,14 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
 {
-	u32 tmp;
-	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-	tmp |= PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
+	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
 	return 0;
 }
 
 static int pcap_ts_resume(struct platform_device *dev)
 {
-	u32 tmp;
-	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-	tmp &= ~PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
+	pcap_set_ts_bits(pcap_ts->pcap,
+				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
 }
 #endif
