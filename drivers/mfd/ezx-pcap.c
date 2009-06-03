@@ -210,7 +210,7 @@ void pcap_set_ts_bits(struct pcap_chip *pcap, u32 bits)
 	mutex_lock(&pcap->adc_mutex);
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
 	tmp &= ~(PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
-	tmp |= bits;
+	tmp |= bits & (PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
 	mutex_unlock(&pcap->adc_mutex);
 }
