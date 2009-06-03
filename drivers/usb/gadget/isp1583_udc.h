@@ -649,13 +649,12 @@ struct isp1583_udc {
 	int isp_dma_index_len;
 	struct isp1583_ep *dma_ep;
 	unsigned long phy_base;
-	struct delayed_work vbus_check;
 
 };
 
 void isp_init(void);
 int udc_init(void);
-void check_vbus(struct work_struct *work);
+int check_vbus(void);
 
 static inline int ep_index(int n, bool dir)
 {
