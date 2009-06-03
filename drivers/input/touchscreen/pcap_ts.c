@@ -104,25 +104,17 @@ static void pcap_ts_work(struct work_struct *unused)
 	u32 tmp;
 	u8 ch[2];
 
-	switch (pcap_ts->read_state) {
-	case PCAP_ADC_TS_M_STANDBY:
-		/* set TS to standby */
-	/* FIXME: This isn't safe, should be done with adc_mutex locked */
-		ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-		tmp &= ~PCAP_ADC_TS_M_MASK;
-		tmp |= (PCAP_ADC_TS_M_STANDBY << PCAP_ADC_TS_M_SHIFT);
-		ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
-		break;
-	case PCAP_ADC_TS_M_PRESSURE:
-	case PCAP_ADC_TS_M_XY:
-		/* start adc conversion */
-		ch[0] = PCAP_ADC_CH_TS_X1;
-		ch[1] = PCAP_ADC_CH_TS_Y1;
-		pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1,
-				(pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT),
-				ch, pcap_ts_read_xy, NULL);
-		break;
-	}
+	pcap_set_ts_bits(pcap_ts->pcap,
+			pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
+
+	if (pcap_ts->read_state == PCAP_ADC_TS_M_STANDBY)
+		return;
+
+	/* start adc conversion */
+	ch[0] = PCAP_ADC_CH_TS_X1;
+	ch[1] = PCAP_ADC_CH_TS_Y1;
+	pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1, 0, ch,
+							pcap_ts_read_xy, NULL);
 }
 
 static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
@@ -131,9 +123,7 @@ static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
 	 * want to read anything from ADC. Check if we can read touch/release
 	 * status on PCAP_REG_PSTAT, and only change state when its a touch */
 	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
-	/* FIXME: We dont need to delay to read the first sample, check
-	 * if we can just schedule_work() here. */
-	mod_timer(&pcap_ts->timer, jiffies + SAMPLE_INTERVAL);
+	schedule_work(&pcap_ts->work);
 
 	return IRQ_HANDLED;
 }
@@ -219,21 +209,14 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
 {
-	u32 tmp;
-	/* FIXME: This isn't safe, should be done with adc_mutex locked */
-	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-	tmp |= PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
+	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_REF_LOWPWR);
 	return 0;
 }
 
 static int pcap_ts_resume(struct platform_device *dev)
 {
-	u32 tmp;
-	/* FIXME: This isn't safe, should be done with adc_mutex locked */
-	ezx_pcap_read(pcap_ts->pcap, PCAP_REG_ADC, &tmp);
-	tmp &= ~PCAP_ADC_TS_REF_LOWPWR;
-	ezx_pcap_write(pcap_ts->pcap, PCAP_REG_ADC, tmp);
+	pcap_set_ts_bits(pcap_ts->pcap,
+				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
 }
 #endif
