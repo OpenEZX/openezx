@@ -2,4 +2,3 @@ ezx/mach/rfkill-bluetooth
 ezx/asoc
 ezx/defconfig
 pxa/sparsemem
-tmp/pxa2xx_spi-fix-SPI_CS_HIGH
