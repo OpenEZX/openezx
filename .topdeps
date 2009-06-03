@@ -1,2 +1,2 @@
 ezx/increase-nrirqs
-spi/pxa2xx_spi-fix-dma-resume
+tmp/pxa2xx_spi-fix-SPI_CS_HIGH
