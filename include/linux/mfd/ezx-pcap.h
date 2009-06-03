@@ -28,6 +28,7 @@ int ezx_pcap_read(struct pcap_chip *, u8, u32 *);
 int pcap_to_irq(struct pcap_chip *, int);
 int pcap_adc_async(struct pcap_chip *, u8, u32, u8[], void *, void *);
 int pcap_adc_sync(struct pcap_chip *, u8, u32, u8[], u16[]);
+void pcap_set_ts_bits(struct pcap_chip *, u32);
 
 #define PCAP_SECOND_PORT	1
 #define PCAP_CS_AH		2
@@ -194,6 +195,9 @@ int pcap_adc_sync(struct pcap_chip *, u8, u32, u8[], u16[]);
 #define PCAP_ADC_TS_M_PLATE_Y		4
 #define PCAP_ADC_TS_M_STANDBY		5
 #define PCAP_ADC_TS_M_NONTS		6
+
+#define PCAP_ADC_TO_mV(x)		((x * 3) + 2000)
+#define PCAP_ADC_TO_mA(x)		(x < 178 ? 0 : (x - 178) * 3165 / 1000)
 
 #define PCAP_ADR_ADD1_MASK		0x000003ff
 #define PCAP_ADR_ADD1_SHIFT		0
