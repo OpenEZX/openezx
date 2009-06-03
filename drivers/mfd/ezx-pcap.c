@@ -218,8 +218,10 @@ static void pcap_adc_trigger(struct pcap_chip *pcap)
 	}
 	mutex_unlock(&pcap->adc_mutex);
 
-	/* start conversion on requested bank */
-	tmp = pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
+	/* start conversion on requested bank, preserve TS_M bits */
+	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
+	tmp &= PCAP_ADC_TS_M_MASK;
+	tmp |= pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
 
 	if (pcap->adc_queue[head]->bank == PCAP_ADC_BANK_1)
 		tmp |= PCAP_ADC_AD_SEL1;
