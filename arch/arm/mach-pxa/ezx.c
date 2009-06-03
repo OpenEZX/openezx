@@ -135,11 +135,6 @@ static struct resource ezx_usb20_resources[] = {
 		.end        = IRQ_GPIO(19),
 		.flags      = IORESOURCE_IRQ,
 	},
-	[2] = {
-		.start      = IRQ_BOARD_START + PCAP_IRQ_MOBPORT,
-		.end        = IRQ_BOARD_START + PCAP_IRQ_MOBPORT,
-		.flags      = IORESOURCE_IRQ,
-	},
 };
 
 struct platform_device ezx_usb20_device = {
