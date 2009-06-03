@@ -196,6 +196,9 @@ void pcap_set_ts_bits(struct pcap_chip *, u32);
 #define PCAP_ADC_TS_M_STANDBY		5
 #define PCAP_ADC_TS_M_NONTS		6
 
+#define PCAP_ADC_TO_mV(x)		((x * 3) + 2000)
+#define PCAP_ADC_TO_mA(x)		(x < 178 ? 0 : (x - 178) * 3165 / 1000)
+
 #define PCAP_ADR_ADD1_MASK		0x000003ff
 #define PCAP_ADR_ADD1_SHIFT		0
 #define PCAP_ADR_ADD2_MASK		0x000ffc00
