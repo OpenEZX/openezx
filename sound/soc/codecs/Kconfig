@@ -84,6 +84,10 @@ config SND_SOC_CS4270_VD33_ERRATA
 config SND_SOC_L3
        tristate
 
+config SND_SOC_PCAP2
+	tristate
+	depends on EZX_PCAP
+
 config SND_SOC_PCM3008
        tristate
 
@@ -153,7 +157,3 @@ config SND_SOC_WM9712
 
 config SND_SOC_WM9713
 	tristate
-
-config SND_SOC_PCAP2
-	tristate
-	depends on EZX_PCAP

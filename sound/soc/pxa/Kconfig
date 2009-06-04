@@ -142,4 +142,4 @@ config SND_PXA2XX_SOC_EZX
 	select SND_SOC_PCAP2
 	help
 	  Say Y if you want to add support for SoC audio on the
-	  Motorola EZX Phones
+	  Motorola EZX Phones.
