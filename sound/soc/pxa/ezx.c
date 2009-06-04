@@ -127,13 +127,13 @@ static int ezx_set_scenario(struct snd_kcontrol *kcontrol,
 
 static const char *ezx_scenario_select[] = {
 	"Off",
-	"Loudspeaker", 
-	"Earpiece", 
+	"Loudspeaker",
+	"Earpiece",
 	"Headset",
 };
- 
-static const struct soc_enum ezx_scenario_enum[] = { 
-SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ezx_scenario_select), ezx_scenario_select), 
+
+static const struct soc_enum ezx_scenario_enum[] = {
+SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ezx_scenario_select), ezx_scenario_select),
 };
 
 static const struct snd_kcontrol_new ezx_snd_controls[] = {
@@ -201,7 +201,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai,PXA_SSP_CLK_PLL,
+	ret = snd_soc_dai_set_sysclk(cpu_dai, PXA_SSP_CLK_PLL,
 						0, SND_SOC_CLOCK_IN);
 	if (ret < 0)
 		return ret;
@@ -278,7 +278,7 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 	snd_soc_dapm_new_controls(codec, ezx_dapm_widgets,
 						ARRAY_SIZE(ezx_dapm_widgets));
 
-	for (i =0; i < ARRAY_SIZE(ezx_snd_controls); i++) {
+	for (i = 0; i < ARRAY_SIZE(ezx_snd_controls); i++) {
 		if ((err = snd_ctl_add(codec->card,
 				snd_soc_cnew(&ezx_snd_controls[i], codec,
 				NULL))) < 0)
