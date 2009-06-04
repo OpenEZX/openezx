@@ -5,13 +5,10 @@
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-#include <linux/timer.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/regulator/consumer.h>
 
 #include <asm/mach-types.h>
-
-static struct work_struct bat_work;
 
 struct pcap_bat_struct {
 	int status;
@@ -26,9 +23,9 @@ struct pcap_bat_struct {
 };
 
 static struct pcap_bat_struct pcap_bat;
-struct timer_list bat_timer;
 struct pcap_chip *pcap;
 static struct regulator *ac_draw;
+static void pcap_bat_update(struct pcap_bat_struct *bat);
 
 static int pcap_bat_get_property(struct power_supply *psy,
 			    enum power_supply_property psp,
@@ -36,6 +33,8 @@ static int pcap_bat_get_property(struct power_supply *psy,
 {
 	int ret = 0;
 	struct pcap_bat_struct *bat = container_of(psy, struct pcap_bat_struct, psy);
+
+	pcap_bat_update(&pcap_bat);
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -68,7 +67,7 @@ static int pcap_bat_get_property(struct power_supply *psy,
 
 static void pcap_bat_external_power_changed(struct power_supply *psy)
 {
-	schedule_work(&bat_work);
+	pcap_bat_update(&pcap_bat);
 }
 
 static void pcap_bat_update(struct pcap_bat_struct *bat)
@@ -109,17 +108,6 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 
 	mutex_unlock(&bat->work_lock);
 
-	mod_timer(&bat_timer, jiffies + HZ);
-}
-
-static void pcap_bat_work(struct work_struct *work)
-{
-	pcap_bat_update(&pcap_bat);
-}
-
-static void bat_timer_fn(unsigned long data)
-{
-	schedule_work(&bat_work);
 }
 
 
@@ -148,23 +136,8 @@ static struct pcap_bat_struct pcap_bat = {
 	.min = 390,
 };
 
-
-static int pcap_bat_suspend(struct platform_device *dev, pm_message_t state)
-{
-	/* flush all pending status updates */
-	flush_scheduled_work();
-	return 0;
-}
-
-static int pcap_bat_resume(struct platform_device *dev)
-{
-	schedule_work(&bat_work);
-	return 0;
-}
-
 static int __devinit pcap_bat_probe(struct platform_device *pdev)
 {
-	int ret;
 	static struct device *dev;
 
 	dev = &pdev->dev;
@@ -181,31 +154,14 @@ static int __devinit pcap_bat_probe(struct platform_device *pdev)
 
 	mutex_init(&pcap_bat.work_lock);
 
-	ret = power_supply_register(&pdev->dev, &pcap_bat.psy);
-	if (ret)
-		goto err_psy_reg;
+	return power_supply_register(&pdev->dev, &pcap_bat.psy);
 
-	INIT_WORK(&bat_work, pcap_bat_work);
-
-	init_timer(&bat_timer);
-	bat_timer.function = bat_timer_fn;
-
-	schedule_work(&bat_work);
-        return 0;
-
-err_psy_reg:
-	flush_scheduled_work();
-
-	return ret;
 }
 
 static int __devexit pcap_bat_remove(struct platform_device *dev)
 {
 
 	power_supply_unregister(&pcap_bat.psy);
-
-	flush_scheduled_work();
-
 
 	return 0;
 }
@@ -215,8 +171,6 @@ static struct platform_driver pcap_bat_driver = {
 	.driver.owner	= THIS_MODULE,
 	.probe		= pcap_bat_probe,
 	.remove		= __devexit_p(pcap_bat_remove),
-	.suspend	= pcap_bat_suspend,
-	.resume		= pcap_bat_resume,
 };
 
 static int __init pcap_bat_init(void)
