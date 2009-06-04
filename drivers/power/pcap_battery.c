@@ -10,6 +10,9 @@
 
 #include <asm/mach-types.h>
 
+#define PCAP_ADC_TO_mV(x)	((x * 3) + 2000)
+#define PCAP_ADC_TO_mA(x)	(x < 178 ? 0 : (x - 178) * 3165 / 1000)
+
 struct pcap_bat_struct {
 	int status;
 	struct power_supply psy;
