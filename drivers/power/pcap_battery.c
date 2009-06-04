@@ -29,11 +29,12 @@ static struct regulator *ac_draw;
 static void pcap_bat_update(struct pcap_bat_struct *bat);
 
 static int pcap_bat_get_property(struct power_supply *psy,
-			    enum power_supply_property psp,
-			    union power_supply_propval *val)
+				enum power_supply_property psp,
+				union power_supply_propval *val)
 {
 	int ret = 0;
-	struct pcap_bat_struct *bat = container_of(psy, struct pcap_bat_struct, psy);
+	struct pcap_bat_struct *bat = container_of(psy,
+						struct pcap_bat_struct, psy);
 
 	pcap_bat_update(&pcap_bat);
 
@@ -48,7 +49,7 @@ static int pcap_bat_get_property(struct power_supply *psy,
 		val->intval = bat->now;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-                val->intval = bat->max;
+		val->intval = bat->max;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 		val->intval = bat->max;
@@ -84,7 +85,7 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 	ch[0] = PCAP_ADC_CH_BATT;
 	ch[1] =	PCAP_ADC_CH_TEMPERATURE;
 
-	ret = pcap_adc_sync(pcap,PCAP_ADC_BANK_0,
+	ret = pcap_adc_sync(pcap, PCAP_ADC_BANK_0,
 			PCAP_ADC_T_NOW, ch, adc);
 
 	bat->now = adc[0];
@@ -145,23 +146,20 @@ static int __devinit pcap_bat_probe(struct platform_device *pdev)
 	pcap = platform_get_drvdata(pdev);
 
 
-        ac_draw = regulator_get(dev, "ac_draw");
+	ac_draw = regulator_get(dev, "ac_draw");
 
-        if (!ac_draw) {
+	if (!ac_draw) {
 		printk("couldn't get ac_draw regulator\n");
-                return -1;
-        }
-
+		return -1;
+	}
 
 	mutex_init(&pcap_bat.work_lock);
 
 	return power_supply_register(&pdev->dev, &pcap_bat.psy);
-
 }
 
 static int __devexit pcap_bat_remove(struct platform_device *dev)
 {
-
 	power_supply_unregister(&pcap_bat.psy);
 
 	return 0;
