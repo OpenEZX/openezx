@@ -99,11 +99,11 @@ typedef struct {
 	volatile __u8 dummy;	/* Allignment to 4*n bytes */
 } mux_send_struct;
 
+#define MAX_PACKET_SIZE 2048
 struct mux_data {
-	int collected;
-	int frame;
-	int seq;
-	const u8 *data;
+	enum {INSIDE_PACKET, OUT_OF_PACKET} state;
+	size_t chunk_size;
+	unsigned char chunk[MAX_PACKET_SIZE];
 };
 
 /* Bit number in flags of mux_send_struct */
@@ -1519,44 +1519,20 @@ static void send_ack(ts0710_con * ts0710, __u8 seq_num)
 	mux_send_frame(CTRL_CHAN, ts0710->initiator, ACK, &seq_num, 1);
 }
 
-static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int count)
+static void ts_ldisc_rx_post(struct tty_struct *tty, const u8 *data, char *flags, int count)
 {
 	static __u8 expect_seq = 0;
 	int framelen;
 	short_frame *short_pkt;
 	long_frame *long_pkt;
-	struct mux_data *disc_data =  (struct mux_data*)tty->disc_data;
 
-	if (disc_data->frame) {
-		framelen = disc_data->frame;
+	short_pkt = (short_frame *) (data + ADDRESS_FIELD_OFFSET);
+	if (short_pkt->h.length.ea == 1) {
+		framelen = TS0710_MAX_HDR_SIZE + short_pkt->h.length.len + 1 + SEQ_FIELD_SIZE;
 	} else {
-		short_pkt = (short_frame *) (data + ADDRESS_FIELD_OFFSET);
-		if (short_pkt->h.length.ea == 1) {
-			framelen = TS0710_MAX_HDR_SIZE + short_pkt->h.length.len + 1 + SEQ_FIELD_SIZE;
-		} else {
-			long_pkt = (long_frame *) (data + ADDRESS_FIELD_OFFSET);
-			framelen = TS0710_MAX_HDR_SIZE + GET_LONG_LENGTH(long_pkt->h.length) + 2 + SEQ_FIELD_SIZE;
-		}
+		long_pkt = (long_frame *) (data + ADDRESS_FIELD_OFFSET);
+		framelen = TS0710_MAX_HDR_SIZE + GET_LONG_LENGTH(long_pkt->h.length) + 2 + SEQ_FIELD_SIZE;
 	}
-
-	if(!disc_data->data)
-		disc_data->data = kzalloc(framelen, GFP_KERNEL);
-
-	memcpy((void*)(disc_data->data + disc_data->collected),data,count);
-
-	if ((disc_data->collected + count) < framelen) {
-		disc_data->frame = framelen;
-		disc_data->seq = expect_seq;
-
-		disc_data->collected += count;
-
-		return;
-	} else {
-		disc_data->collected = 0;
-		disc_data->frame = 0;
-	}
-
-	data = disc_data->data;
 
 	if (expect_seq == *(data + SLIDE_BP_SEQ_OFFSET)) {
 		expect_seq++;
@@ -1571,12 +1547,68 @@ static void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int
 				framelen - 2 - SEQ_FIELD_SIZE
 		);
 
+	} else {
+		TS0710_PRINTK("miss seq. possibly lost sync!\n");
 	}
 
-	if(disc_data->data) {
-		kfree(disc_data->data);
-		disc_data->data = NULL;
+}
+
+void ts_ldisc_rx(struct tty_struct *tty, const u8 *data, char *flags, int size)
+{
+	u8 *packet_start = data;
+	struct mux_data *st =  (struct mux_data*)tty->disc_data;
+
+	while (size--)
+	{
+		if (*data==0xF9)
+		{
+			if (st->state==OUT_OF_PACKET)
+			{
+				st->state = INSIDE_PACKET;
+				packet_start = data;
+			}
+			else
+			{
+				int packet_size = (data-packet_start)+1; // buffer points at ending 0xF9
+
+				if(packet_size+st->chunk_size==2) {
+					packet_start++;
+					data++;
+					continue;
+				}
+
+				st->state = OUT_OF_PACKET;
+
+				if (!st->chunk_size)
+					ts_ldisc_rx_post(
+						tty,
+						packet_start,
+						flags,
+						packet_size
+					);
+				else // use existing chunk
+				{
+					memcpy(st->chunk+st->chunk_size, packet_start, packet_size);
+					ts_ldisc_rx_post(
+						tty,
+						st->chunk,
+						flags,
+						st->chunk_size+packet_size
+					);
+
+					st->chunk_size = 0;
+				}
+			}
+		}
+		data++;
 	}
+	if (st->state == INSIDE_PACKET) // create/update chunk
+	{
+		size_t new_chunk_size = data-packet_start; // buffer points right after data end
+		memcpy(st->chunk+st->chunk_size, packet_start, new_chunk_size);
+		st->chunk_size += new_chunk_size;
+	}
+
 }
 
 static int ts_ldisc_open(struct tty_struct *tty)
@@ -1587,9 +1619,8 @@ static int ts_ldisc_open(struct tty_struct *tty)
 
 	disc_data = kzalloc(sizeof(struct mux_data),GFP_KERNEL);
 
-	disc_data->collected = 0;
-	disc_data->frame = 0;
-	disc_data->data  = NULL;
+	disc_data->state = OUT_OF_PACKET;
+	disc_data->chunk_size = 0;
 
 	tty->disc_data = disc_data;
 
