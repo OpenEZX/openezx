@@ -15,8 +15,6 @@ struct pcap_bat_struct {
 	int status;
 	struct power_supply psy;
 
-	struct mutex work_lock; /* protects data */
-
 	int max;
 	int min;
 	int now;
@@ -80,8 +78,6 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 	char ch[2];
 	short adc[2];
 
-	mutex_lock(&bat->work_lock);
-
 	ch[0] = PCAP_ADC_CH_BATT;
 	ch[1] =	PCAP_ADC_CH_TEMPERATURE;
 
@@ -106,8 +102,6 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 
 	if (old != bat->status)
 		power_supply_changed(psy);
-
-	mutex_unlock(&bat->work_lock);
 }
 
 
@@ -150,8 +144,6 @@ static int __devinit pcap_bat_probe(struct platform_device *pdev)
 		printk("couldn't get ac_draw regulator\n");
 		return -1;
 	}
-
-	mutex_init(&pcap_bat.work_lock);
 
 	return power_supply_register(&pdev->dev, &pcap_bat.psy);
 }
