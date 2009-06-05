@@ -74,5 +74,4 @@
 extern struct snd_soc_dai pcap2_dai[];
 extern struct snd_soc_codec_device soc_codec_dev_pcap2;
 
-
 #endif
