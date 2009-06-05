@@ -8,8 +8,9 @@
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/regulator/consumer.h>
 
-#define PCAP_ADC_TO_mV(x)	((x * 3) + 2000)
-#define PCAP_ADC_TO_mA(x)	(x < 178 ? 0 : (x - 178) * 3165 / 1000)
+#define PCAP_ADC_TO_mV(x)	(((x) * 3) + 2000)
+#define PCAP_ADC_TO_mA(x)	((x) < 178 ? 0 : ((x) - 178) * 3165 / 1000)
+#define PCAP_ADC_TO_TEMP(x)	(((1024 - (x)) * 1084 / 1000) - 180)
 
 struct pcap_bat_struct {
 	int status;
@@ -84,7 +85,7 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 	ret = pcap_adc_sync(pcap, PCAP_ADC_BANK_0, 0, ch, adc);
 
 	bat->now = PCAP_ADC_TO_mV(adc[0]);
-	bat->temp = adc[1];
+	bat->temp = PCAP_ADC_TO_TEMP(adc[1]);
 
 	old = bat->status;
 
