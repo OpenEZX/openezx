@@ -1,2 +1,2 @@
 ezx/local/pcap
-asoc/pxa-ssp-fix-SSPSP_SCMODE
+asoc/allow-i2s-for-pxa27xx
