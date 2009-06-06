@@ -19,56 +19,11 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/err.h>
+#include <linux/i2c/ezx-eoc.h>
 
-#define EOC_REG_ADDR_SIZE		1
-#define EOC_REG_DATA_SIZE		3
 
-#define EOC_REG_ISR			32
-#define EOC_REG_MSR			33
-#define EOC_REG_SENSE			34
-#define EOC_REG_POWER_CONTROL_0		35
-#define EOC_REG_POWER_CONTROL_1		36
-#define EOC_REG_CONN_CONTROL		37
-
-#define EOC_IRQ_VBUS_3V4		(1 << 0)
-#define EOC_IRQ_VBUS			(1 << 1)
-#define EOC_IRQ_VBUS_OV			(1 << 2)
-#define EOC_IRQ_RVRS_CHRG		(1 << 3)
-#define EOC_IRQ_ID			(1 << 4)
-#define EOC_IRQ_ID_GROUND		(1 << 5)
-#define EOC_IRQ_SE1			(1 << 6)
-#define EOC_IRQ_CC_CV			(1 << 7)
-#define EOC_IRQ_CHRG_CURR		(1 << 8)
-#define EOC_IRQ_RVRS_CURR		(1 << 9)
-#define EOC_IRQ_CK			(1 << 10)
-#define EOC_IRQ_BATTPON			(1 << 11)
-
-/* 21044  2, 6(70K_PD), 12(XCVR), 17(MODE(3)) */
-#define EOC_CONN_USB_SUSPEND		(1 << 1)
-#define EOC_CONN_DPLUS_150K_PU		(1 << 5)
-#define EOC_CONN_VBUS_70K_PD		(1 << 6)
-#define EOC_CONN_XCVR			(1 << 12)
-#define EOC_CONN_MODE(x)		((x & 7) << 14)
-#define EOC_CONN_ID_PD			(1 << 20)
-#define EOC_CONN_ID_PU			(1 << 22)
-
-/* c 2, 3 */
-#define EOC_POWER1_INPUT_SOURCE(x)	((x & 3) << 0)
-#define EOC_POWER1_OUTPUT_VOLTAGE	(1 << 2)
-#define EOC_POWER1_VUSB			(1 << 3)
-
-/* c00 10, 11 */
-#define EOC_POWER0_VBUS_5K_PD		(1 << 19)
-#define EOC_POWER0_REVERSE_MODE		(1 << 13)
-
-/* Bits in EMU one-chip's power control register 0. */
-#define EMU_VCHRG_MASK              0x00000007
-#define EMU_ICHRG_MASK              0x00000078
-#define EMU_ICHRG_SHIFT             3
-#define EMU_ICHRG_TR_MASK           0x00000380
-#define EMU_ICHRG_TR_SHIFT          7
-#define EMU_FET_OVRD_MASK           0x00000400
-#define EMU_FET_CTRL_MASK           0x00000800
+static int sense_reg, power0_reg;
+static int eoc_charger_enable(struct regulator_dev *rdev);
 
 static struct i2c_client *eoc_i2c_client;
 static const struct i2c_device_id eoc_id[] = {
@@ -92,7 +47,6 @@ int eoc_reg_read(char reg, unsigned int *val)
 	*val |= (value[1] << 8);
 	*val |= (value[0] << 16);
 
-	printk(KERN_INFO "EOC: read %d: %08x\n", reg, *val);
 	return 0;
 }
 
@@ -104,7 +58,6 @@ int eoc_reg_write(char reg, unsigned int val)
 	value[1] = (char)(val >> 16);
 	value[2] = (char)(val >> 8);
 	value[3] = (char)val;
-	printk(KERN_INFO "EOC: write %d: %08x\n", reg, val);
 	if(i2c_master_send(eoc_i2c_client, value, EOC_REG_ADDR_SIZE +
 		EOC_REG_DATA_SIZE) != (EOC_REG_ADDR_SIZE + EOC_REG_DATA_SIZE))
 		return -EIO;
@@ -135,17 +88,28 @@ static void eoc_work(struct work_struct *_eoc)
 	unsigned int isr, msr, i, x;
 	eoc_reg_read(EOC_REG_ISR, &isr);
 	eoc_reg_read(EOC_REG_MSR, &msr);
-	printk(KERN_INFO "EOC INTS: ");
+	eoc_reg_read(EOC_REG_SENSE, &sense_reg);
+	printk(KERN_INFO "Sens: %x\n", sense_reg);
+
+	printk(KERN_INFO "EOC INTS: \n");
 	for (i = (isr & ~msr), x = 0; i; x++) {
 		if (!(i & (1 << x)))
 			continue;
 		i &= ~(1 << x);
+
+		printk(KERN_INFO "bit %x ", (1 << x) & sense_reg);
+
 		switch (1 << x) {
 		case EOC_IRQ_VBUS_3V4:
 			printk("VBUS_3V4 ");
 			break;
 		case EOC_IRQ_VBUS:
-			printk("VBUS ");
+
+			printk("cable: %s\n",
+				(sense_reg & EOC_IRQ_VBUS) ?
+				"connected" : "disconnected"
+			);
+
 			break;
 		case EOC_IRQ_VBUS_OV:
 			printk("VBUS_OV ");
@@ -178,10 +142,17 @@ static void eoc_work(struct work_struct *_eoc)
 			printk("BATTPON ");
 			break;
 		}
+
+		printk("\n");
 	}
 
-	printk("\n");
 	eoc_reg_write(EOC_REG_ISR, isr);
+	eoc_reg_write(EOC_REG_POWER_CONTROL_0, power0_reg);
+	eoc_reg_read(EOC_REG_POWER_CONTROL_0, &power0_reg);
+
+	if (gpio_get_value(10))
+		schedule_work(&work);
+
 }
 
 static irqreturn_t eoc_irq(int irq, void *arg)
@@ -190,17 +161,27 @@ static irqreturn_t eoc_irq(int irq, void *arg)
 	return IRQ_HANDLED;
 }
 
+int eoc_cable_connected(int mask)
+{
+
+	if (!(sense_reg & EOC_IRQ_VBUS))
+		return 0;
+
+	return sense_reg & mask;
+
+}
+
 static int eoc_set_current_limit(struct regulator_dev *rdev,
 					int min_uA, int max_uA)
 {
 	int mask;
 	int charge_current, setup;
-	if (max_uA < 5000)
-		charge_current = 5;
-	else if (max_uA > 13000)
-		charge_current = 13;
+	if (max_uA < 100000)
+		charge_current = 1;
+	else if (max_uA > 1300000)
+		charge_current = 14;
 	else
-		charge_current = max_uA / 1000;
+		charge_current = max_uA / 100000;
 
 	setup = (charge_current << EMU_ICHRG_SHIFT) & EMU_ICHRG_MASK;
 	if (charge_current != 0)
@@ -208,13 +189,18 @@ static int eoc_set_current_limit(struct regulator_dev *rdev,
 	else
 		mask = EMU_ICHRG_MASK;
 
-	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0, mask, setup);
+	power0_reg &= ~mask;
+	power0_reg |= setup & mask;
+
+	schedule_work(&work);
+
+	return 0;
 }
 
 static int eoc_get_current_limit(struct regulator_dev *rdev)
 {
-	int value;
-	eoc_reg_read(EOC_REG_POWER_CONTROL_0, &value);
+	int value = power0_reg;
+
 	value &= EMU_ICHRG_MASK;
 	value >>= EMU_ICHRG_SHIFT;
 	return value * 1000;
@@ -222,21 +208,29 @@ static int eoc_get_current_limit(struct regulator_dev *rdev)
 
 static int eoc_charger_enable(struct regulator_dev *rdev)
 {
-	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0,
-				EMU_VCHRG_MASK, 3);
+	power0_reg &= ~EMU_VCHRG_MASK;
+	power0_reg |= EMU_VCHRG_MASK & 7;
+
+	printk(KERN_INFO "enable charger %x\n", power0_reg);
+	schedule_work(&work);
+
+	return 0;
 }
 
 static int eoc_charger_disable(struct regulator_dev *rdev)
 {
-	return eoc_reg_write_mask(EOC_REG_POWER_CONTROL_0,
-				EMU_VCHRG_MASK, 0);
+
+	power0_reg &= ~EMU_VCHRG_MASK;
+	schedule_work(&work);
+
+	return 0;
 }
 
 static int eoc_charger_is_enabled(struct regulator_dev *rdev)
-{	int value;
-	eoc_reg_read(EOC_REG_POWER_CONTROL_0, &value);
-	value &= EMU_ICHRG_MASK;
-	value >>= EMU_ICHRG_SHIFT;
+{
+	int value = power0_reg;
+
+	value &= EMU_VCHRG_MASK;
 
 	return value >= 3;
 }
@@ -255,24 +249,6 @@ static struct regulator_desc eoc_regulator_desc = {
 	.type  = REGULATOR_CURRENT,
 };
 
-static struct regulator_init_data eoc_regulator_data = {
-	.constraints = {
-		.min_uV = 3300000,
-		.max_uV = 3300000,
-		.valid_modes_mask = REGULATOR_MODE_NORMAL,
-	},
-	.num_consumer_supplies = 0,
-	.consumer_supplies = 0,
-};
-
-static struct platform_device eoc_regulator_device = {
-	.name = "eoc-regulator",
-	.id = -1,
-	.dev = {
-		.platform_data = &eoc_regulator_data,
-	},
-};
-
 static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
@@ -284,7 +260,9 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	ret = eoc_reg_write(EOC_REG_MSR, 0x0); //fef);
 	if (ret)
 		goto ret;
-	eoc_reg_write(EOC_REG_POWER_CONTROL_0, 0xc00);
+
+	power0_reg = 0xc00; /* hardware controlled, shared path */
+	eoc_reg_write(EOC_REG_POWER_CONTROL_0, power0_reg);
 	if (ret)
 		goto ret;
 	eoc_reg_write(EOC_REG_POWER_CONTROL_1, 0xc);
@@ -305,8 +283,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	ret = request_irq(gpio_to_irq(10), eoc_irq, IRQF_TRIGGER_RISING,
 								"EOC", NULL);
 	eoc_reg_write(EOC_REG_ISR, 0xffffff);
-
-	platform_device_register(&eoc_regulator_device);
+	eoc_reg_read(EOC_REG_SENSE, &sense_reg);
 
 ret:
 	return ret;
@@ -317,7 +294,7 @@ static int __devexit eoc_remove(struct i2c_client *client)
 	free_irq(gpio_to_irq(10), NULL);
 	flush_scheduled_work();
 	kfree(i2c_get_clientdata(client));
-	platform_device_unregister(&eoc_regulator_device);
+
 	return 0;
 }
 
@@ -337,7 +314,7 @@ static int eoc_regulator_probe(struct platform_device *pdev)
 #ifdef CONFIG_REGULATOR
 	/* register regulator */
 	rdev = regulator_register(&eoc_regulator_desc, &pdev->dev,
-				  dev_get_drvdata(&pdev->dev), NULL);
+			pdev->dev.platform_data, NULL);
 	if (IS_ERR(rdev)) {
 		return PTR_ERR(rdev);
 	}
@@ -367,7 +344,7 @@ static struct platform_driver eoc_regulator_driver = {
 
 static int __init eoc_init(void)
 {
-	platform_driver_register(&eoc_regulator_driver);
+	platform_driver_probe(&eoc_regulator_driver, eoc_regulator_probe);
 	return i2c_add_driver(&eoc_driver);
 }
 
