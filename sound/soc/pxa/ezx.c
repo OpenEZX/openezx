@@ -75,7 +75,7 @@ static int ezx_get_scenario(struct snd_kcontrol *kcontrol,
 
 static int ezx_set_scenario_endpoints(struct snd_soc_codec *codec, int mode)
 {
-	switch(mode) {
+	switch (mode) {
 	case AUDIO_OFF:
 		snd_soc_dapm_disable_pin(codec, "Earpiece");
 		snd_soc_dapm_disable_pin(codec, "Loudspeaker");
@@ -147,7 +147,7 @@ SOC_ENUM_EXT("Output mode", ezx_scenario_enum[0], ezx_get_scenario,
  * These operations are specific to the machine only.
  */
 
- /*
+/*
  * Called by ALSA when a PCM substream is opened, private data can be allocated.
  */
 static int ezx_machine_startup(struct snd_pcm_substream *substream)
@@ -176,7 +176,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
 			SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_CBM_CFM);
-	if(ret < 0)
+	if (ret < 0)
 		return ret;
 
 	/* Turn on clock output on CLK_PIO */
@@ -185,7 +185,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	/* set clock source */
 	ret = snd_soc_dai_set_sysclk(codec_dai, PCAP2_CLK_AP,
 					13000000, SND_SOC_CLOCK_IN);
-	if(ret < 0)
+	if (ret < 0)
 		return ret;
 
 	/* setup TDM slots */
@@ -235,7 +235,7 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
 		SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
-	if(ret < 0)
+	if (ret < 0)
 		return ret;
 
 	/* set clock source */
