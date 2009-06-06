@@ -1,0 +1,252 @@
+/*
+ * Driver for Motorola PCAP2 touchscreen as found in the EZX phone platform.
+ *
+ *  Copyright (C) 2006 Harald Welte <laforge@openezx.org>
+ *  Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
+ *
+ */
+
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/fs.h>
+#include <linux/string.h>
+#include <linux/pm.h>
+#include <linux/timer.h>
+#include <linux/interrupt.h>
+#include <linux/platform_device.h>
+#include <linux/input.h>
+#include <linux/mfd/ezx-pcap.h>
+
+struct pcap_ts {
+	struct pcap_chip *pcap;
+	struct input_dev *input;
+	struct timer_list timer;
+	struct work_struct work;
+	u16 x, y;
+	u16 pressure;
+	u8 read_state;
+};
+
+struct pcap_ts *pcap_ts;
+
+#define X_AXIS_MIN	0
+#define X_AXIS_MAX	1023
+
+#define Y_AXIS_MAX	X_AXIS_MAX
+#define Y_AXIS_MIN	X_AXIS_MIN
+
+#define PRESSURE_MAX	X_AXIS_MAX
+#define PRESSURE_MIN	X_AXIS_MIN
+
+/* if we try to read faster, pressure reading becomes unreliable */
+#define SAMPLE_INTERVAL		(HZ/50)
+
+
+static void pcap_ts_read_xy(void *data, u16 res[2])
+{
+	switch (pcap_ts->read_state) {
+	case PCAP_ADC_TS_M_PRESSURE:
+		/*
+		 * pressure reading is unreliable, case it fails use the last
+		 * valid pressure.
+		 */
+		if (res[0] > PRESSURE_MIN && res[0] < PRESSURE_MAX)
+			pcap_ts->pressure = res[0];
+		pcap_ts->read_state = PCAP_ADC_TS_M_XY;
+		schedule_work(&pcap_ts->work);
+		break;
+	case PCAP_ADC_TS_M_XY:
+		pcap_ts->y = res[0];
+		pcap_ts->x = res[1];
+		if (pcap_ts->x <= X_AXIS_MIN || pcap_ts->x >= X_AXIS_MAX ||
+		    pcap_ts->y <= Y_AXIS_MIN || pcap_ts->y >= Y_AXIS_MAX) {
+			/* FIXME: Check if we can detect release with a better
+			 * way (using the TOUCH interrupt, if its not possible
+			 * then we really need to disable the touch interrupt
+			 * and re-enable it here. */
+			/* pen has been released */
+			input_report_abs(pcap_ts->input, ABS_PRESSURE, 0);
+			input_report_key(pcap_ts->input, BTN_TOUCH, 0);
+			/* no need for timer, we'll get interrupted with
+			 * next touch down event */
+			del_timer(&pcap_ts->timer);
+
+			/* ask PCAP2 to interrupt us if touch event happens
+			 * again */
+			pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
+			schedule_work(&pcap_ts->work);
+		} else {
+			/* pen is touching the screen*/
+			input_report_abs(pcap_ts->input, ABS_X, pcap_ts->x);
+			input_report_abs(pcap_ts->input, ABS_Y, pcap_ts->y);
+			input_report_key(pcap_ts->input, BTN_TOUCH, 1);
+			input_report_abs(pcap_ts->input, ABS_PRESSURE,
+						pcap_ts->pressure);
+
+			/* switch back to pressure read mode */
+			pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
+			mod_timer(&pcap_ts->timer,
+					jiffies + SAMPLE_INTERVAL);
+		}
+		input_sync(pcap_ts->input);
+		break;
+	default:
+		break;
+	}
+}
+
+static void pcap_ts_work(struct work_struct *unused)
+{
+	u32 tmp;
+	u8 ch[2];
+
+	pcap_set_ts_bits(pcap_ts->pcap,
+			pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
+
+	if (pcap_ts->read_state == PCAP_ADC_TS_M_STANDBY)
+		return;
+
+	/* start adc conversion */
+	ch[0] = PCAP_ADC_CH_TS_X1;
+	ch[1] = PCAP_ADC_CH_TS_Y1;
+	pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1, 0, ch,
+							pcap_ts_read_xy, NULL);
+}
+
+static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
+{
+	/* FIXME: We get interrupted on release too, in this case we dont
+	 * want to read anything from ADC. Check if we can read touch/release
+	 * status on PCAP_REG_PSTAT, and only change state when its a touch */
+	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
+	schedule_work(&pcap_ts->work);
+
+	return IRQ_HANDLED;
+}
+
+static void pcap_ts_timer_fn(unsigned long data)
+{
+	schedule_work(&pcap_ts->work);
+}
+
+static int __devinit pcap_ts_probe(struct platform_device *pdev)
+{
+	struct input_dev *input_dev;
+	int err = -ENOMEM;
+
+	pcap_ts = kzalloc(sizeof(*pcap_ts), GFP_KERNEL);
+	if (!pcap_ts)
+		return -ENOMEM;
+
+	pcap_ts->pcap = platform_get_drvdata(pdev);
+
+	input_dev = input_allocate_device();
+	if (!pcap_ts || !input_dev)
+		goto fail;
+
+	INIT_WORK(&pcap_ts->work, pcap_ts_work);
+
+	pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
+
+	init_timer(&pcap_ts->timer);
+	pcap_ts->timer.data = (unsigned long) pcap_ts;
+	pcap_ts->timer.function = &pcap_ts_timer_fn;
+
+	pcap_ts->input = input_dev;
+
+	input_dev->name = "pcap-touchscreen";
+	input_dev->phys = "pcap_ts/input0";
+	input_dev->id.bustype = BUS_HOST;
+	input_dev->id.vendor = 0x0001;
+	input_dev->id.product = 0x0002;
+	input_dev->id.version = 0x0100;
+	input_dev->dev.parent = &pdev->dev;
+
+	input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+	input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+	input_set_abs_params(input_dev, ABS_X, X_AXIS_MIN, X_AXIS_MAX, 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, Y_AXIS_MIN, Y_AXIS_MAX, 0, 0);
+	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
+			     PRESSURE_MAX, 0, 0);
+
+	request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
+			pcap_ts_event_touch, 0, "Touch Screen", NULL);
+
+	err = input_register_device(pcap_ts->input);
+	if (err)
+		goto fail_touch;
+
+	schedule_work(&pcap_ts->work);
+
+	return 0;
+
+fail_touch:
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+fail:
+	input_free_device(input_dev);
+	kfree(pcap_ts);
+
+	return err;
+}
+
+static int __devexit pcap_ts_remove(struct platform_device *pdev)
+{
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+
+	del_timer_sync(&pcap_ts->timer);
+
+	input_unregister_device(pcap_ts->input);
+	cancel_work_sync(&pcap_ts->work);
+	kfree(pcap_ts);
+
+	return 0;
+}
+
+#ifdef CONFIG_PM
+static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
+{
+	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
+	return 0;
+}
+
+static int pcap_ts_resume(struct platform_device *dev)
+{
+	pcap_set_ts_bits(pcap_ts->pcap,
+				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
+	return 0;
+}
+#endif
+
+static struct platform_driver pcap_ts_driver = {
+	.probe		= pcap_ts_probe,
+	.remove		= __devexit_p(pcap_ts_remove),
+#ifdef CONFIG_PM
+	.suspend	= pcap_ts_suspend,
+	.resume		= pcap_ts_resume,
+#endif
+	.driver		= {
+		.name	= "pcap-ts",
+		.owner	= THIS_MODULE,
+	},
+};
+
+static int __init pcap_ts_init(void)
+{
+	return platform_driver_register(&pcap_ts_driver);
+}
+
+static void __exit pcap_ts_exit(void)
+{
+	platform_driver_unregister(&pcap_ts_driver);
+}
+
+module_init(pcap_ts_init);
+module_exit(pcap_ts_exit);
+
+MODULE_DESCRIPTION("Motorola PCAP2 touchscreen driver");
+MODULE_AUTHOR("Daniel Ribeiro / Harald Welte");
+MODULE_LICENSE("GPL");
