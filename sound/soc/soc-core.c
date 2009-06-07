@@ -1801,7 +1801,7 @@ int snd_soc_get_volsw(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
+	unsigned int reg = mc->reg;
 	unsigned int shift = mc->shift;
 	unsigned int rshift = mc->rshift;
 	int max = mc->max;
@@ -1840,7 +1840,7 @@ int snd_soc_put_volsw(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
+	unsigned int reg = mc->reg;
 	unsigned int shift = mc->shift;
 	unsigned int rshift = mc->rshift;
 	int max = mc->max;
@@ -1908,8 +1908,8 @@ int snd_soc_get_volsw_2r(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
-	unsigned short reg2 = mc->rreg;
+	unsigned int reg = mc->reg;
+	unsigned int reg2 = mc->rreg;
 	unsigned int shift = mc->shift;
 	int max = mc->max;
 	unsigned int mask = (1 << fls(max)) - 1;
@@ -1945,8 +1945,8 @@ int snd_soc_put_volsw_2r(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
-	unsigned short reg2 = mc->rreg;
+	unsigned int reg = mc->reg;
+	unsigned int reg2 = mc->rreg;
 	unsigned int shift = mc->shift;
 	int max = mc->max;
 	unsigned int mask = (1 << fls(max)) - 1;
@@ -2015,7 +2015,7 @@ int snd_soc_get_volsw_s8(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
+	unsigned int reg = mc->reg;
 	int min = mc->min;
 	int val = snd_soc_read(codec, reg);
 
@@ -2042,7 +2042,7 @@ int snd_soc_put_volsw_s8(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned short reg = mc->reg;
+	unsigned int reg = mc->reg;
 	int min = mc->min;
 	unsigned int val;
 
