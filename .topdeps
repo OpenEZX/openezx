@@ -1,2 +1,3 @@
 ezx/local/pcap
 asoc/allow-i2s-for-pxa27xx
+asoc/allow-32bits-registers
