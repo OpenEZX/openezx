@@ -1262,10 +1262,10 @@ EXPORT_SYMBOL_GPL(snd_soc_free_ac97_codec);
  * Returns 1 for change else 0.
  */
 int snd_soc_update_bits(struct snd_soc_codec *codec, unsigned short reg,
-				unsigned short mask, unsigned short value)
+				unsigned int mask, unsigned int value)
 {
 	int change;
-	unsigned short old, new;
+	unsigned int old, new;
 
 	mutex_lock(&io_mutex);
 	old = snd_soc_read(codec, reg);
@@ -1292,10 +1292,10 @@ EXPORT_SYMBOL_GPL(snd_soc_update_bits);
  * Returns 1 for change else 0.
  */
 int snd_soc_test_bits(struct snd_soc_codec *codec, unsigned short reg,
-				unsigned short mask, unsigned short value)
+				unsigned int mask, unsigned int value)
 {
 	int change;
-	unsigned short old, new;
+	unsigned int old, new;
 
 	mutex_lock(&io_mutex);
 	old = snd_soc_read(codec, reg);
@@ -1580,7 +1580,7 @@ int snd_soc_get_enum_double(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-	unsigned short val, bitmask;
+	unsigned int val, bitmask;
 
 	for (bitmask = 1; bitmask < e->max; bitmask <<= 1)
 		;
@@ -1609,8 +1609,8 @@ int snd_soc_put_enum_double(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-	unsigned short val;
-	unsigned short mask, bitmask;
+	unsigned int val;
+	unsigned int mask, bitmask;
 
 	for (bitmask = 1; bitmask < e->max; bitmask <<= 1)
 		;
@@ -1646,7 +1646,7 @@ int snd_soc_get_value_enum_double(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-	unsigned short reg_val, val, mux;
+	unsigned int reg_val, val, mux;
 
 	reg_val = snd_soc_read(codec, e->reg);
 	val = (reg_val >> e->shift_l) & e->mask;
@@ -1685,8 +1685,8 @@ int snd_soc_put_value_enum_double(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-	unsigned short val;
-	unsigned short mask;
+	unsigned int val;
+	unsigned int mask;
 
 	if (ucontrol->value.enumerated.item[0] > e->max - 1)
 		return -EINVAL;
@@ -1801,7 +1801,7 @@ int snd_soc_get_volsw(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
+	unsigned short reg = mc->reg;
 	unsigned int shift = mc->shift;
 	unsigned int rshift = mc->rshift;
 	int max = mc->max;
@@ -1840,13 +1840,13 @@ int snd_soc_put_volsw(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
+	unsigned short reg = mc->reg;
 	unsigned int shift = mc->shift;
 	unsigned int rshift = mc->rshift;
 	int max = mc->max;
 	unsigned int mask = (1 << fls(max)) - 1;
 	unsigned int invert = mc->invert;
-	unsigned short val, val2, val_mask;
+	unsigned int val, val2, val_mask;
 
 	val = (ucontrol->value.integer.value[0] & mask);
 	if (invert)
@@ -1908,11 +1908,11 @@ int snd_soc_get_volsw_2r(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
-	unsigned int reg2 = mc->rreg;
+	unsigned short reg = mc->reg;
+	unsigned short reg2 = mc->rreg;
 	unsigned int shift = mc->shift;
 	int max = mc->max;
-	unsigned int mask = (1<<fls(max))-1;
+	unsigned int mask = (1 << fls(max)) - 1;
 	unsigned int invert = mc->invert;
 
 	ucontrol->value.integer.value[0] =
@@ -1945,14 +1945,14 @@ int snd_soc_put_volsw_2r(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
-	unsigned int reg2 = mc->rreg;
+	unsigned short reg = mc->reg;
+	unsigned short reg2 = mc->rreg;
 	unsigned int shift = mc->shift;
 	int max = mc->max;
 	unsigned int mask = (1 << fls(max)) - 1;
 	unsigned int invert = mc->invert;
 	int err;
-	unsigned short val, val2, val_mask;
+	unsigned int val, val2, val_mask;
 
 	val_mask = mask << shift;
 	val = (ucontrol->value.integer.value[0] & mask);
@@ -2015,7 +2015,7 @@ int snd_soc_get_volsw_s8(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
+	unsigned short reg = mc->reg;
 	int min = mc->min;
 	int val = snd_soc_read(codec, reg);
 
@@ -2042,9 +2042,9 @@ int snd_soc_put_volsw_s8(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-	unsigned int reg = mc->reg;
+	unsigned short reg = mc->reg;
 	int min = mc->min;
-	unsigned short val;
+	unsigned int val;
 
 	val = (ucontrol->value.integer.value[0]+min) & 0xff;
 	val |= ((ucontrol->value.integer.value[1]+min) & 0xff) << 8;
