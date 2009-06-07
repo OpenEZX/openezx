@@ -188,14 +188,16 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	/* setup TDM slots */
-	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 1, 1);
-
 	/* set cpu DAI configuration */
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_B |
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_LEFT_J |
 			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
+
+	/* setup TDM slots */
+//	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 3, 2);
+//	if (ret < 0)
+//		return ret;
 
 	ret = snd_soc_dai_set_tristate(cpu_dai, 0);
 	if (ret < 0)
@@ -256,8 +258,7 @@ static const struct snd_soc_dapm_widget ezx_dapm_widgets[] = {
 
 /* machine audio map (connections to the codec pins) */
 static const struct snd_soc_dapm_route audio_map[] = {
-	{ "Headset", NULL, "AR" },
-	{ "Headset", NULL, "AL" },
+	{ "Headset", NULL, "ARL" },
 	{ "Earpiece", NULL, "A1" },
 	{ "Loudspeaker", NULL, "A2" },
 
