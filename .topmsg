@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 05/10] PCAP2 SPI driver.
+Subject: LED: PCAP2 based LED driver
+To: rpurdie@rpsys.net
+Cc: eric.y.miao@gmail.com, linux-arm-kernel@lists.arm.linux.org.uk, linux-kernel@vger.kernel.org
 
-FIXME
+LED driver based on the PCAP2 multi function device.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
