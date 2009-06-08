@@ -1,6 +1,6 @@
-From: guiming zhuo <gmzhuo@gbsoft.localdomain>
-Subject: [PATCH] ezx/mach/rfkill-bluetooth
+From: gmzhuo <gmzhuo@gmail.com>
+Subject: [PATCH] ezx/current
 
-rfkill-bluetooth arch data
+placeholder to checkout all the ezx patches
 
-Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Signed-off-by: gmzhuo <gmzhuo@gmail.com>

@@ -578,7 +578,8 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-		sscr0 |= SSCR0_PSP;
+	case SND_SOC_DAIFMT_LEFT_J:
+		sscr0 |= SSCR0_PSP | SSCR0_MOD;
 		sscr1 |= SSCR1_RWOT | SSCR1_TRAIL;
 
 		/* See hw_params() */
@@ -589,7 +590,10 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		case SND_SOC_DAIFMT_NB_IF:
 			break;
 		case SND_SOC_DAIFMT_IB_IF:
-			sspsp |= SSPSP_SCMODE(3);
+			sspsp |= SSPSP_SCMODE(2);
+			break;
+		case SND_SOC_DAIFMT_IB_NF:
+			sspsp |= SSPSP_SCMODE(2) | SSPSP_SFRMP;
 			break;
 		default:
 			return -EINVAL;
@@ -607,6 +611,10 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 			sspsp |= SSPSP_SFRMP;
 			break;
 		case SND_SOC_DAIFMT_IB_IF:
+			sspsp |= SSPSP_SCMODE(2);
+			break;
+		case SND_SOC_DAIFMT_IB_NF:
+			sspsp |= SSPSP_SCMODE(2) | SSPSP_SFRMP;
 			break;
 		default:
 			return -EINVAL;
@@ -647,6 +655,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	int dma = 0, chn = params_channels(params);
 	u32 sscr0;
 	u32 sspsp;
+	int frame_width;
 	int width = snd_pcm_format_physical_width(params_format(params));
 	int ttsa = ssp_read_reg(ssp, SSTSA) & 0xf;
 
@@ -693,40 +702,38 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-	       sspsp = ssp_read_reg(ssp, SSPSP);
+		sspsp = ssp_read_reg(ssp, SSPSP);
+		frame_width = PXA_SSP_FRM_WIDTH(priv->dai_fmt);
 
-		if ((ssp_get_scr(ssp) == 4) && (width == 16)) {
-			/* This is a special case where the bitclk is 64fs
-			* and we're not dealing with 2*32 bits of audio
-			* samples.
-			*
-			* The SSP values used for that are all found out by
-			* trying and failing a lot; some of the registers
-			* needed for that mode are only available on PXA3xx.
-			*/
-
-#ifdef CONFIG_PXA3xx
-			if (!cpu_is_pxa3xx())
-				return -EINVAL;
-
-			sspsp |= SSPSP_SFRMWDTH(width * 2);
-			sspsp |= SSPSP_SFRMDLY(width * 4);
-			sspsp |= SSPSP_EDMYSTOP(3);
-			sspsp |= SSPSP_DMYSTOP(3);
-			sspsp |= SSPSP_DMYSTRT(1);
-#else
+		if (frame_width < width * 2)
 			return -EINVAL;
-#endif
-		} else {
-			/* The frame width is the width the LRCLK is
-			 * asserted for; the delay is expressed in
-			 * half cycle units.  We need the extra cycle
-			 * because the data starts clocking out one BCLK
-			 * after LRCLK changes polarity.
+
+		if (frame_width == width * 2)
+			/* frame width is exactly double of data sample width,
+			 * use FSRT instead
 			 */
-			sspsp |= SSPSP_SFRMWDTH(width + 1);
-			sspsp |= SSPSP_SFRMDLY((width + 1) * 2);
+			sspsp |= SSPSP_FSRT | SSPSP_SFRMWDTH(width);
+		else {
 			sspsp |= SSPSP_DMYSTRT(1);
+			sspsp |= SSPSP_DMYSTOP((frame_width / 2 - width - 1));
+			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+		}
+
+		ssp_write_reg(ssp, SSPSP, sspsp);
+		break;
+
+	case SND_SOC_DAIFMT_LEFT_J:
+		sspsp = ssp_read_reg(ssp, SSPSP);
+		frame_width = PXA_SSP_FRM_WIDTH(priv->dai_fmt);
+
+		if (frame_width < width * 2)
+			return -EINVAL;
+
+		if (frame_width == width * 2)
+			sspsp |= SSPSP_SFRMWDTH(width);
+		else {
+			sspsp |= SSPSP_DMYSTOP((frame_width / 2 - width));
+			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
 		}
 
 		ssp_write_reg(ssp, SSPSP, sspsp);
