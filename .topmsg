@@ -1,0 +1,6 @@
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] tmp/pxa2xx-spi_fix_PXA2XX_CS_ASSERT
+
+Correct typo on pxa2xx-spi.c cs_deassert.
+
+Signed-off-by: Daniel Ribeiro <drwyrm@gm...>
