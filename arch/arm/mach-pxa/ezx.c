@@ -25,6 +25,8 @@
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
+#include <linux/leds.h>
+#include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 #include <linux/regulator/machine.h>
 
@@ -58,6 +60,8 @@
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
 #define GPIO24_PCAP_CS			24
+#define GPIO46_E680_LED_RED		46
+#define GPIO47_E680_LED_GREEN		47
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -859,6 +863,23 @@ static struct platform_device gen2_flash_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
+/* pcap-leds */
+static struct pcap_leds_platform_data a780_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		}, {
+			.type = PCAP_VIB,
+			.name = "a780:vibrator",
+		},
+	},
+	.num_leds = 3,
+};
+
 static struct pcap_subdev a780_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -866,6 +887,10 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a780_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1031,6 +1056,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+/* pcap-leds */
+static struct pcap_leds_platform_data e680_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_LED0,
+			.name = "e680:red",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = GPIO46_E680_LED_RED | PCAP_LED_GPIO_EN |
+							PCAP_LED_GPIO_INVERT,
+		}, {
+			.type = PCAP_LED0,
+			.name = "e680:green",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = GPIO47_E680_LED_GREEN | PCAP_LED_GPIO_EN,
+		}, {
+			.type = PCAP_LED1,
+			.name = "e680:blue",
+			.curr = PCAP_LED_3MA,
+			.timing = 0xc,
+			.gpio = 0,
+		},
+	},
+	.num_leds = 3,
+};
+
 static struct pcap_subdev e680_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1038,6 +1090,10 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e680_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1139,6 +1195,17 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+/* pcap-leds */
+static struct pcap_leds_platform_data a1200_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a1200:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
 static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1146,6 +1213,10 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a1200_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1247,10 +1318,25 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+/* pcap-leds */
+static struct pcap_leds_platform_data a910_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "a910:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
 static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a910_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1472,6 +1558,17 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+/* pcap-leds */
+static struct pcap_leds_platform_data e6_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e6:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
 static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1479,6 +1576,10 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e6_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1580,10 +1681,25 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
+/* pcap-leds */
+static struct pcap_leds_platform_data e2_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_VIB,
+			.name = "e2:vibrator",
+		},
+	},
+	.num_leds = 1,
+};
+
 static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e2_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
