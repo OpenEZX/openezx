@@ -1,3 +1,2 @@
-ezx/mach/pcap
-ezx/pcap_regulator
-mmc/pxamci-regulator-support
+ezx/mach/pcap-regulator
+pxa/set_mci_parent
