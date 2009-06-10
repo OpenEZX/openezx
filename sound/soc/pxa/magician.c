@@ -188,7 +188,7 @@ static int magician_playback_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 1, 1);
+	ret = snd_soc_dai_set_tdm_slot(cpu_dai, 1, 1, 1, 16);
 	if (ret < 0)
 		return ret;
 
