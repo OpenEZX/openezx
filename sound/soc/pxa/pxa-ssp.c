@@ -487,17 +487,14 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-		sscr0 |= SSCR0_PSP;
-		sscr1 |= SSCR1_RWOT | SSCR1_TRAIL;
-		/* See hw_params() */
-		break;
-
 	case SND_SOC_DAIFMT_DSP_A:
 		sspsp |= SSPSP_FSRT;
 	case SND_SOC_DAIFMT_DSP_B:
+	case SND_SOC_DAIFMT_LEFT_J:
+	case SND_SOC_DAIFMT_I2S:
 		sscr0 |= SSCR0_PSP;
 		sscr1 |= SSCR1_TRAIL | SSCR1_RWOT;
+		/* See hw_params() for I2S and LEFT_J */
 		break;
 
 	default:
@@ -565,6 +562,50 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		sscr0 |= SSCR0_FPCKE;
 #endif
 
+	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+	case SND_SOC_DAIFMT_I2S:
+		/*
+		 * We can't envelope I2S on a bigger frame on pxa2xx, as
+		 * DMYSTOP is limited to 3. We have to live with the
+		 * start/end of transfer bit loss caused by using just FSRT
+		 */
+		if (cpu_is_pxa2xx())
+			sspsp |= SSPSP_FSRT;
+
+		/*
+		 * For pxa3xx we can use Paul's code, tough I think that
+		 * just using FSRT and losing 2 bits per transfer is easier and
+		 * cleaner. We already do this for DSP_A, I don't know why I2S
+		 * should be different.
+		 */
+		if (cpu_is_pxa3xx()) {
+			/* This is certainly broken on pxa3xx */
+			frame_width *= 2;
+			sspsp |= SSPSP_DMYSTRT(1);
+			sspsp |= SSPSP_DMYSTOP(frame_width / 2 - width - 1);
+		}
+		/* fall through */
+	case SND_SOC_DAIFMT_LEFT_J:
+		/*
+		 * We can't support network mode with I2S or LEFT_J,
+		 * SSPFRM is asserted only for the first slot.
+		 */
+		if (frame_width == 0 || chn > 2)
+			return -EINVAL;
+
+		/*
+		 * I2S and LEFT_J are stereo only, we have to send data for
+		 * both channels.
+		 */
+		if (chn == 1)
+			frame_width *= 2;
+
+		sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+		break;
+	default:
+		break;
+	}
+
 	if (frame_width > 0) {
 		/* Not using network mode */
 		if (frame_width > 16)
@@ -601,50 +642,6 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	ssp_write_reg(ssp, SSCR0, sscr0);
-
-	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-	       sspsp = ssp_read_reg(ssp, SSPSP);
-
-		if ((ssp_get_scr(ssp) == 4) && (width == 16)) {
-			/* This is a special case where the bitclk is 64fs
-			* and we're not dealing with 2*32 bits of audio
-			* samples.
-			*
-			* The SSP values used for that are all found out by
-			* trying and failing a lot; some of the registers
-			* needed for that mode are only available on PXA3xx.
-			*/
-
-#ifdef CONFIG_PXA3xx
-			if (!cpu_is_pxa3xx())
-				return -EINVAL;
-
-			sspsp |= SSPSP_SFRMWDTH(width * 2);
-			sspsp |= SSPSP_SFRMDLY(width * 4);
-			sspsp |= SSPSP_EDMYSTOP(3);
-			sspsp |= SSPSP_DMYSTOP(3);
-			sspsp |= SSPSP_DMYSTRT(1);
-#else
-			return -EINVAL;
-#endif
-		} else {
-			/* The frame width is the width the LRCLK is
-			 * asserted for; the delay is expressed in
-			 * half cycle units.  We need the extra cycle
-			 * because the data starts clocking out one BCLK
-			 * after LRCLK changes polarity.
-			 */
-			sspsp |= SSPSP_SFRMWDTH(width + 1);
-			sspsp |= SSPSP_SFRMDLY((width + 1) * 2);
-			sspsp |= SSPSP_DMYSTRT(1);
-		}
-
-		ssp_write_reg(ssp, SSPSP, sspsp);
-		break;
-	default:
-		break;
-	}
 
 	dump_registers(ssp);
 
