@@ -488,7 +488,6 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_DSP_A:
-	case SND_SOC_DAIFMT_I2S:
 		sspsp |= SSPSP_FSRT;
 	case SND_SOC_DAIFMT_DSP_B:
 	case SND_SOC_DAIFMT_LEFT_J:
@@ -564,7 +563,6 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-	case SND_SOC_DAIFMT_LEFT_J:
 		/*
 		 * We can't support network mode with I2S or LEFT_J,
 		 * SSPFRM is asserted only for the first slot.
@@ -579,6 +577,30 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		if (chn == 1)
 			frame_width *= 2;
 
+		/* For pxa2xx we have to stick with FSRT */
+		if (cpu_is_pxa25x() || cpu_is_pxa27x())
+			sspsp |= SSPSP_FSRT;
+
+		/* For pxa3xx we use Paul's code */
+		if (cpu_is_pxa3xx()) {
+			/* We double the frame_width to envelope the sample */
+			frame_width *= 2;
+
+			sspsp |= SSPSP_DMYSTRT(1);
+			sspsp |= SSPSP_DMYSTOP(frame_width / 2 - width - 1);
+			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+		}
+
+		break;
+
+	case SND_SOC_DAIFMT_LEFT_J:
+		if (frame_width == 0 || chn > 2)
+			return -EINVAL;
+
+		if (chn == 1)
+			frame_width *= 2;
+
+		/* No need to envelope the frame for LEFT_J */
 		sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
 		break;
 	default:
