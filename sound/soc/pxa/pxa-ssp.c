@@ -488,10 +488,10 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_DSP_A:
+	case SND_SOC_DAIFMT_I2S:
 		sspsp |= SSPSP_FSRT;
 	case SND_SOC_DAIFMT_DSP_B:
 	case SND_SOC_DAIFMT_LEFT_J:
-	case SND_SOC_DAIFMT_I2S:
 		sscr0 |= SSCR0_PSP;
 		sscr1 |= SSCR1_TRAIL | SSCR1_RWOT;
 		/* See hw_params() for I2S and LEFT_J */
@@ -564,27 +564,6 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
-		/*
-		 * We can't envelope I2S on a bigger frame on pxa2xx, as
-		 * DMYSTOP is limited to 3. We have to live with the
-		 * start/end of transfer bit loss caused by using just FSRT
-		 */
-		if (cpu_is_pxa2xx())
-			sspsp |= SSPSP_FSRT;
-
-		/*
-		 * For pxa3xx we can use Paul's code, tough I think that
-		 * just using FSRT and losing 2 bits per transfer is easier and
-		 * cleaner. We already do this for DSP_A, I don't know why I2S
-		 * should be different.
-		 */
-		if (cpu_is_pxa3xx()) {
-			/* This is certainly broken on pxa3xx */
-			frame_width *= 2;
-			sspsp |= SSPSP_DMYSTRT(1);
-			sspsp |= SSPSP_DMYSTOP(frame_width / 2 - width - 1);
-		}
-		/* fall through */
 	case SND_SOC_DAIFMT_LEFT_J:
 		/*
 		 * We can't support network mode with I2S or LEFT_J,
