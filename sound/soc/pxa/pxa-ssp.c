@@ -491,6 +491,7 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 		sspsp |= SSPSP_FSRT;
 	case SND_SOC_DAIFMT_DSP_B:
 	case SND_SOC_DAIFMT_LEFT_J:
+	case SND_SOC_DAIFMT_I2S:
 		sscr0 |= SSCR0_PSP;
 		sscr1 |= SSCR1_TRAIL | SSCR1_RWOT;
 		/* See hw_params() for I2S and LEFT_J */
