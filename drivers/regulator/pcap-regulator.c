@@ -63,8 +63,8 @@ static const u16 VAUX1_table[] = {
 #define VAUX2_table VAUX1_table
 
 static const u16 VAUX3_table[] = {
-	1200, 1200, 1200, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800,
-	3000, 3200, 3400, 3600,
+	1200, 1200, 1200, 1200, 1400, 1600, 1800, 2000,
+	2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600,
 };
 
 static const u16 VAUX4_table[] = {
@@ -84,8 +84,8 @@ static const u16 VVIB_table[] = {
 };
 
 static const u16 SW1_table[] = {
-	900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450,
-	1500, 1600, 1875, 2250,
+	900, 950, 1000, 1050, 1100, 1150, 1200, 1250,
+	1300, 1350, 1400, 1450, 1500, 1600, 1875, 2250,
 };
 
 #define SW2_table SW1_table
@@ -94,16 +94,13 @@ static const u16 SW3_table[] = {
 	4000, 4500, 5000, 5500,
 };
 
-#define SW1S_table SW1_table
-#define SW2S_table SW1_table
-
 struct pcap_regulator {
-	u8 reg;
-	u8 en;
-	u8 index;
-	u8 stby;
-	u8 lowpwr;
-	u8 n_voltages;
+	const u8 reg;
+	const u8 en;
+	const u8 index;
+	const u8 stby;
+	const u8 lowpwr;
+	const u8 n_voltages;
 	const u16 *voltage_table;
 };
 
@@ -158,6 +155,7 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 {
 	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 	void *pcap = rdev_get_drvdata(rdev);
+	int uV;
 	u32 tmp;
 	u8 i;
 
@@ -165,7 +163,16 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 		return -EINVAL;
 
 	for (i = 0; i < vreg->n_voltages; i++) {
-		int uV = vreg->voltage_table[i] * 1000;
+		/* For V1 the first is not the best match */
+		if (rdev_get_id(rdev) == V1) {
+			if (i + 1 == vreg->n_voltages)
+				uV = vreg->voltage_table[0] * 1000;
+			else
+				uV = vreg->voltage_table[i + 1] * 1000;
+		} else {
+			uV = vreg->voltage_table[i] * 1000;
+		}
+
 		if (min_uV <= uV && uV <= max_uV) {
 			ezx_pcap_read(pcap, vreg->reg, &tmp);
 			tmp &= ~((vreg->n_voltages - 1) << vreg->index);
@@ -286,8 +293,8 @@ static int __devinit pcap_regulator_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, rdev);
 
 	/*
-	 * The mmc subsystem doesn't like regulators which default
-	 * to ON at boot time, so we just disable it here.
+	 * The regulator framework doesn't like regulators which default
+	 * to ON at boot time, so we just disable it here (when it is safe).
 	 */
 	if (pdev->id == VAUX2 || pdev->id == VAUX3)
 		pcap_regulator_disable(rdev);
