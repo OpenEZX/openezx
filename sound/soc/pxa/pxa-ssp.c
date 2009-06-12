@@ -562,6 +562,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		sscr0 |= SSCR0_FPCKE;
 #endif
 
+	sspsp = ssp_read_reg(ssp, SSPSP);
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
 		/*
@@ -607,6 +608,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	default:
 		break;
 	}
+	ssp_write_reg(ssp, SSPSP, sspsp);
 
 	if (frame_width > 0) {
 		/* Not using network mode */
