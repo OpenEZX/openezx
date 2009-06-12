@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.30-rc8
-# Mon Jun  8 08:45:35 2009
+# Linux kernel version: 2.6.30
+# Fri Jun 12 10:13:09 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -1712,7 +1712,7 @@ CONFIG_LOCKDEP=y
 # CONFIG_LOCK_STAT is not set
 # CONFIG_DEBUG_LOCKDEP is not set
 CONFIG_TRACE_IRQFLAGS=y
-CONFIG_DEBUG_SPINLOCK_SLEEP=y
+# CONFIG_DEBUG_SPINLOCK_SLEEP is not set
 # CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set
 CONFIG_STACKTRACE=y
 # CONFIG_DEBUG_KOBJECT is not set
