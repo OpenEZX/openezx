@@ -1,7 +1,7 @@
 /*
  * linux/drivers/leds/leds-pcap.c
  *
- * Copyright (C) 2008 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -64,25 +64,6 @@ static void pcap_led_work(struct work_struct *work)
 		tmp |= led->brightness << PCAP_BL1_SHIFT;
 		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 		return;
-	case PCAP_VIB:
-		ezx_pcap_read(led->pcap, PCAP_REG_AUXVREG, &tmp);
-
-		/* turn off */
-		tmp &= ~PCAP_VIB_EN;
-
-		/* 0 means off,
-		 * so map the 0..3 vibration levels to brightness 1..4
-		 */
-		if (led->brightness > 0) {
-			if (led->brightness > PCAP_VIB_MASK + 1)
-				led->brightness = PCAP_VIB_MASK + 1;
-			tmp &= ~(PCAP_VIB_MASK << PCAP_VIB_SHIFT);
-			tmp |= (led->brightness - 1) << PCAP_VIB_SHIFT;
-			/* turn on */
-			tmp |= PCAP_VIB_EN;
-		}
-		ezx_pcap_write(led->pcap, PCAP_REG_AUXVREG, tmp);
-		return;
 	default:
 		return;
 	}
@@ -113,7 +94,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		struct pcap_led *led = &pdata->leds[i];
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
-                led->pcap = platform_get_drvdata(pdev);
+		led->pcap = platform_get_drvdata(pdev);
 		if (led->gpio & PCAP_LED_GPIO_EN) {
 			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
 			err = gpio_request(gpio, "PCAP LED");
