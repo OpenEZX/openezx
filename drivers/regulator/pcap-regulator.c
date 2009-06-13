@@ -164,15 +164,12 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 
 	for (i = 0; i < vreg->n_voltages; i++) {
 		/* For V1 the first is not the best match */
-		if (rdev_get_id(rdev) == V1) {
-			if (i + 1 == vreg->n_voltages)
-				uV = vreg->voltage_table[0] * 1000;
-			else
-				uV = vreg->voltage_table[i + 1] * 1000;
-		} else {
-			uV = vreg->voltage_table[i] * 1000;
-		}
+		if (i == 0 && rdev_get_id(rdev) == V1)
+			i = 1;
+		else if (i + 1 == vreg->n_voltages && rdev_get_id(rdev) == V1)
+			i = 0;
 
+		uV = vreg->voltage_table[i] * 1000;
 		if (min_uV <= uV && uV <= max_uV) {
 			ezx_pcap_read(pcap, vreg->reg, &tmp);
 			tmp &= ~((vreg->n_voltages - 1) << vreg->index);
@@ -180,6 +177,8 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 			ezx_pcap_write(pcap, vreg->reg, tmp);
 			return 0;
 		}
+		if (i == 0 && rdev_get_id(rdev) == V1)
+			i = vreg->n_voltages - 1;
 	}
 
 	return -EINVAL;
