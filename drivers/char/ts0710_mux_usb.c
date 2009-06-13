@@ -1,11 +1,10 @@
 /*
- * linux/drivers/usb/ipcusb.c
- *
- * Implementation of a ipc driver based Intel's Bulverde USB Host
- * Controller.
+ * Motorola Inter Processor Communication driver
  *
  * Copyright (C) 2003-2005 Motorola
  * Copyright (C) 2006 Harald Welte <laforge@openezx.org>
+ * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Ilya Petrov <ilya.muromec@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,14 +19,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *  2003-Nov-03 - (Motorola) created
- *  2004-Feb-20 - (Motorola) Add Power Manager codes
- *  2004-Apr-14 - (Motorola) Update Suspend/Resume codes
- *  2004-May-10 - (Motorola) Add unlink_urbs codes and do some updates of send
- *			     out urb sequence
- *  2006-Jun-22 - (Harald Welte) port to Linux 2.6.x
- *
  */
 
 #include <linux/kernel.h>
@@ -53,9 +44,9 @@
 #include "ts0710_mux_usb.h"
 
 /*global values defined*/
-static struct timer_list 		ipcusb_timer;
-static struct tty_struct		ipcusb_tty;		/* the coresponding tty struct, we just use flip buffer here. */
-static struct tty_driver		*ipcusb_tty_driver;	/* the coresponding tty driver, we just use write and chars in buff here*/
+static struct timer_list		ipcusb_timer;
+static struct tty_struct		ipcusb_tty;
+static struct tty_driver		*ipcusb_tty_driver;
 struct tty_driver *usb_for_mux_driver = NULL;
 struct tty_struct *usb_for_mux_tty = NULL;
 void (*usb_mux_sender)(void) = NULL;
@@ -73,18 +64,18 @@ typedef struct {
 } buf_list_t;
 
 struct ipc_usb_data {
-	u_int8_t 		write_finished_flag;
+	u_int8_t		write_finished_flag;
 	u_int8_t		write_flag,
 				ipc_flag;
-	struct usb_device 	*ipc_dev;
-	struct urb 		readurb_mux,
+	struct usb_device	*ipc_dev;
+	struct urb		readurb_mux,
 				writeurb_mux,
 				writeurb_dsplog;
-	char 			*obuf, *ibuf;
+	char			*obuf, *ibuf;
 	struct circ_buf		xmit;		/* write cric bufffer */
-  	struct list_head 	in_buf_list;
+	struct list_head	in_buf_list;
 	spinlock_t		in_buf_lock;
-	unsigned int 		ifnum;
+	unsigned int		ifnum;
 
 	struct tasklet_struct	bh,
 				bh_bp;
@@ -142,7 +133,7 @@ static void ipcusb_timeout(unsigned long data)
 		usb_submit_urb(urb, GFP_ATOMIC);
 	} else {
 		ipcusb_timer.data = (unsigned long)urb;
-		mod_timer(&ipcusb_timer, jiffies+(10*HZ/1000));
+		mod_timer(&ipcusb_timer, jiffies + (10 * HZ / 1000));
 	}
 	spin_unlock(&bvd_ipc->in_buf_lock);
 }
@@ -159,7 +150,7 @@ static void usb_ipc_read_bulk(struct urb *urb)
 		return;
 
 	tty->ldisc.ops->receive_buf(
-		tty, (unsigned char*)urb->transfer_buffer,
+		tty, (unsigned char *)urb->transfer_buffer,
 		NULL, urb->actual_length);
 
 	urb->actual_length = 0;
@@ -197,11 +188,11 @@ static void ipcusb_xmit_data(unsigned long unused)
 		if (c <= 0)
 			break;
 
-		memcpy(bvd_ipc->obuf+buf_num,
-		       bvd_ipc->xmit.buf + bvd_ipc->xmit.tail, c);
+		memcpy(bvd_ipc->obuf + buf_num,
+			bvd_ipc->xmit.buf + bvd_ipc->xmit.tail, c);
 		buf_flag = 1;
 		bvd_ipc->xmit.tail = ((bvd_ipc->xmit.tail + c)
-						& (IPC_USB_XMIT_SIZE-1));
+						& (IPC_USB_XMIT_SIZE - 1));
 		count -= c;
 		buf_num += c;
 	}
@@ -249,7 +240,7 @@ static int usb_ipc_write(struct tty_struct *tty,
 
 		memcpy(bvd_ipc->xmit.buf + bvd_ipc->xmit.head, buf, c);
 		bvd_ipc->xmit.head = ((bvd_ipc->xmit.head + c)
-						& (IPC_USB_XMIT_SIZE-1));
+						& (IPC_USB_XMIT_SIZE - 1));
 		buf += c;
 		count -= c;
 		ret += c;
@@ -269,34 +260,35 @@ static int usb_ipc_write_room(struct tty_struct *tty) {
 
 static int usb_ipc_chars_in_buffer(struct tty_struct *tty)
 {
-	return 0;//CIRC_CNT(bvd_ipc->xmit.head, bvd_ipc->xmit.tail, IPC_USB_XMIT_SIZE);
+	return 0;
+	/* CIRC_CNT(bvd_ipc->xmit.head, bvd_ipc->xmit.tail, IPC_USB_XMIT_SIZE); */
 }
 
 static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 {
-    int index;
+	int index;
 
-    /* initialize the pointer in case something fails */
-    tty->driver_data = NULL;
+	/* initialize the pointer in case something fails */
+	tty->driver_data = NULL;
 
-    /* get the serial object associated with this tty pointer */
-    index = tty->index;
-    
-    if (ipc  == NULL) {
-        /* first time accessing this device, let's create it */
-        ipc = kmalloc(sizeof(*ipc), GFP_KERNEL);
-        if (!ipc)
-            return -ENOMEM;
+	/* get the serial object associated with this tty pointer */
+	index = tty->index;
 
-        ipc->open_count = 0;
-    }
+	if (ipc == NULL) {
+		/* first time accessing this device, let's create it */
+		ipc = kmalloc(sizeof(*ipc), GFP_KERNEL);
+		if (!ipc)
+			return -ENOMEM;
 
-    /* save our structure within the tty structure */
-    tty->driver_data = ipc;
-    ipc->tty = tty;
-    ipc->open_count++;
+		ipc->open_count = 0;
+	}
 
-    return 0;
+	/* save our structure within the tty structure */
+	tty->driver_data = ipc;
+	ipc->tty = tty;
+	ipc->open_count++;
+
+	return 0;
 }
 
 static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
@@ -319,7 +311,7 @@ static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
 void usb_send_readurb(void)
 {
 	if (bvd_ipc->ipc_flag != IPC_USB_PROBE_READY)
-	    return;
+		return;
 
 	tasklet_schedule(&bvd_ipc->bh_bp);
 }
@@ -350,30 +342,26 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	while (ep_cnt < interface->bNumEndpoints) {
 		endpoint = &intf->cur_altsetting->endpoint[ep_cnt].desc;
 
-                switch(endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) {
-                  case USB_DIR_IN:
-		    ep_in =  endpoint->bEndpointAddress;
-		    size_in = endpoint->wMaxPacketSize;
-                    break;
-                  case USB_DIR_OUT:
-		    ep_out = endpoint->bEndpointAddress;
-		    size_out = endpoint->wMaxPacketSize;
-                    break;
-                  default:
-                    printk("unknown endpoint in ipc driver\n");
-
-                }
-
-
-                ep_cnt++;
-
+		switch (endpoint->bEndpointAddress & USB_ENDPOINT_DIR_MASK) {
+		case USB_DIR_IN:
+			ep_in = endpoint->bEndpointAddress;
+			size_in = endpoint->wMaxPacketSize;
+			break;
+		case USB_DIR_OUT:
+			ep_out = endpoint->bEndpointAddress;
+			size_out = endpoint->wMaxPacketSize;
+			break;
+		default:
+			printk("unknown endpoint in ipc driver\n");
+		}
+		ep_cnt++;
 	}
 
-	if (! (ep_in && ep_out) ) {
+	if (!(ep_in && ep_out)) {
 		printk("usb_ipc_probe: Two bulk endpoints required.");
 		return -1;
 	}
-		
+
 	/* Ok, now initialize all the relevant values */
 	if (!(bvd_ipc->obuf = (char *)kmalloc(size_out, GFP_KERNEL))) {
 		err("usb_ipc_probe: Not enough memory for the output buffer.");
@@ -395,7 +383,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 
 	bvd_ipc->bh.func = ipcusb_xmit_data;
 	bvd_ipc->bh_bp.func = usbipc_bh_bp_func;
-	
+
 	/*Build a write urb*/
 	usb_init_urb(&bvd_ipc->writeurb_mux);
 	usb_fill_bulk_urb(&bvd_ipc->writeurb_mux, usbdev,
@@ -423,14 +411,13 @@ static int usb_ipc_probe(struct usb_interface *intf,
 		tasklet_schedule(&bvd_ipc->bh);
 	}
 
-	
 	return 0;
 }
 
 static void usb_ipc_disconnect(struct usb_interface *intf)
 {
 
-	usb_unlink_urb(&bvd_ipc->writeurb_mux);	
+	usb_unlink_urb(&bvd_ipc->writeurb_mux);
 	usb_unlink_urb(&bvd_ipc->readurb_mux);
 
 	bvd_ipc->ipc_flag = IPC_USB_PROBE_NOT_READY;
@@ -458,12 +445,12 @@ static struct usb_driver usb_ipc_driver = {
 	.id_table	= usb_ipc_id_table,
 };
 
-struct tty_operations ipc_tty_ops={
-    .open		= usb_ipc_open,
-    .close		= usb_ipc_close,
-    .write 		= usb_ipc_write,
-    .write_room		= usb_ipc_write_room,
-    .chars_in_buffer 	= usb_ipc_chars_in_buffer,
+struct tty_operations ipc_tty_ops = {
+	.open			= usb_ipc_open,
+	.close			= usb_ipc_close,
+	.write			= usb_ipc_write,
+	.write_room		= usb_ipc_write_room,
+	.chars_in_buffer	= usb_ipc_chars_in_buffer,
 };
 
 static int __init usb_ipc_init(void)
@@ -498,15 +485,14 @@ static int __init usb_ipc_init(void)
 	ipcusb_tty_driver->init_termios = tty_std_termios;
 	ipcusb_tty_driver->init_termios.c_cflag = B38400 | CS8 | CREAD;
 	ipcusb_tty_driver->flags = TTY_DRIVER_RESET_TERMIOS | TTY_DRIVER_REAL_RAW;
-	
+
 	tty_set_operations(ipcusb_tty_driver, &ipc_tty_ops);
 
-        result = tty_register_driver(ipcusb_tty_driver);
+	result = tty_register_driver(ipcusb_tty_driver);
 	if (result) {
 		printk("Cant register IPC tty driver %d\n",result);
-                goto fail;
-        }
-
+		goto fail;
+	}
 
 	usb_for_mux_driver = ipcusb_tty_driver;
 	usb_for_mux_tty = &ipcusb_tty;
@@ -514,8 +500,8 @@ static int __init usb_ipc_init(void)
 	/* register driver at the USB subsystem */
 	result = usb_register(&usb_ipc_driver);
 	if (result < 0) {
-                printk("Cant register IPC usb driver: %d\n",result);
-                goto fail;
+		printk("Cant register IPC usb driver: %d\n", result);
+		goto fail;
 	}
 
 	ipc = NULL;
@@ -530,11 +516,11 @@ static int __init usb_ipc_init(void)
 	return 0;
 
 fail:
-        printk("Neptune IPC initialization failed with ret %d\n",result);
-        kfree(bvd_ipc);
-        kfree(bvd_ipc->xmit.buf);
+	printk("Neptune IPC initialization failed with ret %d\n", result);
+	kfree(bvd_ipc);
+	kfree(bvd_ipc->xmit.buf);
 
-        return result;
+	return result;
 }
 
 static void __exit usb_ipc_exit(void)
