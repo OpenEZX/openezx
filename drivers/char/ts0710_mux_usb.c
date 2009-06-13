@@ -45,8 +45,8 @@
 
 /*global values defined*/
 static struct timer_list		ipcusb_timer;
-static struct tty_struct		ipcusb_tty;		/* the coresponding tty struct, we just use flip buffer here. */
-static struct tty_driver		*ipcusb_tty_driver;	/* the coresponding tty driver, we just use write and chars in buff here*/
+static struct tty_struct		ipcusb_tty;
+static struct tty_driver		*ipcusb_tty_driver;
 struct tty_driver *usb_for_mux_driver = NULL;
 struct tty_struct *usb_for_mux_tty = NULL;
 void (*usb_mux_sender)(void) = NULL;
@@ -260,7 +260,8 @@ static int usb_ipc_write_room(struct tty_struct *tty) {
 
 static int usb_ipc_chars_in_buffer(struct tty_struct *tty)
 {
-	return 0;//CIRC_CNT(bvd_ipc->xmit.head, bvd_ipc->xmit.tail, IPC_USB_XMIT_SIZE);
+	return 0;
+	/* CIRC_CNT(bvd_ipc->xmit.head, bvd_ipc->xmit.tail, IPC_USB_XMIT_SIZE); */
 }
 
 static int usb_ipc_open(struct tty_struct *tty, struct file *file)
