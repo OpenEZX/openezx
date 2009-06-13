@@ -30,8 +30,6 @@ struct pcap_ts {
 	u8 read_state;
 };
 
-struct pcap_ts *pcap_ts;
-
 #define SAMPLE_DELAY	20 /* msecs */
 
 #define X_AXIS_MIN	0
@@ -43,6 +41,8 @@ struct pcap_ts *pcap_ts;
 
 static void pcap_ts_read_xy(void *data, u16 res[2])
 {
+	struct pcap_ts *pcap_ts = data;
+
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
 		/* pressure reading is unreliable */
@@ -82,8 +82,10 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 	}
 }
 
-static void pcap_ts_work(struct work_struct *unused)
+static void pcap_ts_work(struct work_struct *work)
 {
+	struct delayed_work *dw = container_of(work, struct delayed_work, work);
+	struct pcap_ts *pcap_ts = container_of(dw, struct pcap_ts, work);
 	u8 ch[2];
 
 	pcap_set_ts_bits(pcap_ts->pcap,
@@ -96,11 +98,13 @@ static void pcap_ts_work(struct work_struct *unused)
 	ch[0] = PCAP_ADC_CH_TS_X1;
 	ch[1] = PCAP_ADC_CH_TS_Y1;
 	pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1, 0, ch,
-							pcap_ts_read_xy, NULL);
+						pcap_ts_read_xy, pcap_ts);
 }
 
-static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
+static irqreturn_t pcap_ts_event_touch(int pirq, void *data)
 {
+	struct pcap_ts *pcap_ts = data;
+
 	if (pcap_ts->read_state == PCAP_ADC_TS_M_STANDBY) {
 		pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
 		schedule_delayed_work(&pcap_ts->work, 0);
@@ -111,6 +115,7 @@ static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
 static int __devinit pcap_ts_probe(struct platform_device *pdev)
 {
 	struct input_dev *input_dev;
+	struct pcap_ts *pcap_ts;
 	int err = -ENOMEM;
 
 	pcap_ts = kzalloc(sizeof(*pcap_ts), GFP_KERNEL);
@@ -118,6 +123,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 		return err;
 
 	pcap_ts->pcap = platform_get_drvdata(pdev);
+	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
 	if (!pcap_ts || !input_dev)
@@ -145,7 +151,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 			     PRESSURE_MAX, 0, 0);
 
 	err = request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
-			pcap_ts_event_touch, 0, "Touch Screen", NULL);
+			pcap_ts_event_touch, 0, "Touch Screen", pcap_ts);
 	if (err)
 		goto fail;
 
@@ -158,7 +164,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	return 0;
 
 fail_touch:
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
 fail:
 	input_free_device(input_dev);
 	kfree(pcap_ts);
@@ -168,7 +174,9 @@ fail:
 
 static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
 
 	input_unregister_device(pcap_ts->input);
 	cancel_delayed_work_sync(&pcap_ts->work);
@@ -178,14 +186,18 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
+static int pcap_ts_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+
 	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
 	return 0;
 }
 
-static int pcap_ts_resume(struct platform_device *dev)
+static int pcap_ts_resume(struct platform_device *pdev)
 {
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+
 	pcap_set_ts_bits(pcap_ts->pcap,
 				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
