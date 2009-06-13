@@ -1,11 +1,10 @@
 /*
- * linux/drivers/usb/ipcusb.c
- *
- * Implementation of a ipc driver based Intel's Bulverde USB Host
- * Controller.
+ * Motorola Inter Processor Communication driver
  *
  * Copyright (C) 2003-2005 Motorola
  * Copyright (C) 2006 Harald Welte <laforge@openezx.org>
+ * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Ilya Petrov <ilya.muromec@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
