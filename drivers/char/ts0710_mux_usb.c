@@ -20,14 +20,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *  2003-Nov-03 - (Motorola) created
- *  2004-Feb-20 - (Motorola) Add Power Manager codes
- *  2004-Apr-14 - (Motorola) Update Suspend/Resume codes
- *  2004-May-10 - (Motorola) Add unlink_urbs codes and do some updates of send
- *			     out urb sequence
- *  2006-Jun-22 - (Harald Welte) port to Linux 2.6.x
- *
  */
 
 #include <linux/kernel.h>
