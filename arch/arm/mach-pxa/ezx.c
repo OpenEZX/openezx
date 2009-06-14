@@ -1306,7 +1306,7 @@ static struct platform_device e680_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{ I2C_BOARD_INFO("radio-tea5764", 0x10) },
 };
 
 static struct platform_device *e680_devices[] __initdata = {
@@ -1438,7 +1438,7 @@ static struct platform_device a1200_gpio_keys = {
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 	},
@@ -1817,7 +1817,7 @@ static struct platform_device e6_gpio_keys = {
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 	},
@@ -1921,7 +1921,7 @@ static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 };
 
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{ I2C_BOARD_INFO("radio-tea5764", 0x10) },
 };
 
 static struct platform_device *e2_devices[] __initdata = {
