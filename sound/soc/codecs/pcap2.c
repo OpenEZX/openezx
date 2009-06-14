@@ -29,23 +29,17 @@
 
 #define DAI_AP_ST	0
 #define DAI_AP_MONO	1
-#define DAI_BP		2
+#define DAI_FM		2
+#define DAI_BP		3
 
 #define OUT_LOUDSPEAKER	0
 #define OUT_EARPIECE	1
 #define OUT_HEADPHONE	2
 
-/*
- * ASoC limits register value to 16 bits and pcap uses 32 bit registers
- * to work around this, we get 16 bits from low, mid or high positions.
- * ASoC limits register number to 8 bits we use 0x1f for register
- * number and 0xe0 for register offset. -WM
- */
 static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
 	struct pcap_chip *pcap = codec->dai->private_data;
-	unsigned int tmp;
 
 	ezx_pcap_write(pcap, reg, value);
 
@@ -67,7 +61,6 @@ static int pcap2_dai_mode;
 static int pcap2_get_dai(struct snd_kcontrol *kcontrol,
 			struct snd_ctl_elem_value *ucontrol)
 {
-	printk("WM: get_dai %d\n", pcap2_dai_mode);
 	ucontrol->value.integer.value[0] = pcap2_dai_mode;
 	return 0;
 }
@@ -79,21 +72,23 @@ static int pcap2_set_dai_mode(struct snd_soc_codec *codec, int mode)
 {
 	u32 tmp;
 
-	printk("WM: set_dai_mode %d\n", mode);
 	if (mode == DAI_AP_ST) {
-		printk("WM: ep st\n");
 		snd_soc_dapm_enable_pin(codec, "ST_DAC");
 		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
 		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+		snd_soc_dapm_disable_pin(codec, "FM");
+	} else if (mode == DAI_FM) {
+		snd_soc_dapm_disable_pin(codec, "ST_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_DAC");
+		snd_soc_dapm_disable_pin(codec, "CDC_ADC");
+		snd_soc_dapm_enable_pin(codec, "FM");
 	} else {
-		printk("WM: ep mono\n");
 		snd_soc_dapm_disable_pin(codec, "ST_DAC");
 		snd_soc_dapm_enable_pin(codec, "CDC_DAC");
 		snd_soc_dapm_enable_pin(codec, "CDC_ADC");
+		snd_soc_dapm_disable_pin(codec, "FM");
 	}
 	if (mode == DAI_BP) {
-		printk("WM: dai bp\n");
-
 		tmp = pcap2_codec_read(codec, PCAP2_OUTPUT_AMP);
 		tmp &= ~PCAP2_OUTPUT_AMP_ST_DAC_SW;
 		tmp |= PCAP2_OUTPUT_AMP_CDC_SW;
@@ -106,8 +101,6 @@ static int pcap2_set_dai_mode(struct snd_soc_codec *codec, int mode)
 		tmp = (PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN | 0x5);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
 	} else {
-		printk("WM: dai ap\n");
-
 		tmp = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
 		tmp &= ~PCAP2_INPUT_AMP_V2EN2;
 		pcap2_codec_write(codec, PCAP2_INPUT_AMP, tmp);
@@ -126,14 +119,12 @@ static int pcap2_set_dai(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 
-	printk("WM: set_dai %d\n", ucontrol->value.integer.value[0]);
-
 	if (pcap2_dai_mode == ucontrol->value.integer.value[0])
 		return 0;
 
 	pcap2_dai_mode = ucontrol->value.integer.value[0];
 
-	if (pcap2_dai_mode > 2)
+	if (pcap2_dai_mode > 3)
 		pcap2_dai_mode = 0;
 
 	pcap2_set_dai_mode(codec, pcap2_dai_mode);
@@ -155,7 +146,8 @@ SOC_ENUM_SINGLE(PCAP2_OUTPUT_AMP, 19, 4, pcap2_downmix_select),
 static const char *pcap2_dai_select[] = {
 	"Stereo",
 	"Mono",
-	"BP"
+	"FM",
+	"BP",
 };
 
 static const struct soc_enum pcap2_dai_enum[] = {
@@ -193,6 +185,7 @@ static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_DAC("ST_DAC", "playback", PCAP2_OUTPUT_AMP, 9, 0),
 	SND_SOC_DAPM_DAC("CDC_DAC", "playback", PCAP2_OUTPUT_AMP, 8, 0),
 	SND_SOC_DAPM_ADC("CDC_ADC", "capture", PCAP2_OUTPUT_AMP, 8, 0),
+	SND_SOC_DAPM_PGA("PGA_IN", PCAP2_OUTPUT_AMP, 10, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_R", PCAP2_OUTPUT_AMP, 11, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_L", PCAP2_OUTPUT_AMP, 12, 0, NULL, 0),
 	SND_SOC_DAPM_MUX("Downmixer", SND_SOC_NOPM, 0, 0,
@@ -203,15 +196,16 @@ static const struct snd_soc_dapm_widget pcap2_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA("PGA_AR", PCAP2_OUTPUT_AMP, 5, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_AL", PCAP2_OUTPUT_AMP, 6, 0, NULL, 0),
 	SND_SOC_DAPM_OUTPUT("A1"), /* Earpiece */
-	SND_SOC_DAPM_OUTPUT("A2"), /* LoudSpeaker */
-	SND_SOC_DAPM_OUTPUT("ARL"), /* headset */
+	SND_SOC_DAPM_OUTPUT("A2"), /* Loudspeaker */
+	SND_SOC_DAPM_OUTPUT("ARL"), /* Headphone */
 
 	SND_SOC_DAPM_MICBIAS("BIAS1", PCAP2_INPUT_AMP, 10, 0),
 	SND_SOC_DAPM_MICBIAS("BIAS2", PCAP2_INPUT_AMP, 11, 0),
 	SND_SOC_DAPM_PGA("PGA_A3", PCAP2_INPUT_AMP, 6, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("PGA_A5", PCAP2_INPUT_AMP, 8, 0, NULL, 0),
 	SND_SOC_DAPM_INPUT("A3"), /* Headset Mic */
-	SND_SOC_DAPM_INPUT("A5"), /* Builtin Mic */
+	SND_SOC_DAPM_INPUT("A5"), /* Built-in Mic */
+	SND_SOC_DAPM_INPUT("FM"), /* FM Chip */
 };
 
 static const struct snd_soc_dapm_route audio_map[] = {
@@ -238,6 +232,10 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{ "PGA_R", NULL, "ST_DAC" },
 	{ "PGA_L", NULL, "ST_DAC" },
 	{ "PGA_R", NULL, "CDC_DAC" },
+
+	{ "PGA_R", NULL, "PGA_IN" },
+	{ "PGA_L", NULL, "PGA_IN" },
+	{ "PGA_IN", NULL, "FM" },
 
 	/* input path */
 	{ "BIAS1", NULL, "A3" },
@@ -292,7 +290,8 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int tmp;
 
-	if (pcap2_dai_mode == DAI_BP) /* pcap is set to talk with BP */
+	/* pcap is set to talk with BP  or FM */
+	if (pcap2_dai_mode == DAI_BP || pcap2_dai_mode == DAI_FM)
 		return -EINVAL;
 
 	if (pcap2_dai_mode == DAI_AP_ST) {
@@ -723,9 +722,9 @@ static int __devexit pcap2_driver_remove(struct platform_device *pdev)
 
 /* codec device ops */
 struct snd_soc_codec_device soc_codec_dev_pcap2 = {
-	.probe = 	pcap2_codec_probe,
-	.remove = 	pcap2_codec_remove,
-	.suspend = 	pcap2_codec_suspend,
+	.probe =	pcap2_codec_probe,
+	.remove =	pcap2_codec_remove,
+	.suspend =	pcap2_codec_suspend,
 	.resume =	pcap2_codec_resume,
 };
 
