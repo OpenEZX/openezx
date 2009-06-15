@@ -179,21 +179,6 @@ static void ssp_set_scr(struct ssp_device *ssp, u32 div)
 	ssp_write_reg(ssp, SSCR0, sscr0);
 }
 
-/**
- * ssp_get_clkdiv - get SSP clock divider
- */
-static u32 ssp_get_scr(struct ssp_device *ssp)
-{
-	u32 sscr0 = ssp_read_reg(ssp, SSCR0);
-	u32 div;
-
-	if (cpu_is_pxa25x() && ssp->type == PXA25x_SSP)
-		div = ((sscr0 >> 8) & 0xff) * 2 + 2;
-	else
-		div = ((sscr0 >> 8) & 0xfff) + 1;
-	return div;
-}
-
 /*
  * Set the SSP ports SYSCLK.
  */
