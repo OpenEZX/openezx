@@ -20,7 +20,7 @@
 #include <linux/platform_device.h>
 
 struct pcap_rtc {
-	void *pcap;
+	struct pcap_chip *pcap;
 	struct rtc_device *rtc;
 };
 
@@ -145,7 +145,6 @@ static const struct rtc_class_ops pcap_rtc_ops = {
 static int __devinit pcap_rtc_probe(struct platform_device *pdev)
 {
 	struct pcap_rtc *pcap_rtc;
-	struct rtc_device *rtc;
 	int timer_irq, alarm_irq;
 	int err = -ENOMEM;
 
@@ -155,10 +154,10 @@ static int __devinit pcap_rtc_probe(struct platform_device *pdev)
 
 	pcap_rtc->pcap = platform_get_drvdata(pdev);
 
-	rtc = rtc_device_register("pcap", &pdev->dev,
+	pcap_rtc->rtc = rtc_device_register("pcap", &pdev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
-	if (IS_ERR(rtc)) {
-		err = PTR_ERR(rtc);
+	if (IS_ERR(pcap_rtc->rtc)) {
+		err = PTR_ERR(pcap_rtc->rtc);
 		goto fail_rtc;
 	}
 
