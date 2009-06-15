@@ -549,10 +549,6 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	if (cpu_dai->dma_data)
 		kfree(cpu_dai->dma_data);
 
-	/* Network mode with one active slot (ttsa == 1) can be used
-	 * to force 16-bit frame width on the wire (for S16_LE), even
-	 * with two channels. Use 16-bit DMA transfers for this case.
-	 */
 	cpu_dai->dma_data = ssp_get_dma_params(ssp, slot_width > 16,
 			substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
@@ -561,7 +557,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		return 0;
 
 #ifdef CONFIG_PXA3xx
-	if (width == 16 && cpu_is_pxa3xx())
+	if (slot_width == 16 && cpu_is_pxa3xx())
 		sscr0 |= SSCR0_FPCKE;
 #endif
 
