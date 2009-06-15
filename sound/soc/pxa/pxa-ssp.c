@@ -558,7 +558,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		return 0;
 
 #ifdef CONFIG_PXA3xx
-	if (width == 16 && cpu_is_pxa3xx())
+	if (slot_width == 16 && cpu_is_pxa3xx())
 		sscr0 |= SSCR0_FPCKE;
 #endif
 
@@ -566,44 +566,49 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
 		/*
-		 * We can't support network mode with I2S or LEFT_J,
-		 * SSPFRM is asserted only for the first slot.
-		 */
-		if (frame_width == 0 || chn > 2)
-			return -EINVAL;
-
-		/*
 		 * I2S and LEFT_J are stereo only, we have to send data for
 		 * both channels.
 		 */
 		if (chn == 1)
 			frame_width *= 2;
 
-		/* For pxa2xx we have to stick with FSRT */
-		if (cpu_is_pxa25x() || cpu_is_pxa27x())
+		/*
+		 * If the user did not use network mode, we assume the codec
+		 * is I2S compliant.
+		 */
+		if (frame_width > 0) {
+			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
 			sspsp |= SSPSP_FSRT;
+		} else {
+			/*
+			 * Otherwise we assume that it is a single TDM slot, and
+			 * the user is abusing set_tdm_slot to support an
+			 * out of spec codec.
+			 */
+			int slots = ((sscr0 & SSCR0_SlotsPerFrm(7)) >> 24) + 1;
 
-		/* For pxa3xx we use Paul's code */
-		if (cpu_is_pxa3xx()) {
-			/* We double the frame_width to envelope the sample */
-			frame_width *= 2;
+			/* PXA2XX doesn't support DMYSTOP > 3 */
+			if (slot_width != (width * 2) && !cpu_is_pxa3xx())
+				return -EINVAL;
 
 			sspsp |= SSPSP_DMYSTRT(1);
-			sspsp |= SSPSP_DMYSTOP(frame_width / 2 - width - 1);
-			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+			sspsp |= SSPSP_DMYSTOP(
+					(slot_width * slots) / 2 - width - 1);
+			sspsp |= SSPSP_SFRMWDTH((slot_width * slots) / 2);
 		}
-
 		break;
 
 	case SND_SOC_DAIFMT_LEFT_J:
-		if (frame_width == 0 || chn > 2)
-			return -EINVAL;
-
 		if (chn == 1)
 			frame_width *= 2;
 
-		/* No need to envelope the frame for LEFT_J */
-		sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+		if (frame_width > 0) {
+			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
+		} else {
+			int slots = ((sscr0 & SSCR0_SlotsPerFrm(7)) >> 24) + 1;
+
+			sspsp |= SSPSP_SFRMWDTH((slot_width * slots) / 2);
+		}
 		break;
 	default:
 		break;
