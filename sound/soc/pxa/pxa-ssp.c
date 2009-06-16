@@ -367,7 +367,7 @@ static int pxa_ssp_set_dai_tdm_slot(struct snd_soc_dai *cpu_dai,
 	u32 sscr0;
 
 	sscr0 = ssp_read_reg(ssp, SSCR0);
-	sscr0 &= ~(SSCR0_MOD | SSCR0_SlotsPerFrm(7) | SSCR0_EDSS | SSCR0_DSS);
+	sscr0 &= ~(SSCR0_MOD | SSCR0_SlotsPerFrm(8) | SSCR0_EDSS | SSCR0_DSS);
 
 	/* set slot width */
 	if (slot_width > 16)
@@ -566,7 +566,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 			 * the user is abusing set_tdm_slot to support an
 			 * out of spec codec.
 			 */
-			int slots = ((sscr0 & SSCR0_SlotsPerFrm(7)) >> 24) + 1;
+			int slots = ((sscr0 & SSCR0_SlotsPerFrm(8)) >> 24) + 1;
 
 			/* PXA2XX doesn't support DMYSTOP > 3 */
 			if (slot_width != (width * 2) && !cpu_is_pxa3xx())
@@ -586,7 +586,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		if (frame_width > 0) {
 			sspsp |= SSPSP_SFRMWDTH(frame_width / 2);
 		} else {
-			int slots = ((sscr0 & SSCR0_SlotsPerFrm(7)) >> 24) + 1;
+			int slots = ((sscr0 & SSCR0_SlotsPerFrm(8)) >> 24) + 1;
 
 			sspsp |= SSPSP_SFRMWDTH((slot_width * slots) / 2);
 		}
