@@ -24,61 +24,44 @@
 struct pcap_ts {
 	struct pcap_chip *pcap;
 	struct input_dev *input;
-	struct timer_list timer;
-	struct work_struct work;
+	struct delayed_work work;
 	u16 x, y;
 	u16 pressure;
 	u8 read_state;
 };
 
-struct pcap_ts *pcap_ts;
+#define SAMPLE_DELAY	20 /* msecs */
 
 #define X_AXIS_MIN	0
 #define X_AXIS_MAX	1023
-
 #define Y_AXIS_MAX	X_AXIS_MAX
 #define Y_AXIS_MIN	X_AXIS_MIN
-
 #define PRESSURE_MAX	X_AXIS_MAX
 #define PRESSURE_MIN	X_AXIS_MIN
 
-/* if we try to read faster, pressure reading becomes unreliable */
-#define SAMPLE_INTERVAL		(HZ/50)
-
-
 static void pcap_ts_read_xy(void *data, u16 res[2])
 {
+	struct pcap_ts *pcap_ts = data;
+
 	switch (pcap_ts->read_state) {
 	case PCAP_ADC_TS_M_PRESSURE:
-		/*
-		 * pressure reading is unreliable, case it fails use the last
-		 * valid pressure.
-		 */
+		/* pressure reading is unreliable */
 		if (res[0] > PRESSURE_MIN && res[0] < PRESSURE_MAX)
 			pcap_ts->pressure = res[0];
 		pcap_ts->read_state = PCAP_ADC_TS_M_XY;
-		schedule_work(&pcap_ts->work);
+		schedule_delayed_work(&pcap_ts->work, 0);
 		break;
 	case PCAP_ADC_TS_M_XY:
 		pcap_ts->y = res[0];
 		pcap_ts->x = res[1];
 		if (pcap_ts->x <= X_AXIS_MIN || pcap_ts->x >= X_AXIS_MAX ||
 		    pcap_ts->y <= Y_AXIS_MIN || pcap_ts->y >= Y_AXIS_MAX) {
-			/* FIXME: Check if we can detect release with a better
-			 * way (using the TOUCH interrupt, if its not possible
-			 * then we really need to disable the touch interrupt
-			 * and re-enable it here. */
 			/* pen has been released */
 			input_report_abs(pcap_ts->input, ABS_PRESSURE, 0);
 			input_report_key(pcap_ts->input, BTN_TOUCH, 0);
-			/* no need for timer, we'll get interrupted with
-			 * next touch down event */
-			del_timer(&pcap_ts->timer);
 
-			/* ask PCAP2 to interrupt us if touch event happens
-			 * again */
 			pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
-			schedule_work(&pcap_ts->work);
+			schedule_delayed_work(&pcap_ts->work, 0);
 		} else {
 			/* pen is touching the screen*/
 			input_report_abs(pcap_ts->input, ABS_X, pcap_ts->x);
@@ -89,8 +72,8 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 
 			/* switch back to pressure read mode */
 			pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
-			mod_timer(&pcap_ts->timer,
-					jiffies + SAMPLE_INTERVAL);
+			schedule_delayed_work(&pcap_ts->work,
+					msecs_to_jiffies(SAMPLE_DELAY));
 		}
 		input_sync(pcap_ts->input);
 		break;
@@ -99,9 +82,10 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 	}
 }
 
-static void pcap_ts_work(struct work_struct *unused)
+static void pcap_ts_work(struct work_struct *work)
 {
-	u32 tmp;
+	struct delayed_work *dw = container_of(work, struct delayed_work, work);
+	struct pcap_ts *pcap_ts = container_of(dw, struct pcap_ts, work);
 	u8 ch[2];
 
 	pcap_set_ts_bits(pcap_ts->pcap,
@@ -114,47 +98,40 @@ static void pcap_ts_work(struct work_struct *unused)
 	ch[0] = PCAP_ADC_CH_TS_X1;
 	ch[1] = PCAP_ADC_CH_TS_Y1;
 	pcap_adc_async(pcap_ts->pcap, PCAP_ADC_BANK_1, 0, ch,
-							pcap_ts_read_xy, NULL);
+						pcap_ts_read_xy, pcap_ts);
 }
 
-static irqreturn_t pcap_ts_event_touch(int pirq, void *unused)
+static irqreturn_t pcap_ts_event_touch(int pirq, void *data)
 {
-	/* FIXME: We get interrupted on release too, in this case we dont
-	 * want to read anything from ADC. Check if we can read touch/release
-	 * status on PCAP_REG_PSTAT, and only change state when its a touch */
-	pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
-	schedule_work(&pcap_ts->work);
+	struct pcap_ts *pcap_ts = data;
 
+	if (pcap_ts->read_state == PCAP_ADC_TS_M_STANDBY) {
+		pcap_ts->read_state = PCAP_ADC_TS_M_PRESSURE;
+		schedule_delayed_work(&pcap_ts->work, 0);
+	}
 	return IRQ_HANDLED;
-}
-
-static void pcap_ts_timer_fn(unsigned long data)
-{
-	schedule_work(&pcap_ts->work);
 }
 
 static int __devinit pcap_ts_probe(struct platform_device *pdev)
 {
 	struct input_dev *input_dev;
+	struct pcap_ts *pcap_ts;
 	int err = -ENOMEM;
 
 	pcap_ts = kzalloc(sizeof(*pcap_ts), GFP_KERNEL);
 	if (!pcap_ts)
-		return -ENOMEM;
+		return err;
 
 	pcap_ts->pcap = platform_get_drvdata(pdev);
+	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
 	if (!pcap_ts || !input_dev)
 		goto fail;
 
-	INIT_WORK(&pcap_ts->work, pcap_ts_work);
+	INIT_DELAYED_WORK(&pcap_ts->work, pcap_ts_work);
 
 	pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
-
-	init_timer(&pcap_ts->timer);
-	pcap_ts->timer.data = (unsigned long) pcap_ts;
-	pcap_ts->timer.function = &pcap_ts_timer_fn;
 
 	pcap_ts->input = input_dev;
 
@@ -173,19 +150,21 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
-	request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
-			pcap_ts_event_touch, 0, "Touch Screen", NULL);
+	err = request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
+			pcap_ts_event_touch, 0, "Touch Screen", pcap_ts);
+	if (err)
+		goto fail;
 
 	err = input_register_device(pcap_ts->input);
 	if (err)
 		goto fail_touch;
 
-	schedule_work(&pcap_ts->work);
+	schedule_delayed_work(&pcap_ts->work, 0);
 
 	return 0;
 
 fail_touch:
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
 fail:
 	input_free_device(input_dev);
 	kfree(pcap_ts);
@@ -195,26 +174,30 @@ fail:
 
 static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), NULL);
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
 
-	del_timer_sync(&pcap_ts->timer);
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
 
 	input_unregister_device(pcap_ts->input);
-	cancel_work_sync(&pcap_ts->work);
+	cancel_delayed_work_sync(&pcap_ts->work);
 	kfree(pcap_ts);
 
 	return 0;
 }
 
 #ifdef CONFIG_PM
-static int pcap_ts_suspend(struct platform_device *dev, pm_message_t state)
+static int pcap_ts_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+
 	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
 	return 0;
 }
 
-static int pcap_ts_resume(struct platform_device *dev)
+static int pcap_ts_resume(struct platform_device *pdev)
 {
+	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+
 	pcap_set_ts_bits(pcap_ts->pcap,
 				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
