@@ -88,4 +88,10 @@ config CHARGER_PCF50633
 	help
 	 Say Y to include support for NXP PCF50633 Main Battery Charger.
 
+config BATTERY_PCAP
+	tristate "Motorola EZX battery controller (PCAP)"
+	depends on PXA_EZX && EZX_PCAP
+	help
+	  Say Y to enable support for the PCAP battery controller on Motorola EZX phones
+
 endif # POWER_SUPPLY
