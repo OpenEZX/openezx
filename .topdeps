@@ -1,2 +1,2 @@
-ezx/mach/isp1583
-pxa/gpio_reset
+ezx/mach/reboot-poweroff
+ezx/pcap_battery
