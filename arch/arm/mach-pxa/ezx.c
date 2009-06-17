@@ -1016,9 +1016,6 @@ static struct pcap_leds_platform_data a780_pcap_leds = {
 		}, {
 			.type = PCAP_BL1,
 			.name = "a780:aux",
-		}, {
-			.type = PCAP_VIB,
-			.name = "a780:vibrator",
 		},
 	},
 	.num_leds = 3,
@@ -1309,7 +1306,7 @@ static struct platform_device e680_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{ I2C_BOARD_INFO("radio-tea5764", 0x10) },
 };
 
 static struct platform_device *e680_devices[] __initdata = {
@@ -1367,17 +1364,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
-/* pcap-leds */
-static struct pcap_leds_platform_data a1200_pcap_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "a1200:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
 static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1391,10 +1377,6 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
-	}, {
-		.name		= "pcap-leds",
-		.id		= -1,
-		.platform_data	= &a1200_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1456,7 +1438,7 @@ static struct platform_device a1200_gpio_keys = {
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 	},
@@ -1517,17 +1499,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
-/* pcap-leds */
-static struct pcap_leds_platform_data a910_pcap_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "a910:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
 static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1538,10 +1509,6 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
-	}, {
-		.name		= "pcap-leds",
-		.id		= -1,
-		.platform_data	= &a910_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1779,17 +1746,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
-/* pcap-leds */
-static struct pcap_leds_platform_data e6_pcap_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "e6:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
 static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1803,10 +1759,6 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
-	}, {
-		.name		= "pcap-leds",
-		.id		= -1,
-		.platform_data	= &e6_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1865,7 +1817,7 @@ static struct platform_device e6_gpio_keys = {
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 	},
@@ -1927,17 +1879,6 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
-/* pcap-leds */
-static struct pcap_leds_platform_data e2_pcap_leds = {
-	.leds = {
-		{
-			.type = PCAP_VIB,
-			.name = "e2:vibrator",
-		},
-	},
-	.num_leds = 1,
-};
-
 static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
@@ -1948,10 +1889,6 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
-	}, {
-		.name		= "pcap-leds",
-		.id		= -1,
-		.platform_data	= &e2_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
@@ -1984,7 +1921,7 @@ static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 };
 
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{ I2C_BOARD_INFO("radio-tea5764", 0x10) },
 };
 
 static struct platform_device *e2_devices[] __initdata = {

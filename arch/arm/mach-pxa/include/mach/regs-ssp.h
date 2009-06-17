@@ -120,8 +120,8 @@
  * below are compatible with PXA25x/27x as long as the parameter is within
  * the correct limits, driver code has to take care of this.
  */
-#define SSPSP_DMYSTRT(x)	((((x) & 3) << 7)  | ((((x) >> 2) & 3) << 26))
-#define SSPSP_DMYSTOP(x)	((((x) & 3) << 23) | ((((x) >> 2) & 7) << 28))
+#define SSPSP_DMYSTRT(x)       ((((x) & 3) << 7)  | ((((x) >> 2) & 3) << 26))
+#define SSPSP_DMYSTOP(x)       ((((x) & 3) << 23) | ((((x) >> 2) & 7) << 28))
 
 #define SSACD_SCDB		(1 << 3)	/* SSPSYSCLK Divider Bypass */
 #define SSACD_ACPS(x)		((x) << 4)	/* Audio clock PLL select */
