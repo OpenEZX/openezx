@@ -83,6 +83,11 @@ void __init pxa_set_udc_parent(struct device *parent_dev)
 	pxa27x_device_udc.dev.parent = parent_dev;
 }
 
+static struct pxa2xx_udc_mach_info pxa_udc_info = {
+	.gpio_pullup = -1,
+	.gpio_vbus   = -1,
+};
+
 void __init pxa_set_udc_info(struct pxa2xx_udc_mach_info *info)
 {
 	if (cpu_is_pxa27x())

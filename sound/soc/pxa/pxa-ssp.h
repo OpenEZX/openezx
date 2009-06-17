@@ -40,15 +40,6 @@
 #define PXA_SSP_CLK_SCDB_1		1
 #define PXA_SSP_CLK_SCDB_8		2
 
-/* frame size definitions for I2S and Left_J formats - default is
- * 32fs, other possibilities are 48fs, 64fs and 96fs
- */
-#define PXA_SSP_FRM_32FS	(0 << 16)
-#define PXA_SSP_FRM_48FS	(1 << 16)
-#define PXA_SSP_FRM_64FS	(2 << 16)
-#define PXA_SSP_FRM_96FS	(3 << 16)
-#define PXA_SSP_FRM_WIDTH(x)	(((((x) >> 16) & 0x3) + 2) << 4)
-
 #define PXA_SSP_PLL_OUT  0
 
 extern struct snd_soc_dai pxa_ssp_dai[4];
