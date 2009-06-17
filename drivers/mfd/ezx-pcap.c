@@ -17,6 +17,7 @@
 #include <linux/irq.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/spi.h>
+#include <linux/gpio.h>
 
 #define PCAP_ADC_MAXQ		8
 struct pcap_adc_request {
@@ -107,10 +108,11 @@ int ezx_pcap_read(struct pcap_chip *pcap, u8 reg_num, u32 *value)
 EXPORT_SYMBOL_GPL(ezx_pcap_read);
 
 /* IRQ */
-static inline unsigned int irq2pcap(struct pcap_chip *pcap, int irq)
+int irq_to_pcap(struct pcap_chip *pcap, int irq)
 {
-	return 1 << (irq - pcap->irq_base);
+	return irq - pcap->irq_base;
 }
+EXPORT_SYMBOL_GPL(irq_to_pcap);
 
 int pcap_to_irq(struct pcap_chip *pcap, int irq)
 {
@@ -122,7 +124,7 @@ static void pcap_mask_irq(unsigned int irq)
 {
 	struct pcap_chip *pcap = get_irq_chip_data(irq);
 
-	pcap->msr |= irq2pcap(pcap, irq);
+	pcap->msr |= 1 << irq_to_pcap(pcap, irq);
 	queue_work(pcap->workqueue, &pcap->msr_work);
 }
 
@@ -130,7 +132,7 @@ static void pcap_unmask_irq(unsigned int irq)
 {
 	struct pcap_chip *pcap = get_irq_chip_data(irq);
 
-	pcap->msr &= ~irq2pcap(pcap, irq);
+	pcap->msr &= ~(1 << irq_to_pcap(pcap, irq));
 	queue_work(pcap->workqueue, &pcap->msr_work);
 }
 
@@ -154,34 +156,38 @@ static void pcap_isr_work(struct work_struct *work)
 	u32 msr, isr, int_sel, service;
 	int irq;
 
-	ezx_pcap_read(pcap, PCAP_REG_MSR, &msr);
-	ezx_pcap_read(pcap, PCAP_REG_ISR, &isr);
+	do {
+		ezx_pcap_read(pcap, PCAP_REG_MSR, &msr);
+		ezx_pcap_read(pcap, PCAP_REG_ISR, &isr);
 
-	/* We cant service/ack irqs that are assigned to port 2 */
-	if (!(pdata->config & PCAP_SECOND_PORT)) {
-		ezx_pcap_read(pcap, PCAP_REG_INT_SEL, &int_sel);
-		isr &= ~int_sel;
-	}
-	ezx_pcap_write(pcap, PCAP_REG_ISR, isr);
-
-	local_irq_disable();
-	service = isr & ~msr;
-
-	for (irq = pcap->irq_base; service; service >>= 1, irq++) {
-		if (service & 1) {
-			struct irq_desc *desc = irq_to_desc(irq);
-
-			if (WARN(!desc, KERN_WARNING
-					"Invalid PCAP IRQ %d\n", irq))
-				break;
-
-			if (desc->status & IRQ_DISABLED)
-				note_interrupt(irq, desc, IRQ_NONE);
-			else
-				desc->handle_irq(irq, desc);
+		/* We cant service/ack irqs that are assigned to port 2 */
+		if (!(pdata->config & PCAP_SECOND_PORT)) {
+			ezx_pcap_read(pcap, PCAP_REG_INT_SEL, &int_sel);
+			isr &= ~int_sel;
 		}
-	}
-	local_irq_enable();
+
+		ezx_pcap_write(pcap, PCAP_REG_MSR, isr | msr);
+		ezx_pcap_write(pcap, PCAP_REG_ISR, isr);
+
+		local_irq_disable();
+		service = isr & ~msr;
+		for (irq = pcap->irq_base; service; service >>= 1, irq++) {
+			if (service & 1) {
+				struct irq_desc *desc = irq_to_desc(irq);
+
+				if (WARN(!desc, KERN_WARNING
+						"Invalid PCAP IRQ %d\n", irq))
+					break;
+
+				if (desc->status & IRQ_DISABLED)
+					note_interrupt(irq, desc, IRQ_NONE);
+				else
+					desc->handle_irq(irq, desc);
+			}
+		}
+		local_irq_enable();
+		ezx_pcap_write(pcap, PCAP_REG_MSR, pcap->msr);
+	} while (gpio_get_value(irq_to_gpio(pcap->spi->irq)));
 }
 
 static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
