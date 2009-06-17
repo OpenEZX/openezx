@@ -189,7 +189,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 		return ret;
 
 	/* set cpu DAI configuration */
-	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_LEFT_J |
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_B |
 			SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0)
 		return ret;
@@ -203,10 +203,10 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_sysclk(cpu_dai, PXA_SSP_CLK_PLL,
-						0, SND_SOC_CLOCK_IN);
-	if (ret < 0)
-		return ret;
+//	ret = snd_soc_dai_set_sysclk(cpu_dai, PXA_SSP_CLK_PLL,
+//						0, SND_SOC_CLOCK_IN);
+//	if (ret < 0)
+//		return ret;
 
 	return 0;
 }
