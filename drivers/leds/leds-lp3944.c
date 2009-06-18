@@ -412,7 +412,6 @@ static int __devexit lp3944_remove(struct i2c_client *client)
 	struct lp3944_data *data = i2c_get_clientdata(client);
 	int i;
 
-
 	for (i = 0; i < pdata->leds_size; i++)
 		switch (data->leds[i].type) {
 		case LP3944_LED_TYPE_LED:
@@ -462,6 +461,6 @@ static void __exit lp3944_module_exit(void)
 module_init(lp3944_module_init);
 module_exit(lp3944_module_exit);
 
-MODULE_AUTHOR("Antonio Ospite <ao2@openezx.org>");
+MODULE_AUTHOR("Antonio Ospite <ospite@studenti.unina.it>");
 MODULE_DESCRIPTION("LP3944 Fun Light Chip");
 MODULE_LICENSE("GPL");
