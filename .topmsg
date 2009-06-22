@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] MFD/PCAP: fix adc locking
+Subject: [PATCH] MFD/PCAP export irq_to_pcap()
 
-Release the lock on error.
+Export an irq_to_pcap function to get pcap irq number, for the keypad driver.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
