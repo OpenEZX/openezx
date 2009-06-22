@@ -1,0 +1,6 @@
+From: Daniel Ribeiro <drwyrm@gmail.com>
+Subject: [PATCH] MFD/PCAP: fix adc locking
+
+Release the lock on error.
+
+Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
