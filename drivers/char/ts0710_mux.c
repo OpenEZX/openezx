@@ -796,7 +796,7 @@ void process_uih(ts0710_con * ts0710, char *data, int len, u8 dlci) {
 		flow_control = 1;
 	}
 
-/* FIXME	tty->ldisc.ops->receive_buf(tty, uih_data_start, NULL, uih_len);*/
+	tty->ldisc->ops->receive_buf(tty, uih_data_start, NULL, uih_len);
 
 	if (flow_control)
 		ts0710_flow_off(tty, dlci, ts0710);
@@ -1339,11 +1339,10 @@ static void mux_flush_buffer(struct tty_struct *tty)
 
 	wake_up_interruptible(&tty->write_wait);
 
-/* FIXME	if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP)) &&
-	    tty->ldisc.ops->write_wakeup) {
-		tty->ldisc.ops->write_wakeup(tty);
+	if ((tty->flags & (1 << TTY_DO_WRITE_WAKEUP)) &&
+	    tty->ldisc->ops->write_wakeup) {
+		tty->ldisc->ops->write_wakeup(tty);
 	}
-*/
 }
 
 static int mux_open(struct tty_struct *tty, struct file *filp)
