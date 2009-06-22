@@ -36,7 +36,7 @@ static struct snd_soc_codec *control_codec;
 
 static void ezx_ext_control(struct snd_soc_codec *codec)
 {
-	u32 tmp;
+/* FIXME	u32 tmp;
 
 	ezx_pcap_read(PCAP_REG_PSTAT, &tmp);
 
@@ -47,7 +47,7 @@ static void ezx_ext_control(struct snd_soc_codec *codec)
 		snd_soc_dapm_disable_pin(codec, "Headset");
 		snd_soc_dapm_disable_pin(codec, "External Mic");
 	}
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(codec); */
 }
 
 static irqreturn_t jack_irq(struct work_struct *unused)
