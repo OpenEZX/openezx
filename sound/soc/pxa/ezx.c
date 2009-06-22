@@ -32,31 +32,22 @@
 #include "pxa2xx-pcm.h"
 #include "pxa-ssp.h"
 
-#define AUDIO_OFF		0
-#define LOUDSPEAKER		1
-#define EARPIECE		2
-#define HEADSET			3
-
 static struct snd_soc_codec *control_codec;
 
 static void ezx_ext_control(struct snd_soc_codec *codec)
 {
-/*	u32 tmp;
+	u32 tmp;
 
 	ezx_pcap_read(PCAP_REG_PSTAT, &tmp);
 
-	if (tmp & PCAP_IRQ_A1)
+	if (tmp & PCAP_IRQ_A1) {
 		snd_soc_dapm_enable_pin(codec, "Headset");
-	else
-		snd_soc_dapm_disable_pin(codec, "Headset");
-
-	if (tmp & PCAP_IRQ_MB2)
 		snd_soc_dapm_enable_pin(codec, "External Mic");
-	else
+	} else {
+		snd_soc_dapm_disable_pin(codec, "Headset");
 		snd_soc_dapm_disable_pin(codec, "External Mic");
-
+	}
 	snd_soc_dapm_sync(codec);
-*/
 }
 
 static irqreturn_t jack_irq(struct work_struct *unused)
@@ -65,91 +56,6 @@ static irqreturn_t jack_irq(struct work_struct *unused)
 	return IRQ_HANDLED;
 }
 
-static int ezx_scenario;
-static int ezx_get_scenario(struct snd_kcontrol *kcontrol,
-			struct snd_ctl_elem_value *ucontrol)
-{
-	ucontrol->value.integer.value[0] = ezx_scenario;
-	return 0;
-}
-
-static int ezx_set_scenario_endpoints(struct snd_soc_codec *codec, int mode)
-{
-	switch (mode) {
-	case AUDIO_OFF:
-		snd_soc_dapm_disable_pin(codec, "Earpiece");
-		snd_soc_dapm_disable_pin(codec, "Loudspeaker");
-		snd_soc_dapm_disable_pin(codec, "Headset");
-		snd_soc_dapm_disable_pin(codec, "Built-in Mic");
-		snd_soc_dapm_disable_pin(codec, "External Mic");
-		break;
-	case EARPIECE:
-		snd_soc_dapm_enable_pin(codec, "Earpiece");
-		snd_soc_dapm_disable_pin(codec, "Loudspeaker");
-		snd_soc_dapm_disable_pin(codec, "Headset");
-		snd_soc_dapm_enable_pin(codec, "Built-in Mic");
-		snd_soc_dapm_disable_pin(codec, "External Mic");
-		break;
-	case LOUDSPEAKER:
-		snd_soc_dapm_disable_pin(codec, "Earpiece");
-		snd_soc_dapm_enable_pin(codec, "Loudspeaker");
-		snd_soc_dapm_disable_pin(codec, "Headset");
-		snd_soc_dapm_enable_pin(codec, "Built-in Mic");
-		snd_soc_dapm_disable_pin(codec, "External Mic");
-		break;
-	case HEADSET:
-		snd_soc_dapm_disable_pin(codec, "Earpiece");
-		snd_soc_dapm_disable_pin(codec, "Loudspeaker");
-		snd_soc_dapm_enable_pin(codec, "Headset");
-		snd_soc_dapm_disable_pin(codec, "Built-in Mic");
-		snd_soc_dapm_enable_pin(codec, "External Mic");
-		break;
-	}
-
-	snd_soc_dapm_sync(codec);
-
-	return 0;
-}
-static int ezx_set_scenario(struct snd_kcontrol *kcontrol,
-			struct snd_ctl_elem_value *ucontrol)
-{
-	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
-
-	if (ezx_scenario == ucontrol->value.integer.value[0])
-		return 0;
-
-	ezx_scenario = ucontrol->value.integer.value[0];
-
-	ezx_set_scenario_endpoints(codec, ezx_scenario);
-
-	return 1;
-}
-
-static const char *ezx_scenario_select[] = {
-	"Off",
-	"Loudspeaker",
-	"Earpiece",
-	"Headset",
-};
-
-static const struct soc_enum ezx_scenario_enum[] = {
-SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ezx_scenario_select), ezx_scenario_select),
-};
-
-static const struct snd_kcontrol_new ezx_snd_controls[] = {
-SOC_ENUM_EXT("Output mode", ezx_scenario_enum[0], ezx_get_scenario,
-							ezx_set_scenario),
-};
-
-/*
- * Alsa operations
- * Only implement the required operations for your platform.
- * These operations are specific to the machine only.
- */
-
-/*
- * Called by ALSA when a PCM substream is opened, private data can be allocated.
- */
 static int ezx_machine_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -160,11 +66,6 @@ static int ezx_machine_startup(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-/*
- * Called by ALSA when the hardware params are set by application. This
- * function can also be called multiple times and can allocate buffers
- * (using snd_pcm_lib_* ). It's non-atomic.
- */
 static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
@@ -211,9 +112,6 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-/*
- * Free's resources allocated by hw_params, can be called multiple times
- */
 static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 {
 	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
@@ -221,7 +119,6 @@ static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-/* machine Alsa PCM operations */
 static struct snd_soc_ops ezx_ops = {
 	.startup = ezx_machine_startup,
 	.hw_free = ezx_machine_hw_free,
@@ -254,16 +151,19 @@ static const struct snd_soc_dapm_widget ezx_dapm_widgets[] = {
 	SND_SOC_DAPM_SPK("Loudspeaker", NULL),
 	SND_SOC_DAPM_MIC("Built-in Mic", NULL),
 	SND_SOC_DAPM_MIC("External Mic", NULL),
+	SND_SOC_DAPM_LINE("FM", NULL),
 };
 
 /* machine audio map (connections to the codec pins) */
 static const struct snd_soc_dapm_route audio_map[] = {
-	{ "Headset", NULL, "ARL" },
+	{ "Headset", NULL, "AR" },
+	{ "Headset", NULL, "AL" },
 	{ "Earpiece", NULL, "A1" },
 	{ "Loudspeaker", NULL, "A2" },
 
 	{ "Built-in Mic", NULL, "A5" },
 	{ "External Mic", NULL, "A3" },
+	{ "FM", NULL, "A4" },
 };
 
 /*
@@ -279,20 +179,20 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 	snd_soc_dapm_new_controls(codec, ezx_dapm_widgets,
 						ARRAY_SIZE(ezx_dapm_widgets));
 
-	for (i = 0; i < ARRAY_SIZE(ezx_snd_controls); i++) {
-		if ((err = snd_ctl_add(codec->card,
-				snd_soc_cnew(&ezx_snd_controls[i], codec,
-				NULL))) < 0)
-			return err;
-	}
+//	for (i = 0; i < ARRAY_SIZE(ezx_snd_controls); i++) {
+//		if ((err = snd_ctl_add(codec->card,
+//				snd_soc_cnew(&ezx_snd_controls[i], codec,
+//				NULL))) < 0)
+//			return err;
+//	}
 
 	/* Set up ezx specific audio path interconnects */
 	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
 
 //	snd_soc_dapm_new_widgets(codec);
 
-	ezx_scenario = AUDIO_OFF;
-	ezx_set_scenario_endpoints(codec, ezx_scenario);
+//	ezx_scenario = AUDIO_OFF;
+//	ezx_set_scenario_endpoints(codec, ezx_scenario);
 
 	/* synchronise subsystem */
 	snd_soc_dapm_sync(codec);
