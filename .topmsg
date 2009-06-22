@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] MFD/PCAP export irq_to_pcap()
+Subject: [PATCH] MFD/PCAP Share ADC register bits
 
-Export an irq_to_pcap function to get pcap irq number, for the keypad driver.
+Some TS controller bits are on the same register as the ADC control, save 
+TS specific bits and export a set_ts_bits function so the TS driver can set
+it with the adc_mutex lock held.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
