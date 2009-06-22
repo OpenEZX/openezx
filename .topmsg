@@ -1,8 +1,7 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] MFD/PCAP Share ADC register bits
+Subject: [PATCH] MFD/PCAP fix irq bottom handler
 
-Some TS controller bits are on the same register as the ADC control, save 
-TS specific bits and export a set_ts_bits function so the TS driver can set
-it with the adc_mutex lock held.
+Mask interrupts before servicing them and loop while pcap asserts the interrupt
+line.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
