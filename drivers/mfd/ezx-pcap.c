@@ -235,17 +235,16 @@ static void pcap_adc_trigger(struct pcap_chip *pcap)
 		mutex_unlock(&pcap->adc_mutex);
 		return;
 	}
-	mutex_unlock(&pcap->adc_mutex);
-
 	/* start conversion on requested bank, save TS_M bits */
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
-	tmp &= PCAP_ADC_TS_M_MASK;
+	tmp &= (PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
 	tmp |= pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
 
 	if (pcap->adc_queue[head]->bank == PCAP_ADC_BANK_1)
 		tmp |= PCAP_ADC_AD_SEL1;
 
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
+	mutex_unlock(&pcap->adc_mutex);
 	ezx_pcap_write(pcap, PCAP_REG_ADR, PCAP_ADR_ASC);
 }
 
