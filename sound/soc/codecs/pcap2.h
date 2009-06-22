@@ -21,6 +21,9 @@
 #define PCAP2_CLK_BP			0
 #define PCAP2_CLK_AP			1
 
+#define PCAP2_ID_ST_DAC			0
+#define PCAP2_ID_MONO_DAC		1
+
 #define PCAP2_CODEC_EN			0x2000
 #define PCAP2_CODEC_CLK_EN		0x1000
 #define PCAP2_CODEC_RESET_DF		0x800
@@ -36,6 +39,11 @@
 #define PCAP2_CODEC_CLK_16M8		0x80
 #define PCAP2_CODEC_CLK_19M44		0xc0
 #define PCAP2_CODEC_CLK_26M		0x100
+#define PCAP2_CODEC_MASTER		0x0
+#define PCAP2_CODEC_SLAVE		0x2
+#define PCAP2_CODEC_BCLK_INV		0x200
+#define PCAP2_CODEC_FRAME_INV		0x400
+
 
 #define PCAP2_ST_DAC_EN			0x80
 #define PCAP2_ST_DAC_CLK_EN		0x20
@@ -62,6 +70,13 @@
 #define PCAP2_ST_DAC_CLK_MCLK		0x14
 #define PCAP2_ST_DAC_CLK_FSYNC		0x18
 #define PCAP2_ST_DAC_CLK_BITCLK		0x1c
+#define PCAP2_ST_DAC_DAI_NORMAL		0x0
+#define PCAP2_ST_DAC_DAI_NETWORK	0x2000
+#define PCAP2_ST_DAC_DAI_I2S		0x4000
+#define PCAP2_ST_DAC_MASTER		0x0
+#define PCAP2_ST_DAC_SLAVE		0x1
+#define PCAP2_ST_DAC_BCLK_INV		0x20000
+#define PCAP2_ST_DAC_FRAME_INV		0x40000
 
 #define PCAP2_INPUT_AMP_LOWPWR		0x80000
 #define PCAP2_INPUT_AMP_V2EN2		0x200000
@@ -70,6 +85,7 @@
 #define PCAP2_OUTPUT_AMP_PGAL_EN	0x1000
 #define PCAP2_OUTPUT_AMP_CDC_SW		0x100
 #define PCAP2_OUTPUT_AMP_ST_DAC_SW	0x200
+
 
 extern struct snd_soc_dai pcap2_dai[];
 extern struct snd_soc_codec_device soc_codec_dev_pcap2;
