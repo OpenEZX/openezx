@@ -149,9 +149,9 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	if (!count)
 		return;
 
-	tty->ldisc.ops->receive_buf(
+/* FIXME	tty->ldisc.ops->receive_buf(
 		tty, (unsigned char *)urb->transfer_buffer,
-		NULL, urb->actual_length);
+		NULL, urb->actual_length); */
 
 	urb->actual_length = 0;
 	urb->dev = bvd_ipc->ipc_dev;
