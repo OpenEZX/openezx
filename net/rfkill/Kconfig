@@ -30,4 +30,3 @@ config RFKILL_BLUETOOTH
 	  Say Y here if your bluetooth power is controlled by a
 	  voltage regulator.
 
-
