@@ -485,6 +485,7 @@ config MACH_MOTOQ
 	select PXA27x
 	select IWMMXT
 	select HAVE_PWM
+	select PXA_HAVE_BOARD_IRQS
 
 endmenu
 
