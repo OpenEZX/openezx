@@ -25,69 +25,51 @@ struct rfkill_bluetooth_info {
 };
 static struct rfkill_bluetooth_info rfkill_info;
 
-static int reg_bt_toggle_radio(void *data, enum rfkill_state state)
+static int reg_bt_set_block(void *data, bool blocked)
 {
-
 	struct rfkill_bluetooth_info *pinfo = data;
-	switch (state) {
-	case RFKILL_STATE_SOFT_BLOCKED:
+	if (blocked)
 		regulator_disable(pinfo->vcc);
-		return 0;
-	case RFKILL_STATE_UNBLOCKED:
-		regulator_enable(pinfo->vcc);
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
-static int reg_bt_getstate(void *data, enum rfkill_state *state)
-{
-	struct rfkill_bluetooth_info *pinfo = data;
-	if (regulator_is_enabled(pinfo->vcc))
-		*state = RFKILL_STATE_UNBLOCKED;
 	else
-		*state = RFKILL_STATE_SOFT_BLOCKED;
-
+		regulator_enable(pinfo->vcc);
 	return 0;
 }
 
+struct rfkill_ops reg_bt_ops = {
+	.set_block = reg_bt_set_block,
+};
+
 static int __devinit reg_rfkill_probe(struct platform_device *pdev)
 {
+	int ret;
 	struct regulator *reg = regulator_get(&pdev->dev, "vbluetooth");
 	if (!reg)
 		return -ENODEV;
 	rfkill_info.vcc = reg;
 
-	rfkill_info.rf_kill = rfkill_allocate(&pdev->dev,
-					      RFKILL_TYPE_BLUETOOTH);
+	rfkill_info.rf_kill = rfkill_alloc("bluetooth:rfkill", &pdev->dev,
+					   RFKILL_TYPE_BLUETOOTH,
+					   &reg_bt_ops, &rfkill_info);
 	if (!rfkill_info.rf_kill) {
 		regulator_put(reg);
 		return -ENOMEM;
 	}
 
-	snprintf(rfkill_info.rf_kill_name, sizeof(rfkill_info.rf_kill_name),
-		 "bluetooth:rfkill");
-	rfkill_info.rf_kill->name = rfkill_info.rf_kill_name;
-	rfkill_info.rf_kill->data = &rfkill_info;
-	rfkill_info.rf_kill->toggle_radio = reg_bt_toggle_radio;
-	rfkill_info.rf_kill->get_state = reg_bt_getstate;
-	rfkill_info.rf_kill->state = RFKILL_STATE_SOFT_BLOCKED;
-	rfkill_info.rf_kill->user_claim_unsupported = 1;
-
-	rfkill_register(rfkill_info.rf_kill);
+	ret = rfkill_register(rfkill_info.rf_kill);
+	if (!ret)
+		return ret;
+	platform_set_drvdata(pdev, &rfkill_info);
 
 	return 0;
 }
 
 static int __devexit reg_rfkill_remove(struct platform_device *pdev)
 {
-	struct rfkill *rf_kill = platform_get_drvdata(pdev);
-	struct rfkill_bluetooth_info *pinfo;
-	pinfo = rf_kill->data;
-	regulator_put(pinfo->vcc);
+	struct rfkill_bluetooth_info *pinfo = platform_get_drvdata(pdev);
+	struct rfkill *rf_kill = pinfo->rf_kill;
 	rfkill_unregister(rf_kill);
-
+	regulator_put(pinfo->vcc);
+	pinfo->vcc = 0;
 	return 0;
 }
 
