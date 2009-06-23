@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.30
-# Mon Jun 22 15:26:24 2009
+# Tue Jun 23 11:33:33 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -230,6 +230,7 @@ CONFIG_MACH_EZX_E2=y
 CONFIG_MACH_MOTOQ=y
 CONFIG_PXA27x=y
 CONFIG_PXA_SSP=y
+CONFIG_PXA_HAVE_BOARD_IRQS=y
 CONFIG_PLAT_PXA=y
 
 #
