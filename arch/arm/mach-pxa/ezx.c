@@ -40,7 +40,7 @@
 #include <mach/pxa27x.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
-#include <mach/i2c.h>
+#include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
@@ -250,11 +250,10 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO81_SSP3_TXD,
 	GPIO89_SSP3_RXD,
 
-	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO37_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
+	GPIO22_SSP2_SCLK,
+	GPIO37_SSP2_SFRM,
+	GPIO38_SSP2_TXD,
+	GPIO88_SSP2_RXD,
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -308,10 +307,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO82_SSP3_RXD,
 
 	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
+	GPIO22_SSP2_SCLK,
+	GPIO14_SSP2_SFRM,
+	GPIO38_SSP2_TXD,
+	GPIO88_SSP2_RXD,
 
 	/* camera */
 	GPIO23_CIF_MCLK,
