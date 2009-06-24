@@ -149,7 +149,7 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	if (!count)
 		return;
 
-	tty->ldisc.ops->receive_buf(
+	tty->ldisc->ops->receive_buf(
 		tty, (unsigned char *)urb->transfer_buffer,
 		NULL, urb->actual_length);
 
