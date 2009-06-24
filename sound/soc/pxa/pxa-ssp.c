@@ -568,14 +568,18 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 			 */
 			int slots = ((sscr0 & SSCR0_SlotsPerFrm(8)) >> 24) + 1;
 
-			/* PXA2XX doesn't support DMYSTOP > 3 */
-			if (slot_width != (width * 2) && !cpu_is_pxa3xx())
-				return -EINVAL;
+			if (slots == 1 && slot_width == 16) {
+				if (!cpu_is_pxa3xx())
+					return -EINVAL;
 
-			sspsp |= SSPSP_DMYSTRT(1);
-			sspsp |= SSPSP_DMYSTOP(
-					(slot_width * slots) / 2 - width - 1);
-			sspsp |= SSPSP_SFRMWDTH((slot_width * slots) / 2);
+				sspsp |= SSPSP_DMYSTRT(1);
+				sspsp |= SSPSP_DMYSTOP(
+						slot_width * 2 - width - 1);
+				sspsp |= SSPSP_SFRMWDTH(slot_width * 2);
+			} else {
+				sspsp |= SSPSP_SFRMWDTH(slot_width * slots / 2);
+				sspsp |= SSPSP_FSRT;
+			}
 		}
 		break;
 
