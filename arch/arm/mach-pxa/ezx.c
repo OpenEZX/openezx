@@ -144,6 +144,11 @@ struct platform_device ezx_usb20_device = {
 	.resource   = ezx_usb20_resources,
 };
 
+struct platform_device ezx_rfkill_bluetooth_device = {
+	.name       = "rfkill_bluetooth",
+	.id     = -1,
+};
+
 /* MMC */
 static int ezx_mci_init(struct device *dev,
 		irqreturn_t (*detect_int)(int, void *), void *data)
@@ -823,6 +828,21 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 	.consumer_supplies = pcap_regulator_SW1_consumers,
 };
 
+/* V6: bluetooth on A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_V6_consumers[] = {
+	{ .dev = &ezx_rfkill_bluetooth_device.dev, .supply = "vbluetooth", },
+};
+
+static struct regulator_init_data pcap_regulator_V6_data = {
+	.constraints = {
+		.min_uV = 2475000,
+		.max_uV = 2775000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_V6_consumers),
+	.consumer_supplies = pcap_regulator_V6_consumers,
+};
+
 /* UDC */
 static void ezx_udc_command(int cmd)
 {
@@ -1381,6 +1401,10 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
 	}, {
+		.name		= "pcap-regulator",
+		.id		= V6,
+		.platform_data	= &pcap_regulator_V6_data,
+	}, {
 		.name		= "pcap-battery",
 		.id		= -1,
 	}, {
@@ -1512,6 +1536,10 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= V6,
+		.platform_data	= &pcap_regulator_V6_data,
 	}, {
 		.name		= "pcap-audio",
 		.id		= -1,
@@ -1763,6 +1791,10 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
 	}, {
+		.name		= "pcap-regulator",
+		.id		= V6,
+		.platform_data	= &pcap_regulator_V6_data,
+	}, {
 		.name		= "pcap-audio",
 		.id		= -1,
 	},
@@ -1892,6 +1924,10 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= V6,
+		.platform_data	= &pcap_regulator_V6_data,
 	}, {
 		.name		= "pcap-audio",
 		.id		= -1,
