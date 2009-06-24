@@ -1,6 +1,6 @@
 From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/camera
+Subject: [PATCH] ezx/mach/leds-lp3944_new
 
-Add camera support for A780 and A910
+Add support for leds-lp3944 to ezx phones
 
 Signed-off-by: Antonio Ospite <ao2@openezx.org>
