@@ -353,4 +353,11 @@ config KEYBOARD_EP93XX
 	  To compile this driver as a module, choose M here: the
 	  module will be called ep93xx_keypad.
 
+config KEYBOARD_PCAP
+        tristate "Motorola EZX PCAP events"
+        depends on EZX_PCAP
+        help
+          Say Y here if you want to use power key and jack events
+          on Motorola EZX 2nd generation phones
+
 endif
