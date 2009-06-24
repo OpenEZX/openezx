@@ -200,15 +200,6 @@ static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
 }
 
 /* ADC */
-static void pcap_disable_adc(struct pcap_chip *pcap)
-{
-	u32 tmp;
-
-	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
-	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
-	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
-}
-
 void pcap_set_ts_bits(struct pcap_chip *pcap, u32 bits)
 {
 	u32 tmp;
@@ -221,6 +212,15 @@ void pcap_set_ts_bits(struct pcap_chip *pcap, u32 bits)
 	mutex_unlock(&pcap->adc_mutex);
 }
 EXPORT_SYMBOL_GPL(pcap_set_ts_bits);
+
+static void pcap_disable_adc(struct pcap_chip *pcap)
+{
+	u32 tmp;
+
+	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
+	tmp &= ~(PCAP_ADC_ADEN|PCAP_ADC_BATT_I_ADC|PCAP_ADC_BATT_I_POLARITY);
+	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
+}
 
 static void pcap_adc_trigger(struct pcap_chip *pcap)
 {
@@ -235,17 +235,16 @@ static void pcap_adc_trigger(struct pcap_chip *pcap)
 		mutex_unlock(&pcap->adc_mutex);
 		return;
 	}
-	mutex_unlock(&pcap->adc_mutex);
-
-	/* start conversion on requested bank, preserve TS_M bits */
+	/* start conversion on requested bank, save TS_M bits */
 	ezx_pcap_read(pcap, PCAP_REG_ADC, &tmp);
-	tmp &= PCAP_ADC_TS_M_MASK;
+	tmp &= (PCAP_ADC_TS_M_MASK | PCAP_ADC_TS_REF_LOWPWR);
 	tmp |= pcap->adc_queue[head]->flags | PCAP_ADC_ADEN;
 
 	if (pcap->adc_queue[head]->bank == PCAP_ADC_BANK_1)
 		tmp |= PCAP_ADC_AD_SEL1;
 
 	ezx_pcap_write(pcap, PCAP_REG_ADC, tmp);
+	mutex_unlock(&pcap->adc_mutex);
 	ezx_pcap_write(pcap, PCAP_REG_ADR, PCAP_ADR_ASC);
 }
 
