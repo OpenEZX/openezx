@@ -119,7 +119,7 @@ config REGULATOR_LP3971
 
 config REGULATOR_PCAP
 	tristate "PCAP2 regulator driver"
-        depends on EZX_PCAP
+	depends on EZX_PCAP
 	help
 	 This driver provides support for the voltage regulators of the
 	 PCAP2 PMIC.
