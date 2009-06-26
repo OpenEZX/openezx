@@ -1,5 +1,5 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] mmc/pxamci-regulator-support
+Subject: [PATCH] mmc/workaround-regulator-bugs
 
 <patch description>
 
