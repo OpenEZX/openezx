@@ -80,7 +80,7 @@ static inline void pxamci_init_ocr(struct pxamci_host *host)
 	if (IS_ERR(host->vcc))
 		host->vcc = NULL;
 	else {
-		/* UGLY HACK:  workaround regulator framework bugs.
+		/*
 		 * When the bootloader leaves a supply active, it's
 		 * initialized with zero usecount ... and we can't
 		 * disable it without first enabling it.  Until the
