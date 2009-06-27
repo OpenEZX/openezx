@@ -27,12 +27,14 @@ struct pcap_rtc {
 static irqreturn_t pcap_rtc_irq(int irq, void *_pcap_rtc)
 {
 	struct pcap_rtc *pcap_rtc = _pcap_rtc;
-	unsigned long rtc_events = 0;
+	unsigned long rtc_events;
 
 	if (irq == pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_1HZ))
-		rtc_events |= RTC_IRQF | RTC_UF;
+		rtc_events = RTC_IRQF | RTC_UF;
 	else if (irq == pcap_to_irq(pcap_rtc->pcap, PCAP_IRQ_TODA))
-		rtc_events |= RTC_IRQF | RTC_AF;
+		rtc_events = RTC_IRQF | RTC_AF;
+	else
+		rtc_events = 0;
 
 	rtc_update_irq(pcap_rtc->rtc, 1, rtc_events);
 	return IRQ_HANDLED;
@@ -44,13 +46,14 @@ static int pcap_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
-	u32 tmp;
+	u32 tod;	/* time of day, seconds since midnight */
+	u32 days;	/* days since 1/1/1970 */
 
-	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TODA, &tmp);
-	secs = tmp & PCAP_RTC_TOD_MASK;
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TODA, &tod);
+	secs = tod & PCAP_RTC_TOD_MASK;
 
-	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, &tmp);
-	secs += (tmp & PCAP_RTC_DAY_MASK) * SEC_PER_DAY;
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, &days);
+	secs += (days & PCAP_RTC_DAY_MASK) * SEC_PER_DAY;
 
 	rtc_time_to_tm(secs, tm);
 
@@ -63,15 +66,15 @@ static int pcap_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	struct rtc_time *tm = &alrm->time;
 	unsigned long secs;
-	u32 tmp;
+	u32 tod, days;
 
 	rtc_tm_to_time(tm, &secs);
 
-	tmp = secs % SEC_PER_DAY;
-	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TODA, tmp);
+	tod = secs % SEC_PER_DAY;
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TODA, tod);
 
-	tmp = secs / SEC_PER_DAY;
-	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, tmp);
+	days = secs / SEC_PER_DAY;
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAYA, days);
 
 	return 0;
 }
@@ -81,13 +84,13 @@ static int pcap_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
 	unsigned long secs;
-	u32 tmp;
+	u32 tod, days;
 
-	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TOD, &tmp);
-	secs = tmp & PCAP_RTC_TOD_MASK;
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_TOD, &tod);
+	secs = tod & PCAP_RTC_TOD_MASK;
 
-	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAY, &tmp);
-	secs += (tmp & PCAP_RTC_DAY_MASK) * SEC_PER_DAY;
+	ezx_pcap_read(pcap_rtc->pcap, PCAP_REG_RTC_DAY, &days);
+	secs += (days & PCAP_RTC_DAY_MASK) * SEC_PER_DAY;
 
 	rtc_time_to_tm(secs, tm);
 
@@ -98,19 +101,18 @@ static int pcap_rtc_set_mmss(struct device *dev, unsigned long secs)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
-	u32 tmp;
+	u32 tod, days;
 
-	tmp = secs % SEC_PER_DAY;
-	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TOD, tmp);
+	tod = secs % SEC_PER_DAY;
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_TOD, tod);
 
-	tmp = secs / SEC_PER_DAY;
-	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAY, tmp);
+	days = secs / SEC_PER_DAY;
+	ezx_pcap_write(pcap_rtc->pcap, PCAP_REG_RTC_DAY, days);
 
 	return 0;
 }
 
-static inline int pcap_rtc_irq_enable(struct device *dev, int pirq,
-							unsigned int en)
+static int pcap_rtc_irq_enable(struct device *dev, int pirq, unsigned int en)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct pcap_rtc *pcap_rtc = platform_get_drvdata(pdev);
