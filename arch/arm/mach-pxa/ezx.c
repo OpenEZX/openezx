@@ -1375,6 +1375,9 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-battery",
+		.id		= -1,
 	},
 };
 
