@@ -1,7 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH] MFD/PCAP fix irq bottom handler
+Subject: [PATCH] pcap/set_bits
 
-Mask interrupts before servicing them and loop while pcap asserts the interrupt
-line.
+<patch description>
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
