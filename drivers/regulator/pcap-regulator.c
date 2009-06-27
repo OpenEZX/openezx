@@ -156,9 +156,9 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 	void *pcap = rdev_get_drvdata(rdev);
 	int uV;
-	u32 tmp;
 	u8 i;
 
+	/* the regulator doesn't support voltage switching */
 	if (vreg->n_voltages == 1)
 		return -EINVAL;
 
@@ -170,17 +170,16 @@ static int pcap_regulator_set_voltage(struct regulator_dev *rdev,
 			i = 0;
 
 		uV = vreg->voltage_table[i] * 1000;
-		if (min_uV <= uV && uV <= max_uV) {
-			ezx_pcap_read(pcap, vreg->reg, &tmp);
-			tmp &= ~((vreg->n_voltages - 1) << vreg->index);
-			tmp |= i << vreg->index;
-			ezx_pcap_write(pcap, vreg->reg, tmp);
-			return 0;
-		}
+		if (min_uV <= uV && uV <= max_uV)
+			return ezx_pcap_set_bits(pcap, vreg->reg,
+					(vreg->n_voltages - 1) << vreg->index,
+					i << vreg->index);
+
 		if (i == 0 && rdev_get_id(rdev) == V1)
 			i = vreg->n_voltages - 1;
 	}
 
+	/* the requested voltage range is not supported by this regulator */
 	return -EINVAL;
 }
 
@@ -205,32 +204,22 @@ static int pcap_regulator_enable(struct regulator_dev *rdev)
 {
 	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 	void *pcap = rdev_get_drvdata(rdev);
-	u32 tmp;
 
 	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(pcap, vreg->reg, &tmp);
-	tmp |= (1 << vreg->en);
-	ezx_pcap_write(pcap, vreg->reg, tmp);
-
-	return 0;
+	return ezx_pcap_set_bits(pcap, vreg->reg, 1 << vreg->en, 1 << vreg->en);
 }
 
 static int pcap_regulator_disable(struct regulator_dev *rdev)
 {
 	struct pcap_regulator *vreg = &vreg_table[rdev_get_id(rdev)];
 	void *pcap = rdev_get_drvdata(rdev);
-	u32 tmp;
 
 	if (vreg->en == NA)
 		return -EINVAL;
 
-	ezx_pcap_read(pcap, vreg->reg, &tmp);
-	tmp &= ~(1 << vreg->en);
-	ezx_pcap_write(pcap, vreg->reg, tmp);
-
-	return 0;
+	return ezx_pcap_set_bits(pcap, vreg->reg, 1 << vreg->en, 0);
 }
 
 static int pcap_regulator_is_enabled(struct regulator_dev *rdev)
@@ -290,13 +279,6 @@ static int __devinit pcap_regulator_probe(struct platform_device *pdev)
 		return PTR_ERR(rdev);
 
 	platform_set_drvdata(pdev, rdev);
-
-	/*
-	 * The regulator framework doesn't like regulators which default
-	 * to ON at boot time, so we just disable it here (when it is safe).
-	 */
-	if (pdev->id == VAUX2 || pdev->id == VAUX3)
-		pcap_regulator_disable(rdev);
 
 	return 0;
 }
