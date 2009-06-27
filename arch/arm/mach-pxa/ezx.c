@@ -20,6 +20,9 @@
 #include <linux/gpio_keys.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/gpio.h>
+#include <linux/spi/spi.h>
+#include <linux/mfd/ezx-pcap.h>
 #include <linux/leds-lp3944.h>
 
 #include <media/soc_camera.h>
@@ -35,7 +38,9 @@
 #include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/pxa2xx_spi.h>
 #include <mach/camera.h>
+#include <mach/irqs.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -45,6 +50,8 @@
 #define GPIO15_A910_FLIP_LID 		15
 #define GPIO12_E680_LOCK_SWITCH 	12
 #define GPIO15_E6_LOCK_SWITCH 		15
+#define GPIO1_PCAP_IRQ			1
+#define GPIO24_PCAP_CS			24
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -664,6 +671,21 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
+/* SPI */
+static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
+	.tx_threshold   = 1,
+	.rx_threshold   = 1,
+	.dma_burst_size = 0,
+	.timeout        = 100,
+	.gpio_cs	= GPIO24_PCAP_CS,
+};
+
+static struct pxa2xx_spi_master ezx_spi_masterinfo = {
+	.clock_enable   = CKEN_SSP1,
+	.num_chipselect = 1,
+	.enable_dma     = 1,
+};
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -753,6 +775,33 @@ static struct platform_device gen2_flash_device = {
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
+static struct pcap_subdev a780_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data a780_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_SECOND_PORT,
+	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
+	.subdevs	= a780_pcap_subdevs,
+};
+
+static struct spi_board_info a780_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a780_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
 	[0] = {
@@ -851,12 +900,19 @@ static struct platform_device *a780_devices[] __initdata = {
 
 static void __init a780_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a780_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -880,6 +936,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+static struct pcap_subdev e680_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data e680_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_SECOND_PORT,
+	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
+	.subdevs	= e680_pcap_subdevs,
+};
+
+static struct spi_board_info e680_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e680_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button e680_buttons[] = {
 	[0] = {
@@ -916,12 +999,19 @@ static struct platform_device *e680_devices[] __initdata = {
 
 static void __init e680_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e680_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_1);
 
@@ -943,6 +1033,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+static struct pcap_subdev a1200_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data a1200_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
+	.subdevs	= a1200_pcap_subdevs,
+};
+
+static struct spi_board_info a1200_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a1200_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a1200_buttons[] = {
 	[0] = {
@@ -979,12 +1096,19 @@ static struct platform_device *a1200_devices[] __initdata = {
 
 static void __init a1200_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a1200_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1006,6 +1130,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+static struct pcap_subdev a910_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data a910_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
+	.subdevs	= a910_pcap_subdevs,
+};
+
+static struct spi_board_info a910_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a910_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a910_buttons[] = {
 	[0] = {
@@ -1135,12 +1286,19 @@ static struct platform_device *a910_devices[] __initdata = {
 
 static void __init a910_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1164,6 +1322,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+static struct pcap_subdev e6_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data e6_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
+	.subdevs	= e6_pcap_subdevs,
+};
+
+static struct spi_board_info e6_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e6_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button e6_buttons[] = {
 	[0] = {
@@ -1200,12 +1385,19 @@ static struct platform_device *e6_devices[] __initdata = {
 
 static void __init e6_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e6_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1227,6 +1419,33 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
+static struct pcap_subdev e2_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	},
+};
+
+static struct pcap_platform_data e2_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
+	.subdevs	= e2_pcap_subdevs,
+};
+
+static struct spi_board_info e2_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e2_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{ I2C_BOARD_INFO("tea5767", 0x81) },
 };
@@ -1237,12 +1456,19 @@ static struct platform_device *e2_devices[] __initdata = {
 
 static void __init e2_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e2_spi_boardinfo));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
