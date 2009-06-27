@@ -1197,6 +1197,9 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.name		= "pcap-adc",
 		.id		= -1,
 	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
@@ -1303,6 +1306,9 @@ MACHINE_END
 static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
@@ -1530,6 +1536,9 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 		.name		= "pcap-adc",
 		.id		= -1,
 	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
@@ -1636,6 +1645,9 @@ MACHINE_END
 static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",

@@ -1,8 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: EZX: PCAP2 LED setup
+Subject: EZX: PCAP2 RTC setup
 To: linux-arm-kernel@lists.arm.linux.org.uk
 Cc: eric.y.miao@gmail.com
 
-PCAP2 LED driver board setup.
+AP2 RTC driver board setup.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
