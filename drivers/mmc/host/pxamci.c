@@ -80,6 +80,18 @@ static inline void pxamci_init_ocr(struct pxamci_host *host)
 	if (IS_ERR(host->vcc))
 		host->vcc = NULL;
 	else {
+		/*
+		 * When the bootloader leaves a supply active, it's
+		 * initialized with zero usecount ... and we can't
+		 * disable it without first enabling it.  Until the
+		 * framework is fixed, we need a workaround like this
+		 * (which is safe for MMC, but not in general).
+		 */
+		if (regulator_is_enabled(host->vcc) > 0) {
+			regulator_enable(host->vcc);
+			regulator_disable(host->vcc);
+		}
+
 		host->mmc->ocr_avail = mmc_regulator_get_ocrmask(host->vcc);
 		if (host->pdata && host->pdata->ocr_mask)
 			dev_warn(mmc_dev(host->mmc),
