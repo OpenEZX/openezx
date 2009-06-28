@@ -126,7 +126,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
-	if (!pcap_ts || !input_dev)
+	if (!input_dev)
 		goto fail;
 
 	INIT_DELAYED_WORK(&pcap_ts->work, pcap_ts_work);
@@ -202,15 +202,16 @@ static int pcap_ts_resume(struct platform_device *pdev)
 				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
 }
+#else
+#define pcap_ts_suspend	NULL
+#define pcap_ts_resume	NULL
 #endif
 
 static struct platform_driver pcap_ts_driver = {
 	.probe		= pcap_ts_probe,
 	.remove		= __devexit_p(pcap_ts_remove),
-#ifdef CONFIG_PM
 	.suspend	= pcap_ts_suspend,
 	.resume		= pcap_ts_resume,
-#endif
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
