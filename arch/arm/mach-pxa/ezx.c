@@ -749,7 +749,7 @@ static struct regulator_init_data pcap_regulator_VAUX2_data = {
 	.constraints = {
 		.min_uV = 1875000,
 		.max_uV = 3000000,
-		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
 					REGULATOR_CHANGE_VOLTAGE,
 	},
 	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX2_consumers),
@@ -765,7 +765,7 @@ static struct regulator_init_data pcap_regulator_VAUX3_data = {
 	.constraints = {
 		.min_uV = 1200000,
 		.max_uV = 3600000,
-		.valid_ops_mask = REGULATOR_CHANGE_STATUS | 
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
 					REGULATOR_CHANGE_VOLTAGE,
 	},
 	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX3_consumers),
@@ -780,7 +780,7 @@ static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
 static struct regulator_init_data pcap_regulator_SW1_data = {
 	.constraints = {
 		.min_uV = 950000,
-		.max_uV = 1705000,
+		.max_uV = 1600000,
 		.always_on = 1,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
 	},
@@ -975,6 +975,10 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-leds",
 		.id		= -1,
 		.platform_data	= &a780_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1187,6 +1191,10 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 		.platform_data	= &e680_pcap_leds,
 	}, {
 		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
 	},
@@ -1308,6 +1316,10 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
 	},
@@ -1424,6 +1436,10 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
@@ -1667,6 +1683,10 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
 	},
@@ -1783,6 +1803,10 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-keys",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
 	}, {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
