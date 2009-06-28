@@ -1,6 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 07/14] EZX: MMC Support
+Subject: EZX: PCAP2 based TS support
 
-Add pxa mci info.
+Board info for the PCAP2 based touchscreen
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
