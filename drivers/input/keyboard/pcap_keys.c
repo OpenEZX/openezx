@@ -52,7 +52,7 @@ static irqreturn_t pcap_keys_handler(int irq, void *_pcap_keys)
 	return IRQ_HANDLED;
 }
 
-static int __init pcap_keys_probe(struct platform_device *pdev)
+static int __devinit pcap_keys_probe(struct platform_device *pdev)
 {
 	int err = -ENOMEM;
 	struct pcap_keys *pcap_keys;
@@ -72,15 +72,19 @@ static int __init pcap_keys_probe(struct platform_device *pdev)
 	pcap_keys->input->phys = "pcap-keys/input0";
 	pcap_keys->input->dev.parent = &pdev->dev;
 
-	pcap_keys->input->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_SW);
-	set_bit(KEY_POWER, pcap_keys->input->keybit);
-	set_bit(SW_HEADPHONE_INSERT, pcap_keys->input->swbit);
-	set_bit(KEY_HP, pcap_keys->input->keybit);
+	__set_bit(EV_KEY, pcap_keys->input->evbit);
+	__set_bit(KEY_POWER, pcap_keys->input->keybit);
+	__set_bit(SW_HEADPHONE_INSERT, pcap_keys->input->swbit);
+	__set_bit(KEY_HP, pcap_keys->input->keybit);
+
+	err = input_register_device(pcap_keys->input);
+	if (err)
+		goto fail_allocate;
 
 	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_ONOFF),
 			pcap_keys_handler, 0, "Power key", pcap_keys);
 	if (err)
-		goto fail_dev;
+		goto fail_register;
 
 	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_HS),
 			pcap_keys_handler, 0, "Headphone jack", pcap_keys);
@@ -92,26 +96,23 @@ static int __init pcap_keys_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_jack;
 
-	err = input_register_device(pcap_keys->input);
-	if (err)
-		goto fail_mic;
-
 	return 0;
 
-fail_mic:
-	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_MIC), pcap_keys);
 fail_jack:
 	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_HS), pcap_keys);
 fail_pwrkey:
 	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_ONOFF), pcap_keys);
-fail_dev:
+fail_register:
+	input_unregister_device(pcap_keys->input);
+	goto fail;
+fail_allocate:
 	input_free_device(pcap_keys->input);
 fail:
 	kfree(pcap_keys);
 	return err;
 }
 
-static int pcap_keys_remove(struct platform_device *pdev)
+static int __devexit pcap_keys_remove(struct platform_device *pdev)
 {
 	struct pcap_keys *pcap_keys = platform_get_drvdata(pdev);
 
@@ -127,7 +128,7 @@ static int pcap_keys_remove(struct platform_device *pdev)
 
 static struct platform_driver pcap_keys_device_driver = {
 	.probe		= pcap_keys_probe,
-	.remove		= pcap_keys_remove,
+	.remove		= __devexit_p(pcap_keys_remove),
 	.driver		= {
 		.name	= "pcap-keys",
 		.owner	= THIS_MODULE,
