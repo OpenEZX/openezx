@@ -126,7 +126,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
-	if (!pcap_ts || !input_dev)
+	if (!input_dev)
 		goto fail;
 
 	INIT_DELAYED_WORK(&pcap_ts->work, pcap_ts_work);
@@ -150,23 +150,25 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	input_set_abs_params(input_dev, ABS_PRESSURE, PRESSURE_MIN,
 			     PRESSURE_MAX, 0, 0);
 
+	err = input_register_device(pcap_ts->input);
+	if (err)
+		goto fail_allocate;
+
 	err = request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
 			pcap_ts_event_touch, 0, "Touch Screen", pcap_ts);
 	if (err)
-		goto fail;
-
-	err = input_register_device(pcap_ts->input);
-	if (err)
-		goto fail_touch;
+		goto fail_register;
 
 	schedule_delayed_work(&pcap_ts->work, 0);
 
 	return 0;
 
-fail_touch:
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
-fail:
+fail_register:
+	input_unregister_device(input_dev);
+	goto fail;
+fail_allocate:
 	input_free_device(input_dev);
+fail:
 	kfree(pcap_ts);
 
 	return err;
@@ -202,15 +204,16 @@ static int pcap_ts_resume(struct platform_device *pdev)
 				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
 }
+#else
+#define pcap_ts_suspend	NULL
+#define pcap_ts_resume	NULL
 #endif
 
 static struct platform_driver pcap_ts_driver = {
 	.probe		= pcap_ts_probe,
 	.remove		= __devexit_p(pcap_ts_remove),
-#ifdef CONFIG_PM
 	.suspend	= pcap_ts_suspend,
 	.resume		= pcap_ts_resume,
-#endif
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
