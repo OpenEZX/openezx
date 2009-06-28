@@ -20,6 +20,7 @@
 #include <linux/gpio_keys.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/leds-lp3944.h>
 
 #include <media/soc_camera.h>
 
@@ -1073,10 +1074,57 @@ static struct soc_camera_link a910_iclink = {
 	.reset = a910_pxacamera_reset,
 };
 
+/* leds-lp3944 */
+static struct lp3944_platform_data a910_lp3944_leds = {
+	.leds_size = LP3944_LEDS_MAX,
+	.leds = {
+		[0] = {
+			.name = "a910:red:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[1] = {
+			.name = "a910:green:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[2] {
+			.name = "a910:blue:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		/* Leds 3 and 4 are used as display power switches */
+		[3] = {
+			.name = "a910::cli_display",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[4] = {
+			.name = "a910::main_display",
+			.status = LP3944_LED_STATUS_ON,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[5] = { .type = LP3944_LED_TYPE_NONE },
+		[6] = {
+			.name = "a910::torch",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[7] = {
+			.name = "a910::flash",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED,
+		},
+	},
+};
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("mt9m111", 0x5d),
 		.platform_data = &a910_iclink,
+	}, {
+		I2C_BOARD_INFO("lp3944", 0x60),
+		.platform_data = &a910_lp3944_leds,
 	},
 };
 
