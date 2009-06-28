@@ -24,6 +24,7 @@
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/leds-lp3944.h>
+#include <linux/regulator/machine.h>
 
 #include <media/soc_camera.h>
 
@@ -686,6 +687,55 @@ static struct pxa2xx_spi_master ezx_spi_masterinfo = {
 	.enable_dma     = 1,
 };
 
+/* voltage regulators */
+/* VAUX2: MMC on E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_VAUX2_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX2_data = {
+	.constraints = {
+		.min_uV = 1875000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX2_consumers),
+	.consumer_supplies = pcap_regulator_VAUX2_consumers,
+};
+
+/* VAUX3: MMC on A780, A1200, A910 */
+static struct regulator_consumer_supply pcap_regulator_VAUX3_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX3_data = {
+	.constraints = {
+		.min_uV = 1200000,
+		.max_uV = 3600000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX3_consumers),
+	.consumer_supplies = pcap_regulator_VAUX3_consumers,
+};
+
+/* SW1: CORE on A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
+	{ .supply = "vcc_core", },
+};
+
+static struct regulator_init_data pcap_regulator_SW1_data = {
+	.constraints = {
+		.min_uV = 950000,
+		.max_uV = 1600000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_SW1_consumers),
+	.consumer_supplies = pcap_regulator_SW1_consumers,
+};
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -779,6 +829,14 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
 	},
 };
 
@@ -922,6 +980,7 @@ static void __init a780_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
@@ -940,6 +999,14 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
 	},
 };
 
@@ -1019,6 +1086,7 @@ static void __init e680_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e680_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
@@ -1037,6 +1105,14 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
 	},
 };
 
@@ -1116,6 +1192,7 @@ static void __init a1200_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a1200_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
@@ -1134,6 +1211,14 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
 	},
 };
 
@@ -1308,6 +1393,7 @@ static void __init a910_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
@@ -1326,6 +1412,14 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
 	},
 };
 
@@ -1405,6 +1499,7 @@ static void __init e6_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e6_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
@@ -1423,6 +1518,14 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
 		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
 	},
 };
 
@@ -1476,6 +1579,7 @@ static void __init e2_init(void)
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")

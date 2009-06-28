@@ -1,8 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: EZX: PCAP2 config
-To: linux-arm-kernel@lists.arm.linux.org.uk
-Cc: eric.y.miao@gmail.com
+Subject: [PATCH] ezx/mach/pcap-regulator
 
-PCAP2 board info.
+<patch description>
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
