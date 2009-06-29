@@ -38,10 +38,6 @@ static irqreturn_t pcap_keys_handler(int irq, void *_pcap_keys)
 	case PCAP_IRQ_ONOFF:
 		input_report_key(pcap_keys->input, KEY_POWER, !pstat);
 		break;
-	case PCAP_IRQ_HS:
-		input_report_switch(pcap_keys->input,
-				SW_HEADPHONE_INSERT, !pstat);
-		break;
 	case PCAP_IRQ_MIC:
 		input_report_key(pcap_keys->input, KEY_HP, !pstat);
 		break;
@@ -56,6 +52,7 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 {
 	int err = -ENOMEM;
 	struct pcap_keys *pcap_keys;
+	struct input_dev *input_dev;
 
 	pcap_keys = kmalloc(sizeof(struct pcap_keys), GFP_KERNEL);
 	if (!pcap_keys)
@@ -63,21 +60,23 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 
 	pcap_keys->pcap = platform_get_drvdata(pdev);
 
-	pcap_keys->input = input_allocate_device();
-	if (!pcap_keys->input)
+	input_dev = input_allocate_device();
+	if (!input_dev)
 		goto fail;
 
+	pcap_keys->input = input_dev;
+
 	platform_set_drvdata(pdev, pcap_keys);
-	pcap_keys->input->name = pdev->name;
-	pcap_keys->input->phys = "pcap-keys/input0";
-	pcap_keys->input->dev.parent = &pdev->dev;
+	input_dev->name = pdev->name;
+	input_dev->phys = "pcap-keys/input0";
+	input_dev->id.bustype = BUS_HOST;
+	input_dev->dev.parent = &pdev->dev;
 
-	__set_bit(EV_KEY, pcap_keys->input->evbit);
-	__set_bit(KEY_POWER, pcap_keys->input->keybit);
-	__set_bit(SW_HEADPHONE_INSERT, pcap_keys->input->swbit);
-	__set_bit(KEY_HP, pcap_keys->input->keybit);
+	__set_bit(EV_KEY, input_dev->evbit);
+	__set_bit(KEY_POWER, input_dev->keybit);
+	__set_bit(KEY_HP, input_dev->keybit);
 
-	err = input_register_device(pcap_keys->input);
+	err = input_register_device(input_dev);
 	if (err)
 		goto fail_allocate;
 
@@ -86,27 +85,20 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_register;
 
-	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_HS),
-			pcap_keys_handler, 0, "Headphone jack", pcap_keys);
-	if (err)
-		goto fail_pwrkey;
-
 	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_MIC),
 			pcap_keys_handler, 0, "MIC jack/button", pcap_keys);
 	if (err)
-		goto fail_jack;
+		goto fail_pwrkey;
 
 	return 0;
 
-fail_jack:
-	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_HS), pcap_keys);
 fail_pwrkey:
 	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_ONOFF), pcap_keys);
 fail_register:
-	input_unregister_device(pcap_keys->input);
+	input_unregister_device(input_dev);
 	goto fail;
 fail_allocate:
-	input_free_device(pcap_keys->input);
+	input_free_device(input_dev);
 fail:
 	kfree(pcap_keys);
 	return err;
@@ -117,7 +109,6 @@ static int __devexit pcap_keys_remove(struct platform_device *pdev)
 	struct pcap_keys *pcap_keys = platform_get_drvdata(pdev);
 
 	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_ONOFF), pcap_keys);
-	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_HS), pcap_keys);
 	free_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_MIC), pcap_keys);
 
 	input_unregister_device(pcap_keys->input);
