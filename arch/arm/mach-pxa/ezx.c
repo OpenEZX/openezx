@@ -1879,6 +1879,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e6_init(void)
