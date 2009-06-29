@@ -21,6 +21,7 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
+#include <sound/jack.h>
 #include <linux/mfd/ezx-pcap.h>
 
 #include "pcap2.h"
@@ -566,6 +567,88 @@ static int pcap2_codec_resume(struct platform_device *pdev)
 	return 0;
 }
 
+
+/* headset jack setup */
+struct pcap_jack {
+	struct pcap_chip *pcap;
+	struct snd_soc_jack *jack;
+};
+
+static struct snd_soc_jack_pin pcap2_jack_pins[] = {
+	{
+		.pin = "External Mic",
+		.mask = SND_JACK_MICROPHONE,
+	},
+	{
+		.pin = "Headset",
+		.mask = SND_JACK_HEADPHONE,
+	},
+};
+
+static irqreturn_t pcap2_hs_jack_irq(int irq, void *data)
+{
+	struct pcap_jack *pcap_jack = data;
+	struct snd_soc_jack *jack = pcap_jack->jack;
+	int pirq = irq_to_pcap(pcap_jack->pcap, irq);
+	u32 pstat;
+
+	ezx_pcap_read(pcap_jack->pcap, PCAP_REG_PSTAT, &pstat);
+	pstat &= 1 << pirq;
+
+	printk(KERN_DEBUG "IRQ HS.\n");
+	if (pstat)
+		snd_soc_jack_report(jack, SND_JACK_HEADSET, SND_JACK_HEADSET);
+	else
+		snd_soc_jack_report(jack, 0, SND_JACK_HEADSET);
+
+	return IRQ_HANDLED;
+}
+
+static int pcap2_jack_init(struct snd_soc_device *socdev)
+{
+	int err = -ENOMEM;
+	struct snd_soc_card *card = socdev->card;
+	struct pcap_chip *pcap = socdev->card->codec->dai->private_data;
+	struct snd_soc_jack *jack;
+	struct pcap_jack *pcap_jack;
+
+	pcap_jack = kmalloc(sizeof(*pcap_jack), GFP_KERNEL);
+	if (!pcap_jack)
+		goto out;
+
+	pcap_jack->pcap = pcap;
+
+	jack = kmalloc(sizeof(*jack), GFP_KERNEL);
+	if (!jack)
+		goto fail_jack_alloc;
+
+	pcap_jack->jack = jack;
+
+	err = snd_soc_jack_new(card, "Headset", SND_JACK_HEADSET, jack);
+	if (err)
+		goto fail;
+
+	err = snd_soc_jack_add_pins(jack, ARRAY_SIZE(pcap2_jack_pins),
+				pcap2_jack_pins);
+	if (err)
+		goto fail;
+
+
+	err = request_irq(pcap_to_irq(pcap, PCAP_IRQ_HS), pcap2_hs_jack_irq, 0,
+			"Headset jack", pcap_jack);
+	if (err)
+		goto fail;
+
+	return 0;
+
+fail:
+	kfree(jack);
+fail_jack_alloc:
+	kfree(pcap_jack);
+out:
+	return err;
+}
+
 /*
  * initialise the PCAP2 driver
  * register the mixer and dsp interfaces with the kernel
@@ -602,6 +685,13 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 /*	pcap2_dai_mode = DAI_AP_ST;
 	pcap2_set_dai_mode(codec, pcap2_dai_mode); */
+
+
+	ret = pcap2_jack_init(socdev);
+
+	// FIXME, here just to make sure snd_jack_dev_register() gets called
+	snd_device_register_all(socdev->card->codec->card);
+
 
 	return ret;
 }
@@ -641,6 +731,7 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 	return 0;
 }
+
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
 	pcap2_dai[0].private_data = platform_get_drvdata(pdev);
