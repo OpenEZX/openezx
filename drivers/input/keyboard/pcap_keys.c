@@ -72,7 +72,7 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 	pcap_keys->input->phys = "pcap-keys/input0";
 	pcap_keys->input->dev.parent = &pdev->dev;
 
-	__set_bit(EV_KEY, pcap_keys->input->evbit);
+	pcap_keys->input->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_SW);
 	__set_bit(KEY_POWER, pcap_keys->input->keybit);
 	__set_bit(SW_HEADPHONE_INSERT, pcap_keys->input->swbit);
 	__set_bit(KEY_HP, pcap_keys->input->keybit);
