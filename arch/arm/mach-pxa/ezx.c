@@ -1028,6 +1028,9 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
 		.name		= "pcap-leds",
 		.id		= -1,
 		.platform_data	= &a780_pcap_leds,
