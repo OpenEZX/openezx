@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.30
-# Tue Jun 23 11:33:33 2009
+# Linux kernel version: 2.6.31-rc1
+# Tue Jun 30 00:26:48 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -861,7 +861,6 @@ CONFIG_INPUT_KEYBOARD=y
 # CONFIG_KEYBOARD_LM8323 is not set
 CONFIG_KEYBOARD_PXA27x=y
 CONFIG_KEYBOARD_GPIO=y
-CONFIG_KEYBOARD_PCAP=y
 # CONFIG_INPUT_MOUSE is not set
 # CONFIG_INPUT_JOYSTICK is not set
 # CONFIG_INPUT_TABLET is not set
@@ -896,6 +895,7 @@ CONFIG_INPUT_MISC=y
 # CONFIG_INPUT_CM109 is not set
 CONFIG_INPUT_UINPUT=y
 # CONFIG_INPUT_GPIO_ROTARY_ENCODER is not set
+CONFIG_INPUT_PCAP=y
 
 #
 # Hardware I/O ports
@@ -950,6 +950,7 @@ CONFIG_I2C_HELPER_AUTO=y
 #
 # I2C system bus drivers (mostly embedded / system-on-chip)
 #
+# CONFIG_I2C_DESIGNWARE is not set
 # CONFIG_I2C_GPIO is not set
 # CONFIG_I2C_OCORES is not set
 CONFIG_I2C_PXA=y
@@ -1030,6 +1031,7 @@ CONFIG_POWER_SUPPLY=y
 # CONFIG_APM_POWER is not set
 # CONFIG_BATTERY_DS2760 is not set
 # CONFIG_BATTERY_BQ27x00 is not set
+# CONFIG_BATTERY_MAX17040 is not set
 CONFIG_BATTERY_PCAP=y
 # CONFIG_HWMON is not set
 # CONFIG_THERMAL is not set
