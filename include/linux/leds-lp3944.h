@@ -40,11 +40,7 @@ enum lp3944_type {
 };
 
 struct lp3944_led {
-	u8 id;
-	struct i2c_client *client;
 	char *name;
-	struct led_classdev ldev;
-	struct work_struct work;
 	enum lp3944_type type;
 	enum lp3944_status status;
 };
