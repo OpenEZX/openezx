@@ -74,6 +74,7 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 
 	__set_bit(EV_KEY, input_dev->evbit);
 	__set_bit(KEY_POWER, input_dev->keybit);
+	__set_bit(SW_HEADPHONE_INSERT, input_dev->swbit);
 	__set_bit(KEY_HP, input_dev->keybit);
 
 	err = input_register_device(input_dev);
