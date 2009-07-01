@@ -63,7 +63,7 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 			pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
 			schedule_delayed_work(&pcap_ts->work, 0);
 		} else {
-			/* pen is touching the screen*/
+			/* pen is touching the screen */
 			input_report_abs(pcap_ts->input, ABS_X, pcap_ts->x);
 			input_report_abs(pcap_ts->input, ABS_Y, pcap_ts->y);
 			input_report_key(pcap_ts->input, BTN_TOUCH, 1);
