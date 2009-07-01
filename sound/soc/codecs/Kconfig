@@ -92,6 +92,7 @@ config SND_SOC_L3
 
 config SND_SOC_PCAP2
 	tristate
+  select SND_JACK if INPUT=y || INPUT=SND
 	depends on EZX_PCAP
 
 config SND_SOC_PCM3008
