@@ -1048,6 +1048,9 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
 		.name		= "pcap-leds",
 		.id		= -1,
 		.platform_data	= &a780_pcap_leds,
@@ -1879,6 +1882,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e6_init(void)
