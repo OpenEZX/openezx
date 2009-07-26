@@ -188,35 +188,39 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int pcap_ts_suspend(struct platform_device *pdev, pm_message_t state)
+static int pcap_ts_suspend(struct device *dev)
 {
-	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+	struct pcap_ts *pcap_ts = dev_get_drvdata(dev);
 
 	pcap_set_ts_bits(pcap_ts->pcap, PCAP_ADC_TS_REF_LOWPWR);
 	return 0;
 }
 
-static int pcap_ts_resume(struct platform_device *pdev)
+static int pcap_ts_resume(struct device *dev)
 {
-	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
+	struct pcap_ts *pcap_ts = dev_get_drvdata(dev);
 
 	pcap_set_ts_bits(pcap_ts->pcap,
 				pcap_ts->read_state << PCAP_ADC_TS_M_SHIFT);
 	return 0;
 }
+
+static struct dev_pm_ops pcap_ts_pm_ops = {
+	.suspend	= pcap_ts_suspend,
+	.resume		= pcap_ts_resume,
+};
+#define PCAP_TS_PM_OPS (&pcap_ts_pm_ops)
 #else
-#define pcap_ts_suspend	NULL
-#define pcap_ts_resume	NULL
+#define PCAP_TS_PM_OPS NULL
 #endif
 
 static struct platform_driver pcap_ts_driver = {
 	.probe		= pcap_ts_probe,
 	.remove		= __devexit_p(pcap_ts_remove),
-	.suspend	= pcap_ts_suspend,
-	.resume		= pcap_ts_resume,
 	.driver		= {
 		.name	= "pcap-ts",
 		.owner	= THIS_MODULE,
+		.pm	= PCAP_TS_PM_OPS,
 	},
 };
 
