@@ -214,14 +214,15 @@ static int ezxbp_remove(struct platform_device *dev)
 	return 0;
 }
 
-static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
+#ifdef CONFIG_PM
+static int ezxbp_suspend(struct device *dev)
 {
 	DEBUGP("bp suspend!\n");
 //	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
-static int ezxbp_resume(struct platform_device *dev)
+static int ezxbp_resume(struct device *dev)
 {
 	DEBUGP("bp resume!\n");
 //	gpio_set_value(bp->ap_rdy, 1);
@@ -230,14 +231,22 @@ static int ezxbp_resume(struct platform_device *dev)
 	return 0;
 }
 
+static struct dev_pm_ops ezxbp_pm_ops = {
+	.suspend	= ezxbp_suspend,
+	.resume		= ezxbp_resume,
+};
+#define EZXBP_PM_OPS (&ezxbp_pm_ops)
+#else
+#define EZXBP_PM_OPS NULL
+#endif
+
 static struct platform_driver ezxbp_driver = {
 	.probe		= ezxbp_probe,
 	.remove		= ezxbp_remove,
-	.suspend	= ezxbp_suspend,
-	.resume		= ezxbp_resume,
 	.driver		= {
 		.name	= "ezx-bp",
 		.owner	= THIS_MODULE,
+		.pm	= EZXBP_PM_OPS,
 	},
 };
 
