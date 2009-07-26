@@ -172,20 +172,31 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 
 static int __init ezxbp_probe(struct platform_device *pdev)
 {
+	int err;
+
 	bp = pdev->dev.platform_data;
 	step = bp->first_step;
 
-	request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler,
+	err = request_irq(gpio_to_irq(bp->bp_wdi), bp_wdi_handler,
 			IRQF_TRIGGER_FALLING, "bp wdi", bp);
+	if (err)
+		goto fail;
+
 	set_irq_wake(gpio_to_irq(bp->bp_wdi), 1);
 
-	request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
+	err = request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
 			IRQF_TRIGGER_RISING, "bp rdy", bp);
+	if (err)
+		goto fail_rdy;
+
 	set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 
 	if (bp->bp_wdi2 >= 0) {
-		request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
+		err = request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
 				IRQF_TRIGGER_FALLING, "bp wdi2", bp);
+		if (err)
+			goto fail_wdi2;
+
 		set_irq_wake(gpio_to_irq(bp->bp_wdi2), 1);
 	}
 	gpio_request(bp->bp_reset, "BP reset");
@@ -200,6 +211,13 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	handshake();
 
 	return 0;
+
+fail_wdi2:
+	free_irq(gpio_to_irq(bp->bp_rdy), bp);
+fail_rdy:
+	free_irq(gpio_to_irq(bp->bp_wdi), bp);
+fail:
+	return err;
 }
 
 static int ezxbp_remove(struct platform_device *dev)
@@ -214,14 +232,15 @@ static int ezxbp_remove(struct platform_device *dev)
 	return 0;
 }
 
-static int ezxbp_suspend(struct platform_device *dev, pm_message_t state)
+#ifdef CONFIG_PM
+static int ezxbp_suspend(struct device *dev)
 {
 	DEBUGP("bp suspend!\n");
 //	gpio_set_value(bp->ap_rdy, 0);
 	return 0;
 }
 
-static int ezxbp_resume(struct platform_device *dev)
+static int ezxbp_resume(struct device *dev)
 {
 	DEBUGP("bp resume!\n");
 //	gpio_set_value(bp->ap_rdy, 1);
@@ -230,14 +249,22 @@ static int ezxbp_resume(struct platform_device *dev)
 	return 0;
 }
 
+static struct dev_pm_ops ezxbp_pm_ops = {
+	.suspend	= ezxbp_suspend,
+	.resume		= ezxbp_resume,
+};
+#define EZXBP_PM_OPS (&ezxbp_pm_ops)
+#else
+#define EZXBP_PM_OPS NULL
+#endif
+
 static struct platform_driver ezxbp_driver = {
 	.probe		= ezxbp_probe,
 	.remove		= ezxbp_remove,
-	.suspend	= ezxbp_suspend,
-	.resume		= ezxbp_resume,
 	.driver		= {
 		.name	= "ezx-bp",
 		.owner	= THIS_MODULE,
+		.pm	= EZXBP_PM_OPS,
 	},
 };
 
