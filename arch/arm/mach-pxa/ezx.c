@@ -47,6 +47,7 @@
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
+#include <mach/ezx-bp.h>
 #include <mach/camera.h>
 #include <mach/irqs.h>
 
@@ -214,7 +215,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO28_GPIO,				/* WAKEUP */
 
 	/* Neptune handshake */
-	GPIO0_GPIO | WAKEUP_ON_EDGE_FALL,	/* BP_RDY */
+	GPIO0_GPIO | WAKEUP_ON_EDGE_RISE,	/* BP_RDY */
 	GPIO57_GPIO | MFP_LPM_DRIVE_HIGH,	/* AP_RDY */
 	GPIO13_GPIO | WAKEUP_ON_EDGE_BOTH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_EDGE_BOTH,	/* WDI2 */
@@ -814,6 +815,52 @@ static struct pxa2xx_udc_mach_info ezx_udc_info = {
 	.gpio_vbus	= -1,
 };
 
+/* OHCI Controller */
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_PERPORT_MODE,
+	.flags		= ENABLE_PORT3,
+	.power_on_delay	= 400,
+};
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 82,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 57,
+	.first_step = 2,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
 /* MTD partitions on NOR flash */
 #define EZX_MTD_PART(_name, _offset, _size, _flags)	\
 	{						\
@@ -1057,6 +1104,7 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
 	&gen1_flash_device,
+	&gen1_bp_device,
 };
 
 static void __init a780_init(void)
@@ -1074,6 +1122,8 @@ static void __init a780_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a780_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1206,6 +1256,7 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 static struct platform_device *e680_devices[] __initdata = {
 	&e680_gpio_keys,
 	&gen1_flash_device,
+	&gen1_bp_device,
 };
 
 static void __init e680_init(void)
@@ -1223,6 +1274,8 @@ static void __init e680_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(e680_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1328,6 +1381,7 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
 	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init a1200_init(void)
@@ -1345,6 +1399,8 @@ static void __init a1200_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a1200_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1568,6 +1624,7 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init a910_init(void)
@@ -1585,6 +1642,8 @@ static void __init a910_init(void)
 	spi_pd->dev.platform_data = &a910_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
@@ -1689,6 +1748,7 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
 	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init e6_init(void)
@@ -1706,6 +1766,8 @@ static void __init e6_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(e6_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
@@ -1782,6 +1844,7 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 
 static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init e2_init(void)
@@ -1799,6 +1862,8 @@ static void __init e2_init(void)
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(e2_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
