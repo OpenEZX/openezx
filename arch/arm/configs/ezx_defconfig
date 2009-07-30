@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.31-rc3
-# Sun Jul 19 23:02:08 2009
+# Linux kernel version: 2.6.31-rc4
+# Thu Jul 30 12:59:43 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -641,7 +641,6 @@ CONFIG_MAC80211_RC_PID=y
 CONFIG_MAC80211_RC_DEFAULT_PID=y
 # CONFIG_MAC80211_RC_DEFAULT_MINSTREL is not set
 CONFIG_MAC80211_RC_DEFAULT="pid"
-# CONFIG_MAC80211_MESH is not set
 CONFIG_MAC80211_LEDS=y
 # CONFIG_MAC80211_DEBUGFS is not set
 # CONFIG_MAC80211_DEBUG_MENU is not set
@@ -1416,6 +1415,7 @@ CONFIG_USB_OHCI_LITTLE_ENDIAN=y
 # CONFIG_USB_LD is not set
 # CONFIG_USB_TRANCEVIBRATOR is not set
 # CONFIG_USB_IOWARRIOR is not set
+# CONFIG_USB_TEST is not set
 # CONFIG_USB_ISIGHTFW is not set
 # CONFIG_USB_VST is not set
 CONFIG_USB_GADGET=y
