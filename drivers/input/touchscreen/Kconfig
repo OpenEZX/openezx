@@ -503,8 +503,8 @@ config TOUCHSCREEN_PCAP
 	depends on EZX_PCAP
 	help
 	  Say Y here if you have a Motorola EZX telephone and
-	  want to support the built-in touchscreen.
+	  want to enable support for the built-in touchscreen.
 
-	  If unsure, say N.
-
+	  To compile this driver as a module, choose M here: the
+	  module will be called pcap_ts.
 endif
