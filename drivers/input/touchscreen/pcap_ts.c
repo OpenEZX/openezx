@@ -79,7 +79,7 @@ static void pcap_ts_read_xy(void *data, u16 res[2])
 		break;
 	default:
 		dev_warn(&pcap_ts->input->dev,
-				"pcap_ts: Warning, read_state %d not handled!",
+				"pcap_ts: Warning, unhandled read_state %d\n",
 				pcap_ts->read_state);
 		break;
 	}
