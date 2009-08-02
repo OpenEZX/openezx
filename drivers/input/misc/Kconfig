@@ -271,10 +271,10 @@ config INPUT_DM355EVM
 	  module will be called dm355evm_keys.
 
 config INPUT_PCAP
-	tristate "Motorola EZX PCAP events"
+	tristate "Motorola EZX PCAP misc input events"
 	depends on EZX_PCAP
 	help
-	  Say Y here if you want to use Power key and Mic events
+	  Say Y here if you want to use Power key and Headphone button
 	  on Motorola EZX phones.
 
 	  To compile this driver as a module, choose M here: the
