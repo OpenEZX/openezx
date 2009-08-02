@@ -1,7 +1,6 @@
 /*
  *  Input driver for PCAP events:
  *   * Power key
- *   * Jack plug/unplug
  *   * Headphone button
  *
  *  Copyright (c) 2008,2009 Ilya Petrov <ilya.muromec@gmail.com>
@@ -86,7 +85,7 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 		goto fail_register;
 
 	err = request_irq(pcap_to_irq(pcap_keys->pcap, PCAP_IRQ_MIC),
-			pcap_keys_handler, 0, "MIC jack/button", pcap_keys);
+			pcap_keys_handler, 0, "Headphone button", pcap_keys);
 	if (err)
 		goto fail_pwrkey;
 
