@@ -231,7 +231,7 @@ config LEDS_BD2802
 
 config LEDS_PCAP
 	tristate "LED Support for PCAP2 ASIC"
-	depends on EZX_PCAP
+	depends on LEDS_CLASS && EZX_PCAP
 	help
 	  This option enables support for the led controller on PCAP2.
 
