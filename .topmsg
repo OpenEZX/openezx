@@ -1,19 +1,6 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: mfd: PCAP driver
-To: sameo@openedhand.com
-Cc: linux-arm-kernel@lists.arm.linux.org.uk, eric.y.miao@gmail.com, linux-kernel@vger.kernel.org, spi-devel-general@lists.sourceforge.net
+Subject: [PATCH 05/10] PCAP2 SPI driver.
 
-The PCAP Asic as present on EZX phones is a multi function device with
-voltage regulators, irq expander, touch screen controller and audio
-codec. It has two SPI ports, typically one is connected to the application
-processor and another to the baseband, this driver provides read/write
-functions to its registers and a irq demultiplexer.
-
-This chip is used on a lot of Motorola phones, it was manufactured by TI
-as a custom product with the name PTWL93017, later this design evolved
-into the ATLAS PMIC from freescale (MC13783).
-
-Since the last submission we moved ADC and regulator code out of the core
-driver and switched to generic irq.
+FIXME
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
