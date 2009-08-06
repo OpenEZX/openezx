@@ -146,7 +146,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	if (!pcap_ts)
 		return err;
 
-	pcap_ts->pcap = platform_get_drvdata(pdev);
+	pcap_ts->pcap = dev_get_drvdata(pdev->dev.parent);
 	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
