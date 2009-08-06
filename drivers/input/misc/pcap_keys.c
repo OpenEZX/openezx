@@ -57,7 +57,7 @@ static int __devinit pcap_keys_probe(struct platform_device *pdev)
 	if (!pcap_keys)
 		return err;
 
-	pcap_keys->pcap = platform_get_drvdata(pdev);
+	pcap_keys->pcap = dev_get_drvdata(pdev->dev.parent);
 
 	input_dev = input_allocate_device();
 	if (!input_dev)
