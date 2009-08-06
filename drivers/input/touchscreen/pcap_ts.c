@@ -118,12 +118,6 @@ static irqreturn_t pcap_ts_event_touch(int pirq, void *data)
 static int pcap_ts_open(struct input_dev *dev)
 {
 	struct pcap_ts *pcap_ts = input_get_drvdata(dev);
-	int err;
-
-	err = request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
-			pcap_ts_event_touch, 0, "Touch Screen", pcap_ts);
-	if (err)
-		return err;
 
 	pcap_ts->read_state = PCAP_ADC_TS_M_STANDBY;
 	schedule_delayed_work(&pcap_ts->work, 0);
@@ -136,7 +130,6 @@ static void pcap_ts_close(struct input_dev *dev)
 	struct pcap_ts *pcap_ts = input_get_drvdata(dev);
 
 	cancel_delayed_work_sync(&pcap_ts->work);
-	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
 
 	pcap_ts->read_state = PCAP_ADC_TS_M_NONTS;
 	pcap_set_ts_bits(pcap_ts->pcap,
@@ -153,7 +146,7 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	if (!pcap_ts)
 		return err;
 
-	pcap_ts->pcap = platform_get_drvdata(pdev);
+	pcap_ts->pcap = dev_get_drvdata(pdev->dev.parent);
 	platform_set_drvdata(pdev, pcap_ts);
 
 	input_dev = input_allocate_device();
@@ -190,8 +183,16 @@ static int __devinit pcap_ts_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_allocate;
 
+	err = request_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS),
+			pcap_ts_event_touch, 0, "Touch Screen", pcap_ts);
+	if (err)
+		goto fail_register;
+
 	return 0;
 
+fail_register:
+	input_unregister_device(input_dev);
+	goto fail;
 fail_allocate:
 	input_free_device(input_dev);
 fail:
@@ -204,7 +205,11 @@ static int __devexit pcap_ts_remove(struct platform_device *pdev)
 {
 	struct pcap_ts *pcap_ts = platform_get_drvdata(pdev);
 
+	free_irq(pcap_to_irq(pcap_ts->pcap, PCAP_IRQ_TS), pcap_ts);
+	cancel_delayed_work_sync(&pcap_ts->work);
+
 	input_unregister_device(pcap_ts->input);
+
 	kfree(pcap_ts);
 
 	return 0;
