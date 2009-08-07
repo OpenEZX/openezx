@@ -94,7 +94,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		struct pcap_led *led = &pdata->leds[i];
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
-		led->pcap = platform_get_drvdata(pdev);
+		led->pcap = dev_get_drvdata(pdev->dev.parent);
 		if (led->gpio & PCAP_LED_GPIO_EN) {
 			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
 			err = gpio_request(gpio, "PCAP LED");
