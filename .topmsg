@@ -1,4 +1,5 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
+Cc: Richard Purdie <rpurdie@linux.intel.com>, linux-arm-kernel@lists.arm.linux.org.uk, openezx-devel@lists.openezx.org
 Subject: [PATCH] Add leds-lp3944 support for A910 EZX phone
 
 Add leds-lp3944 support for A910 EZX phone
