@@ -734,7 +734,7 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
-	pcap2_dai[0].private_data = platform_get_drvdata(pdev);
+	pcap2_dai[0].private_data = dev_get_drvdata(pdev->dev.parent);
 
 	return snd_soc_register_dai(&pcap2_dai[0]);
 }
