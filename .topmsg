@@ -1,5 +1,5 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
-Cc: Guennadi Liakhovetski <g.liakhovetski@gmx.de>, linux-media@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk
+Cc: Guennadi Liakhovetski <g.liakhovetski@gmx.de>, linux-media@vger.kernel.org, linux-arm-kernel@lists.arm.linux.org.uk, openezx-devel@lists.openezx.org
 Subject: [PATCH] Add camera support for A780 and A910 EZX phones
 
 Add camera support for A780 and A910 EZX phones.
