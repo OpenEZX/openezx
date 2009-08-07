@@ -154,7 +154,7 @@ static int __devinit pcap_rtc_probe(struct platform_device *pdev)
 	if (!pcap_rtc)
 		return err;
 
-	pcap_rtc->pcap = platform_get_drvdata(pdev);
+	pcap_rtc->pcap = dev_get_drvdata(pdev->dev.parent);
 
 	pcap_rtc->rtc = rtc_device_register("pcap", &pdev->dev,
 				  &pcap_rtc_ops, THIS_MODULE);
