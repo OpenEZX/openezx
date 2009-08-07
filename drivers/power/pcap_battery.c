@@ -136,7 +136,7 @@ static int __devinit pcap_bat_probe(struct platform_device *pdev)
 	static struct device *dev;
 
 	dev = &pdev->dev;
-	pcap = platform_get_drvdata(pdev);
+	pcap = dev_get_drvdata(pdev->dev.parent);
 
 
 	ac_draw = regulator_get(dev, "ac_draw");
