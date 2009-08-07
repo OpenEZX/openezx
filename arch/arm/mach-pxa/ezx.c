@@ -996,16 +996,24 @@ struct pxacamera_platform_data a780_pxacamera_platform_data = {
 	.mclk_10khz = 5000,
 };
 
-static struct soc_camera_link a780_iclink = {
-	.bus_id	= 0,
-	.power = a780_pxacamera_power,
-	.reset = a780_pxacamera_reset,
-	.flags = SOCAM_SENSOR_INVERT_PCLK,
+static struct i2c_board_info a780_camera_i2c_board_info = {
+	I2C_BOARD_INFO("mt9m111", 0x5d),
 };
 
-static struct i2c_board_info __initdata a780_i2c_board_info[] = {
-	{
-		I2C_BOARD_INFO("mt9m111", 0x5d),
+static struct soc_camera_link a780_iclink = {
+	.bus_id         = 0,
+	.flags          = SOCAM_SENSOR_INVERT_PCLK,
+	.i2c_adapter_id = 0,
+	.board_info     = &a780_camera_i2c_board_info,
+	.module_name    = "mt9m111",
+	.power          = a780_pxacamera_power,
+	.reset          = a780_pxacamera_reset,
+};
+
+static struct platform_device a780_camera = {
+	.name   = "soc-camera-pdrv",
+	.id     = 0,
+	.dev    = {
 		.platform_data = &a780_iclink,
 	},
 };
@@ -1013,6 +1021,7 @@ static struct i2c_board_info __initdata a780_i2c_board_info[] = {
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
 	&gen1_flash_device,
+	&a780_camera,
 };
 
 static void __init a780_init(void)
@@ -1024,7 +1033,6 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
-	i2c_register_board_info(0, ARRAY_AND_SIZE(a780_i2c_board_info));
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
 	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
@@ -1437,10 +1445,25 @@ struct pxacamera_platform_data a910_pxacamera_platform_data = {
 	.mclk_10khz = 5000,
 };
 
+static struct i2c_board_info a910_camera_i2c_board_info = {
+	I2C_BOARD_INFO("mt9m111", 0x5d),
+};
+
 static struct soc_camera_link a910_iclink = {
-	.bus_id	= 0,
-	.power = a910_pxacamera_power,
-	.reset = a910_pxacamera_reset,
+	.bus_id         = 0,
+	.i2c_adapter_id = 0,
+	.board_info     = &a910_camera_i2c_board_info,
+	.module_name    = "mt9m111",
+	.power          = a910_pxacamera_power,
+	.reset          = a910_pxacamera_reset,
+};
+
+static struct platform_device a910_camera = {
+	.name   = "soc-camera-pdrv",
+	.id     = 0,
+	.dev    = {
+		.platform_data = &a910_iclink,
+	},
 };
 
 /* leds-lp3944 */
@@ -1489,9 +1512,6 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("mt9m111", 0x5d),
-		.platform_data = &a910_iclink,
-	}, {
 		I2C_BOARD_INFO("lp3944", 0x60),
 		.platform_data = &a910_lp3944_leds,
 	},
@@ -1500,6 +1520,7 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 	&gen2_flash_device,
+	&a910_camera,
 };
 
 static void __init a910_init(void)
