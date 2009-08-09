@@ -23,6 +23,8 @@
 
 #ifndef _ISP1583_UDC_H
 #define _ISP1583_UDC_H
+#include <linux/udc_isp158x.h>
+#include <linux/usb/otg.h>
 
 /* dma burst register access */
 #define ISP_DMA_BURST_LEN      32
@@ -641,6 +643,7 @@ struct isp1583_udc {
 	int irq;
 	int disabled;
 	int hiSpeed;
+	struct otg_transceiver *transceiver;
 
 	int dma_channel;
 	int isp_dma_flag;
@@ -650,7 +653,7 @@ struct isp1583_udc {
 	struct isp1583_ep *dma_ep;
 	unsigned long phy_base;
 	struct delayed_work vbus_check;
-
+	struct isp158x_udc_mach_info *mach;
 };
 
 void isp_init(void);
