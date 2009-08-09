@@ -20,6 +20,21 @@
 #include <linux/regulator/machine.h>
 #include <linux/err.h>
 #include <linux/i2c/ezx-eoc.h>
+#include <linux/usb.h>
+
+#include <linux/regulator/consumer.h>
+
+#include <linux/usb/gadget.h>
+#include <linux/usb/otg.h>
+
+struct eoc_vbus_data {
+	struct otg_transceiver otg;
+	struct device          *dev;
+	struct regulator       *vbus_draw;
+	int			vbus_draw_enabled;
+	unsigned		mA;
+	struct work_struct	work;
+};
 
 
 static int sense_reg, power0_reg;
@@ -86,6 +101,9 @@ EXPORT_SYMBOL_GPL(eoc_reg_write_mask);
 static void eoc_work(struct work_struct *_eoc)
 {
 	unsigned int isr, msr, i, x;
+	struct eoc_vbus_data *eoc_vbus;
+	eoc_vbus = i2c_get_clientdata(eoc_i2c_client);
+
 	eoc_reg_read(EOC_REG_ISR, &isr);
 	eoc_reg_read(EOC_REG_MSR, &msr);
 	eoc_reg_read(EOC_REG_SENSE, &sense_reg);
@@ -109,7 +127,14 @@ static void eoc_work(struct work_struct *_eoc)
 				(sense_reg & EOC_IRQ_VBUS) ?
 				"connected" : "disconnected"
 			);
-
+			if (eoc_vbus->otg.gadget) {
+				if (sense_reg & EOC_IRQ_VBUS)
+					usb_gadget_vbus_connect(
+						eoc_vbus->otg.gadget);
+				else
+					usb_gadget_vbus_disconnect(
+						eoc_vbus->otg.gadget);
+			}
 			break;
 		case EOC_IRQ_VBUS_OV:
 			printk("VBUS_OV ");
@@ -249,12 +274,82 @@ static struct regulator_desc eoc_regulator_desc = {
 	.type  = REGULATOR_CURRENT,
 };
 
+/* interface to regulator framework */
+static void set_vbus_draw(struct eoc_vbus_data *eoc_vbus, unsigned mA)
+{
+	struct regulator *vbus_draw = eoc_vbus->vbus_draw;
+	int enabled;
+
+	if (!vbus_draw)
+		return;
+
+	enabled = eoc_vbus->vbus_draw_enabled;
+	if (mA) {
+		regulator_set_current_limit(vbus_draw, 0, 1000 * mA);
+		if (!enabled) {
+			regulator_enable(vbus_draw);
+			eoc_vbus->vbus_draw_enabled = 1;
+		}
+	} else {
+		if (enabled) {
+			regulator_disable(vbus_draw);
+			eoc_vbus->vbus_draw_enabled = 0;
+		}
+	}
+	eoc_vbus->mA = mA;
+}
+
+/* bind/unbind the peripheral controller */
+static int eoc_vbus_set_peripheral(struct otg_transceiver *otg,
+				struct usb_gadget *gadget)
+{
+	struct eoc_vbus_data *eoc_vbus;
+	eoc_vbus = container_of(otg, struct eoc_vbus_data, otg);
+
+	if (!gadget) {
+		set_vbus_draw(eoc_vbus, 0);
+
+		usb_gadget_vbus_disconnect(otg->gadget);
+		otg->state = OTG_STATE_UNDEFINED;
+
+		otg->gadget = NULL;
+		return 0;
+	}
+
+	otg->gadget = gadget;
+	return 0;
+}
+
+/* effective for B devices, ignored for A-peripheral */
+static int eoc_vbus_set_power(struct otg_transceiver *otg, unsigned mA)
+{
+	struct eoc_vbus_data *eoc_vbus;
+
+	eoc_vbus = container_of(otg, struct eoc_vbus_data, otg);
+
+	if (otg->state == OTG_STATE_B_PERIPHERAL)
+		set_vbus_draw(eoc_vbus, mA);
+	return 0;
+}
+
+static int eoc_vbus_set_suspend(struct otg_transceiver *otg, int suspend)
+{
+	struct eoc_vbus_data *eoc_vbus;
+
+	eoc_vbus = container_of(otg, struct eoc_vbus_data, otg);
+
+	return eoc_vbus_set_power(otg, suspend ? 0 : eoc_vbus->mA);
+}
+
+
 static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
 	int tmp, x, ret;
+	struct eoc_vbus_data *eoc_vbus;
 
 	eoc_i2c_client = client;
+
 	INIT_WORK(&work, eoc_work);
 
 	ret = eoc_reg_write(EOC_REG_MSR, 0x0); //fef);
@@ -276,6 +371,20 @@ static int __devinit eoc_probe(struct i2c_client *client,
 		if (ret)
 			goto ret;
 	}
+
+	eoc_vbus = kzalloc(sizeof(struct eoc_vbus_data), GFP_KERNEL);
+	if (!eoc_vbus)
+		return -ENOMEM;
+	eoc_vbus->dev = &client->dev;
+	eoc_vbus->otg.label = "eoc-vbus";
+	eoc_vbus->otg.state = OTG_STATE_UNDEFINED;
+	eoc_vbus->otg.set_peripheral = eoc_vbus_set_peripheral;
+	eoc_vbus->otg.set_power = eoc_vbus_set_power;
+	eoc_vbus->otg.set_suspend = eoc_vbus_set_suspend;
+
+	i2c_set_clientdata(client, eoc_vbus);
+	otg_set_transceiver(&eoc_vbus->otg);
+
 	ret = gpio_request(10, "EOC");
 	if (ret)
 		goto ret;
@@ -307,6 +416,8 @@ static struct i2c_driver eoc_driver = {
 	.remove = __devexit_p(eoc_remove),
 	.id_table = eoc_id,
 };
+
+
 
 static int eoc_regulator_probe(struct platform_device *pdev)
 {
@@ -358,5 +469,5 @@ MODULE_AUTHOR("Alex Zhang <celeber2@gmail.com>");
 MODULE_DESCRIPTION("ezx-eoc usb tranceiver");
 MODULE_LICENSE("GPL");
 
-module_init(eoc_init);
+subsys_initcall(eoc_init);
 module_exit(eoc_exit);
