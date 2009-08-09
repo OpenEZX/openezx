@@ -43,6 +43,7 @@
 
 #include <linux/usb.h>
 #include <linux/usb/gadget.h>
+#include <linux/usb/otg.h>
 #include <linux/io.h>
 #include <asm/irq.h>
 #include <asm/system.h>
@@ -986,7 +987,8 @@ static void isp1583_udc_handle_ep0_setup(struct isp1583_udc *dev,
 		the_controller->regs[ISP1583_EPCFG_REG] = USB_EPCONTROL_DSEN;
 	}
 
-	ret = dev->driver->setup(&dev->gadget, crq);
+	if (dev && dev->driver && dev->driver->setup)
+		ret = dev->driver->setup(&dev->gadget, crq);
 
 	if (ret < 0) {
 		printk(KERN_DEBUG "setup fail %d\n", ret);
@@ -1542,13 +1544,19 @@ static void isp1583_udc_enable(struct isp1583_udc *dev);
 
 static int isp1583_udc_set_pullup(struct isp1583_udc *dev, int is_on)
 {
-	dprintk(DEBUG_NORMAL, "%s()\n", __func__);
+	if (is_on)
+		isp1583_udc_enable(dev);
+	else
+		isp1583_udc_disable(dev);
+
 	return 0;
 }
 
 static int isp1583_udc_vbus_session(struct usb_gadget *gadget, int is_active)
 {
 	struct isp1583_udc *udc = to_isp1583_udc(gadget);
+	if (udc->vbus == (is_active != 0))
+		return 0;
 	udc->vbus = (is_active != 0);
 	isp1583_udc_set_pullup(udc, is_active);
 	return 0;
@@ -1582,6 +1590,9 @@ static const struct usb_gadget_ops isp1583_ops = {
 static void isp1583_udc_disable(struct isp1583_udc *dev)
 {
 	dprintk(DEBUG_NORMAL, "%s()\n", __func__);
+	if (dev->mach && dev->mach->udc_command)
+		dev->mach->udc_command(ISP158X_UDC_CMD_DISCONNECT);
+
 	/*
 	 * Disable the interrupts for the bulk endpoints.
 	 */
@@ -1634,13 +1645,31 @@ static void isp1583_udc_enable(struct isp1583_udc *dev)
 {
 
 	dprintk(DEBUG_NORMAL, "isp1583_udc_enable called\n");
+	/* disconnect ISP soft connect before switch */
+	union USB_MODE mod;
 
-	/* dev->gadget.speed = USB_SPEED_UNKNOWN; */
-	dev->gadget.speed = USB_SPEED_FULL;
-	dev->disabled = 0;
+	if (dev->mach && dev->mach->udc_command)
+		dev->mach->udc_command(ISP158X_UDC_CMD_CONNECT);
+	mod.VALUE = the_controller->regs[ISP1583_MODE_REG];
+	mod.BITS.SOFTCT = 0;
+	the_controller->regs[ISP1583_MODE_REG] = mod.VALUE;
 
-	schedule_work(&dev->vbus_check);
+	/* delay 30ms to make sure the signal is stability */
+	set_current_state(TASK_INTERRUPTIBLE);
+	schedule_timeout(3 * HZ / 100);
 
+	/* reset the ISP1583 */
+	mod.VALUE = the_controller->regs[ISP1583_MODE_REG];
+	mod.BITS.SFRESET = 1;
+	the_controller->regs[ISP1583_MODE_REG] = mod.VALUE;
+	udelay(500);
+	mod.BITS.SFRESET = 0;
+	the_controller->regs[ISP1583_MODE_REG] = mod.VALUE;
+
+	/* initialize the ISP1583 */
+	isp_init();
+
+	the_controller->disabled = 0;
 }
 
 /*
@@ -1652,6 +1681,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 
 	dprintk(DEBUG_NORMAL, "usb_gadget_register_driver() '%s'\n",
 		driver->driver.name);
+
 
 	/* Sanity checks */
 	if (!the_controller)
@@ -1691,9 +1721,9 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		goto register_error;
 	}
 
-	/* Enable the_controller */
-	isp1583_udc_enable(the_controller);
-
+	if (the_controller->transceiver)
+		return otg_set_peripheral(the_controller->transceiver,
+			&the_controller->gadget);
 	return 0;
 
 register_error:
@@ -1747,6 +1777,8 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 
 	device_del(&the_controller->gadget.dev);
 	the_controller->driver = NULL;
+	if (the_controller->transceiver)
+		return otg_set_peripheral(the_controller->transceiver, NULL);
 
 	return 0;
 }
@@ -2046,53 +2078,6 @@ int udc_init(void)
 	return 0;
 }
 
-void check_vbus(struct work_struct *work)
-{
-	unsigned long vbus = the_controller->regs[ISP1583_MODE_REG];
-	vbus &= (1 << 8);
-	printk(KERN_DEBUG "isp1583_check vbus\n");
-
-	if (the_controller->disabled) {
-		the_controller->vbus = 0;
-		return;
-	}
-
-	if (the_controller->vbus == 0 && vbus) {
-		the_controller->vbus = 1;
-		printk(KERN_DEBUG "isp1583_check vbus got vbus\n");
-		udc_init();
-		return;
-	}
-
-	if (!vbus) {
-		the_controller->vbus = 0;
-		stop_activity(the_controller, the_controller->driver);
-		if (the_controller->gadget.speed != USB_SPEED_UNKNOWN) {
-			stop_activity(the_controller, the_controller->driver);
-			if (the_controller->driver
-			    && the_controller->driver->disconnect)
-				the_controller->driver->
-				    disconnect(&the_controller->gadget);
-			the_controller->gadget.speed = USB_SPEED_UNKNOWN;
-		}
-		gpio_set_value(94, 0);
-		return;
-	}
-}
-
-static irqreturn_t vbus_detect_irq(int dummy, void *_dev)
-{
-	unsigned long vbus = the_controller->regs[ISP1583_MODE_REG];
-	vbus &= (1 << 8);
-	vbus = !!vbus;
-	if (the_controller->vbus != vbus) {
-		schedule_work(&the_controller->vbus_check);
-		return IRQ_HANDLED;
-	}
-	isp1583_udc_irq(dummy, _dev);
-	return IRQ_HANDLED;
-}
-
 void cpu_dma_handler(int chanel, void *data)
 {
 
@@ -2107,12 +2092,9 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int retval;
 
-	unsigned int temp;
 	the_controller = &memory;
 
 	dev_dbg(dev, "%s()\n", __func__);
-	temp = MSC1;
-	MSC1 = (temp & 0x0000FFFF) | 0x7FFC0000;
 
 	mregs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!mregs)
@@ -2134,6 +2116,9 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	the_controller->phy_base = mregs->start;
 
 	spin_lock_init(&the_controller->lock);
+	the_controller->mach = pdev->dev.platform_data;
+	the_controller->transceiver = otg_get_transceiver();
+
 
 	device_initialize(&the_controller->gadget.dev);
 	the_controller->gadget.dev.parent = &pdev->dev;
@@ -2146,7 +2131,7 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	isp1583_udc_reinit(the_controller);
 
 	/* irq setup after old hardware state is cleaned up */
-	retval = request_irq(the_controller->irq, vbus_detect_irq,
+	retval = request_irq(the_controller->irq, isp1583_udc_irq,
 			     IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING |
 			     IRQF_SHARED, gadget_name, the_controller);
 
@@ -2158,7 +2143,6 @@ static int isp1583_udc_probe(struct platform_device *pdev)
 	}
 
 	the_controller->vbus = 0;
-	INIT_DELAYED_WORK(&the_controller->vbus_check, check_vbus);
 
 	the_controller->dma_channel = pxa_request_dma("isp1583",
 						      DMA_PRIO_LOW,
@@ -2194,6 +2178,7 @@ static int isp1583_udc_remove(struct platform_device *pdev)
 	pxa_free_dma(udc->dma_channel);
 
 	dev_dbg(&pdev->dev, "%s: remove ok\n", __func__);
+
 	return 0;
 }
 
@@ -2231,7 +2216,6 @@ static int __init isp1583_udc_init(void)
 	int retval;
 	retval = platform_driver_register(&udc_driver_isp1583);
 	return retval;
-
 }
 
 static void __exit isp1583_udc_exit(void)
