@@ -29,6 +29,7 @@
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 #include <linux/regulator/machine.h>
+#include <linux/udc_isp158x.h>
 
 #include <media/soc_camera.h>
 
@@ -137,11 +138,35 @@ static struct resource ezx_usb20_resources[] = {
 	},
 };
 
+/* ISP1583 UDC */
+static void isp158x_udc_command(int cmd)
+{
+	unsigned int temp;
+	switch (cmd) {
+	case ISP158X_UDC_CMD_DISCONNECT:
+		gpio_set_value(94, 0);
+		break;
+	case ISP158X_UDC_CMD_CONNECT:
+		temp = MSC1;
+		MSC1 = (temp & 0x0000FFFF) | 0x7FFC0000;
+		gpio_set_value(94, 1);
+		break;
+	}
+}
+
+
+struct isp158x_udc_mach_info isp158x_platform_data = {
+	.udc_command = isp158x_udc_command,
+};
+
 struct platform_device ezx_usb20_device = {
 	.name       = "isp1583-udc",
 	.id     = -1,
 	.num_resources  = ARRAY_SIZE(ezx_usb20_resources),
 	.resource   = ezx_usb20_resources,
+	.dev		= {
+		.platform_data	= &isp158x_platform_data,
+	},
 };
 
 struct platform_device ezx_rfkill_bluetooth_device = {
