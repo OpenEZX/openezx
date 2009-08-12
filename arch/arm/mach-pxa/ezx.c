@@ -29,6 +29,7 @@
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 #include <linux/regulator/machine.h>
+#include <linux/udc_isp158x.h>
 
 #include <media/soc_camera.h>
 
@@ -120,6 +121,50 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.modes		= &mode_72r89803y01,
 	.num_modes	= 1,
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
+};
+
+static struct resource ezx_usb20_resources[] = {
+	[0] = {
+		.start      = PXA_CS3_PHYS,
+		.end        = PXA_CS3_PHYS+0x400,
+		.flags      = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start      = IRQ_GPIO(19),
+		.end        = IRQ_GPIO(19),
+		.flags      = IORESOURCE_IRQ,
+	},
+};
+
+/* ISP1583 UDC */
+static void isp158x_udc_command(int cmd)
+{
+	unsigned int temp;
+	switch (cmd) {
+	case ISP158X_UDC_CMD_DISCONNECT:
+		gpio_set_value(94, 0);
+		break;
+	case ISP158X_UDC_CMD_CONNECT:
+		temp = MSC1;
+		MSC1 = (temp & 0x0000FFFF) | 0x7FFC0000;
+		gpio_set_value(94, 1);
+		break;
+	}
+}
+
+
+struct isp158x_udc_mach_info isp158x_platform_data = {
+	.udc_command = isp158x_udc_command,
+};
+
+struct platform_device ezx_usb20_device = {
+	.name       = "isp1583-udc",
+	.id     = -1,
+	.num_resources  = ARRAY_SIZE(ezx_usb20_resources),
+	.resource   = ezx_usb20_resources,
+	.dev		= {
+		.platform_data	= &isp158x_platform_data,
+	},
 };
 
 /* MMC */
@@ -416,6 +461,13 @@ static unsigned long e2_pin_config[] __initdata = {
 	GPIO106_KP_MKOUT_3,
 	GPIO107_KP_MKOUT_4,
 	GPIO108_KP_MKOUT_5,
+
+	GPIO79_USB20_NCS3,
+	GPIO18_HDD_USB20_READY,
+	GPIO49_NPWE,
+	GPIO20_USB20_DREQ0,
+	GPIO19_USB20_INT,
+	GPIO94_USB20_SWITCH,
 };
 #endif
 
@@ -433,6 +485,13 @@ static unsigned long e6_pin_config[] __initdata = {
 	GPIO106_KP_MKOUT_3,
 	GPIO107_KP_MKOUT_4,
 	GPIO108_KP_MKOUT_5,
+
+	GPIO79_USB20_NCS3,
+	GPIO18_HDD_USB20_READY,
+	GPIO49_NPWE,
+	GPIO20_USB20_DREQ0,
+	GPIO19_USB20_INT,
+	GPIO94_USB20_SWITCH,
 };
 #endif
 
@@ -1801,6 +1860,7 @@ static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
 	&gen2_flash_device,
 	&gen2_bp_device,
+	&ezx_usb20_device,
 	&eoc_regulator_device,
 };
 
@@ -1901,6 +1961,7 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
+	&ezx_usb20_device,
 	&eoc_regulator_device,
 };
 
