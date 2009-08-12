@@ -1790,7 +1790,7 @@ static unsigned hub_is_wusb(struct usb_hub *hub)
 
 
 #define PORT_RESET_TRIES	5
-#define SET_ADDRESS_TRIES	2
+#define SET_ADDRESS_TRIES	6
 #define GET_DESCRIPTOR_TRIES	2
 #define SET_CONFIG_TRIES	(2 * (use_both_schemes + 1))
 #define USE_NEW_SCHEME(i)	((i) / 2 == old_scheme_first)
@@ -2660,6 +2660,9 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				if (retval >= 0)
 					break;
 				msleep(200);
+
+				if (old_scheme_first)
+					hub_port_reset(hub, port1, udev, delay);
 			}
 			if (retval < 0) {
 				dev_err(&udev->dev,
