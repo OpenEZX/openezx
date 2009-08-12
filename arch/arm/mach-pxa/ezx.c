@@ -1539,6 +1539,7 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&eoc_regulator_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init a1200_init(void)
@@ -1812,6 +1813,7 @@ static struct platform_device *a910_devices[] __initdata = {
 	&a910_camera,
 	&gen2_bp_device,
 	&eoc_regulator_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init a910_init(void)
@@ -2072,6 +2074,7 @@ static struct platform_device *e2_devices[] __initdata = {
 	&gen2_bp_device,
 	&ezx_usb20_device,
 	&eoc_regulator_device,
+	&ezx_rfkill_bluetooth_device,
 };
 
 static void __init e2_init(void)
