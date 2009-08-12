@@ -757,8 +757,6 @@ void process_uih(ts0710_con * ts0710, char *data, int len, u8 dlci) {
 	if (!uih_len)
 		return;
 
-	printk("uih tag %x on dlci %d\n",tag,dlci);
-
 	tty_idx = dlci;
 	tty = mux_table[tty_idx];
 
