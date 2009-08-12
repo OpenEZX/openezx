@@ -262,7 +262,7 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO28_GPIO,				/* WAKEUP */
 
 	/* Neptune handshake */
-	GPIO0_GPIO | WAKEUP_ON_EDGE_RISE,	/* BP_RDY */
+	GPIO0_GPIO | WAKEUP_ON_EDGE_FALL,	/* BP_RDY */
 	GPIO57_GPIO | MFP_LPM_DRIVE_HIGH,	/* AP_RDY */
 	GPIO13_GPIO | WAKEUP_ON_EDGE_BOTH,	/* WDI */
 	GPIO3_GPIO | WAKEUP_ON_EDGE_BOTH,	/* WDI2 */
@@ -319,7 +319,7 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO57_GPIO,				/* WAKEUP */
 
 	/* Neptune handshake */
-	GPIO0_GPIO | WAKEUP_ON_EDGE_FALL,	/* BP_RDY */
+	GPIO0_GPIO | WAKEUP_ON_EDGE_RISE,	/* BP_RDY */
 	GPIO96_GPIO | MFP_LPM_DRIVE_HIGH,	/* AP_RDY */
 	GPIO3_GPIO | WAKEUP_ON_EDGE_FALL,	/* WDI */
 	GPIO116_GPIO | MFP_LPM_DRIVE_HIGH,	/* RESET */
