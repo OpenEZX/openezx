@@ -1,0 +1,33 @@
+From: Ilya Petrov <ilya.muromec@gmail.com>
+Subject: [PATCH] usbcore/old_scheme_first_hub_port_reset
+
+we need to boot kernel with usbcore.old_scheme_first=1 and use this patch.
+
+
+how usb does NOT work with "new scheme":
+
+at boot time hub driver tries to get descriptor and failures by
+timeout (-62) + 100 msec at each try.
+this gets some little time for bp to initialize.
+then hub driver fallbacks to "old scheme" and tries to set address ( 2
+tries ) with success and gets descripors.
+
+after sleep it tries to do same, but fails - timeout on fist loop (get
+descriptors) is too big and bp tries to do something again.
+
+how usb does NOT work with "old scheme":
+
+at boot time hub drivers tries to set address 2 times with very small
+timeout without resetting port after failure,
+so usb initialises at 95s second of boot oppiste to 35s with "new
+scheme" and bp panics.
+
+how it DOES work with "old scheme and patch":
+
+at boot time hub driver tries to set address 6 times with port reset
+after each failure and succedes at 35s second at 5th try.
+after resume hub driver *failes* to set address all 6 times, goes to
+failure and retries again (resets host?)
+this time with success.
+
+Signed-off-by: Ilya Petrov <ilya.muromec@gmail.com>
