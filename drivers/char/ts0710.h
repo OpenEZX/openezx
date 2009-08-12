@@ -299,7 +299,6 @@ typedef struct {
 #define valid_dlci(x) ( (x>0) && (x<TS0710_MAX_CHN) )
 #define valid_line(x) ( (x>0) && (x<NR_MUXS) )
 
-#define TS0710DEBUG
 #ifdef TS0710DEBUG
 #define TS0710_DEBUG(fmt, arg...) printk(KERN_INFO "TS07.10: " fmt , ## arg)
 #else
