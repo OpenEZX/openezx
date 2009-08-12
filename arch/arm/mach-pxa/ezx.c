@@ -1870,7 +1870,10 @@ static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 };
 
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+	},
 };
 
 static struct platform_device *e2_devices[] __initdata = {
