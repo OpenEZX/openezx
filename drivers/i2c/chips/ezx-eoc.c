@@ -356,7 +356,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	if (ret)
 		goto ret;
 
-	power0_reg = 0xc00; /* hardware controlled, shared path */
+	power0_reg = 0x400; /* software controlled, dual path */
 	eoc_reg_write(EOC_REG_POWER_CONTROL_0, power0_reg);
 	if (ret)
 		goto ret;
