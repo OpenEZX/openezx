@@ -268,6 +268,10 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 {
 	int index;
 
+        /* dont try to open nonconnected device */
+        if (!bvd_ipc->ipc_dev)
+          return -ENODEV;
+
 	/* initialize the pointer in case something fails */
 	tty->driver_data = NULL;
 
