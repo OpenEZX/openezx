@@ -244,6 +244,11 @@ static int mux_send_frame(u8 dlci, int initiator,
 	int pf, crc_len, res;
 	int cr = initiator & 0x1;
 
+        if (!ipc_tty) {
+          printk("cant send frame to closed device\n");
+          return -ENODEV;
+        }
+
 	/* FIXME: bitmask? */
 	switch (frametype) {
 		case MUX_UIH:
@@ -1116,7 +1121,10 @@ static void mux_close(struct tty_struct *tty, struct file *filp)
 		mux_tty[line]--;
 
 	dlci = line;
-	if (mux_tty[line] == 0)
+
+        /* if closed last time and real tty still opened
+         * send disconnect packet */
+	if (mux_tty[line] == 0 && ipc_tty)
 		ts0710_close_channel(dlci);
 
 
@@ -1139,6 +1147,12 @@ static void mux_close(struct tty_struct *tty, struct file *filp)
 		mux_recv_info[line] = 0;
 		TS0710_DEBUG("Free mux_recv_info for /dev/mux%d\n", line);
 	}
+
+        /* real tty already closed, so we cant write data */
+        if (!ipc_tty) {
+          TS0710_PRINTK("dlci %d closed after mux. dont do so\n", line);
+          return;
+        }
 
 	ts0710_flow_on(dlci, ts0710);
 
