@@ -386,7 +386,7 @@ static void send_nsc_msg(ts0710_con * ts0710, mcc_type cmd, u8 cr)
 
 static void mux_send_uih(ts0710_con * ts0710, u8 cr, u8 type, u8 *data, int len)
 {
-	u8 *send = kmalloc(len + 2, GFP_KERNEL);
+	u8 *send = kmalloc(len + 2, GFP_ATOMIC);
 
 	mcc_short_frame_head *head = (mcc_short_frame_head *)send;
 	head->type.ea = 1;
