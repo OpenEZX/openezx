@@ -141,7 +141,10 @@ static void ipcusb_timeout(unsigned long data)
 static void usb_ipc_read_bulk(struct urb *urb)
 {
 	int count = urb->actual_length;
-	struct tty_struct *tty = ipc->tty;
+	struct tty_struct *tty;
+	if (!ipc)
+		return;
+	tty = ipc->tty;
 
 	if (urb->status)
 		printk("read bulk status received: %d, len %d\n", urb->status, count);
