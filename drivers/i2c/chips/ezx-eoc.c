@@ -102,8 +102,14 @@ static void eoc_work(struct work_struct *_eoc)
 {
 	unsigned int isr, msr, i, x;
 	struct eoc_vbus_data *eoc_vbus;
-	eoc_vbus = i2c_get_clientdata(eoc_i2c_client);
+	void (*mach_switch_mode)(enum eoc_transceiver_mode);
 
+	mach_switch_mode = NULL;
+	eoc_vbus = i2c_get_clientdata(eoc_i2c_client);
+	if (eoc_i2c_client->dev.platform_data)
+		mach_switch_mode = ((struct eoc_platform_data *)
+		    (eoc_i2c_client->dev.platform_data))
+			->mach_switch_mode;
 	eoc_reg_read(EOC_REG_ISR, &isr);
 	eoc_reg_read(EOC_REG_MSR, &msr);
 	eoc_reg_read(EOC_REG_SENSE, &sense_reg);
@@ -120,6 +126,10 @@ static void eoc_work(struct work_struct *_eoc)
 		switch (1 << x) {
 		case EOC_IRQ_VBUS_3V4:
 			printk("VBUS_3V4 ");
+			if (mach_switch_mode)
+				if (!(sense_reg & EOC_IRQ_VBUS))
+					mach_switch_mode(
+						EOC_MODE_USB_HOST);
 			break;
 		case EOC_IRQ_VBUS:
 
@@ -128,10 +138,14 @@ static void eoc_work(struct work_struct *_eoc)
 				"connected" : "disconnected"
 			);
 			if (eoc_vbus->otg.gadget) {
-				if (sense_reg & EOC_IRQ_VBUS)
+				if (sense_reg & EOC_IRQ_VBUS) {
+					if (mach_switch_mode)
+						mach_switch_mode(
+							EOC_MODE_USB_CLIENT);
+
 					usb_gadget_vbus_connect(
 						eoc_vbus->otg.gadget);
-				else
+				} else
 					usb_gadget_vbus_disconnect(
 						eoc_vbus->otg.gadget);
 			}
@@ -146,6 +160,9 @@ static void eoc_work(struct work_struct *_eoc)
 			printk("ID ");
 			break;
 		case EOC_IRQ_ID_GROUND:
+			if (mach_switch_mode)
+				mach_switch_mode(
+					EOC_MODE_UART);
 			printk("ID_GROUND ");
 			break;
 		case EOC_IRQ_SE1:
