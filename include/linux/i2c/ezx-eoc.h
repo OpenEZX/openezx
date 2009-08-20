@@ -53,4 +53,13 @@
 
 extern int eoc_cable_connected(int cable);
 
+enum eoc_transceiver_mode {
+	EOC_MODE_USB_CLIENT = 1,
+	EOC_MODE_USB_HOST = 2,
+	EOC_MODE_UART = 3,
+};
+
+struct eoc_platform_data{
+	void (*mach_switch_mode)(enum eoc_transceiver_mode);
+};
 #endif
