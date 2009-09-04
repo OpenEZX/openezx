@@ -156,6 +156,7 @@ static void ts0710_reset_dlci(u8 j)
 	ts0710_connection.dlci[j].mtu = DEF_TS0710_MTU;
 	ts0710_connection.dlci[j].initiated = 0;
 	ts0710_connection.dlci[j].initiator = 0;
+        ts0710_connection.dlci[j].tag = CMDTAG;
 	init_waitqueue_head(&ts0710_connection.dlci[j].open_wait);
 	init_waitqueue_head(&ts0710_connection.dlci[j].close_wait);
 }
@@ -243,6 +244,11 @@ static int mux_send_frame(u8 dlci, int initiator,
 	int pos = 0;
 	int pf, crc_len, res;
 	int cr = initiator & 0x1;
+
+        if (!ipc_tty) {
+          printk("cant send frame to closed device\n");
+          return -ENODEV;
+        }
 
         if (!ipc_tty) {
           printk("cant send frame to closed device\n");
@@ -406,13 +412,21 @@ static void mux_send_uih(ts0710_con * ts0710, u8 cr, u8 type, u8 *data, int len)
 static int mux_send_uih_data(ts0710_con * ts0710, u8 dlci, u8 *data, int len)
 {
 	int ret;
-	u8 *send = kmalloc(len + 2, GFP_ATOMIC);
-	*send = CMDTAG;
+        u8 *send;
 
-	if (len)
-		memcpy(send + 1, data, len);
+        if (ts0710->dlci[dlci].tag) {
+	  send = kmalloc(len + 2, GFP_ATOMIC);
+	  *send = ts0710->dlci[dlci].tag;
 
-	ret = mux_send_frame(dlci, ts0710->initiator, MUX_UIH, send, len + 1);
+          if (len)
+                  memcpy(send + 1, data, len);
+
+          len++;
+        } else {
+          send = data;
+        }
+
+	ret = mux_send_frame(dlci, ts0710->initiator, MUX_UIH, send, len);
 
 	kfree(send);
 
@@ -1154,6 +1168,12 @@ static void mux_close(struct tty_struct *tty, struct file *filp)
           return;
         }
 
+        /* real tty already closed, so we cant write data */
+        if (!ipc_tty) {
+          TS0710_PRINTK("dlci %d closed after mux. dont do so\n", line);
+          return;
+        }
+
 	ts0710_flow_on(dlci, ts0710);
 
 	wake_up_interruptible(&tty->read_wait);
@@ -1596,7 +1616,26 @@ static ssize_t ts_ldisc_write(struct tty_struct *tty, struct file *file,
 static int ts_ldisc_ioctl(struct tty_struct *tty, struct file * file,
 					unsigned int cmd, unsigned long arg)
 {
-	return -1;
+
+        int ret;
+        u8 dlci = tty->index;
+        void __user *argp = (void __user *)arg;
+        unsigned long val;
+        ts0710_con *ts0710 = &ts0710_connection;
+
+        switch (cmd) {
+          case TS0710STAG:
+            ret = copy_from_user(&ts0710->dlci[dlci].tag, argp, sizeof(val));
+          break;
+
+          case TS0710GTAG:
+            ret = copy_to_user(argp, &ts0710->dlci[dlci].tag, sizeof(val));
+          break;
+          default:
+            ret = -ENOIOCTLCMD;
+        }
+
+	return ret;
 }
 
 static unsigned int ts_ldisc_poll(struct tty_struct *tty,
@@ -1615,6 +1654,7 @@ struct tty_operations mux_ops = {
 	.chars_in_buffer = mux_chars_in_buffer,
 	.throttle = mux_throttle,
 	.unthrottle = mux_unthrottle,
+        .ioctl          = ts_ldisc_ioctl,
 };
 
 static struct tty_ldisc_ops ts_ldisc = {
