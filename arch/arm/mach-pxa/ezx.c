@@ -1070,24 +1070,6 @@ struct eoc_platform_data ezx_eoc_data = {
 	.mach_switch_mode = ezx_mach_switch_mode,
 };
 
-static struct regulator_init_data eoc_regulator_data = {
-	.constraints = {
-		.max_uA = 1300000,
-		.valid_modes_mask = REGULATOR_MODE_NORMAL,
-		.valid_ops_mask = REGULATOR_CHANGE_CURRENT
-			| REGULATOR_CHANGE_MODE
-			| REGULATOR_CHANGE_STATUS
-			| REGULATOR_CHANGE_DRMS,
-	},
-};
-
-static struct platform_device eoc_regulator_device = {
-	.name = "eoc-regulator",
-	.id = -1,
-	.dev = {
-		.platform_data = &eoc_regulator_data,
-	},
-};
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
@@ -1556,7 +1538,6 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
 	&gen2_flash_device,
 	&gen2_bp_device,
-	&eoc_regulator_device,
 };
 
 static void __init a1200_init(void)
@@ -1826,7 +1807,6 @@ static struct platform_device *a910_devices[] __initdata = {
 	&gen2_flash_device,
 	&a910_camera,
 	&gen2_bp_device,
-	&eoc_regulator_device,
 };
 
 static void __init a910_init(void)
@@ -1967,7 +1947,6 @@ static struct platform_device *e6_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
-	&eoc_regulator_device,
 };
 
 static void __init e6_init(void)
@@ -2079,7 +2058,6 @@ static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
-	&eoc_regulator_device,
 };
 
 static void __init e2_init(void)

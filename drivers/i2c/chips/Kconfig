@@ -74,10 +74,4 @@ config SENSORS_TSL2550
 	  This driver can also be built as a module.  If so, the module
 	  will be called tsl2550.
 
-config EZX_EOC
-	tristate "EZX EOC USB Transceiver"
-	depends on PXA_EZX && I2C
-	select USB_OTG_UTILS
-	default y
-
 endmenu
