@@ -91,7 +91,7 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 
 	mutex_lock(&bat->lock);
 
-	ch[0] = PCAP_ADC_CH_BATTARY;
+	ch[0] = PCAP_ADC_CH_BATT;
 	ch[1] =	PCAP_ADC_CH_TEMPERATURE;
 
 	ret = pcap_adc_sync(bat->pcap, PCAP_ADC_BANK_0, 0, ch, adc);
