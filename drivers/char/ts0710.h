@@ -282,6 +282,7 @@ typedef struct {
 	volatile __u16 mtu;
 	wait_queue_head_t open_wait;
 	wait_queue_head_t close_wait;
+        u8 tag;
 } dlci_struct;
 
 /* user space interfaces */
@@ -329,3 +330,5 @@ enum mux_frametype {
         MUX_PN		= 0x20,
 };
 
+#define TS0710STAG  _IOW('t',0x90,int)
+#define TS0710GTAG  _IOR('t',0x91,int)
