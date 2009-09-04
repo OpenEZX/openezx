@@ -263,6 +263,11 @@ config EZX_PCAP
 	  This enables the PCAP ASIC present on EZX Phones. This is
 	  needed for MMC, TouchScreen, Sound, USB, etc..
 
+config EZX_EOC
+	tristate "EZX EOC USB Transceiver"
+	depends on PXA_EZX && I2C
+	default y
+
 endmenu
 
 menu "Multimedia Capabilities Port drivers"
@@ -285,5 +290,6 @@ config MCP_UCB1200
 config MCP_UCB1200_TS
 	tristate "Touchscreen interface support"
 	depends on MCP_UCB1200 && INPUT
+
 
 endmenu
