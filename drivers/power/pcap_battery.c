@@ -5,6 +5,7 @@
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
+#include <linux/err.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/mfd/ezx-eoc.h>
 #include <linux/regulator/consumer.h>
@@ -103,7 +104,7 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 
 	old = bat->status;
 
-	if (!bat->reg) {
+	if(IS_ERR(bat->reg)) {
 		bat->status = POWER_SUPPLY_STATUS_UNKNOWN;
 		return;
 	}
@@ -125,7 +126,7 @@ static void eoc_charge_start(struct pcap_bat_struct *bat)
 {
 	int cr, id;
 
-	if (!bat->reg)
+	if (IS_ERR(bat->reg))
 		return;
 
 	if(!regulator_is_enabled(bat->reg)) {
@@ -157,7 +158,7 @@ static void eoc_charge_start(struct pcap_bat_struct *bat)
 static void eoc_charge_stop(struct pcap_bat_struct *bat)
 {
 
-	if(!bat->reg)
+	if(IS_ERR(bat->reg))
 		return;
 
 	if(!regulator_is_enabled(bat->reg)) {
@@ -353,11 +354,6 @@ static int __devinit eoc_charge_probe(struct platform_device *pdev)
 	curr_irq = eoc_to_irq(pcap_bat.eoc, EOC_IRQ_CHRG_CURR);
 	battpon_irq = eoc_to_irq(pcap_bat.eoc, EOC_IRQ_BATTPON);
 
-
-	if (!pcap_bat.reg) {
-		printk("couldn't get ac_draw regulator\n");
-		return -1;
-	}
 
 	/* cable can be connected before boot
 	 * to check cable state and start charge process
