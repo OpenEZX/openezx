@@ -277,11 +277,10 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO81_SSP3_TXD,
 	GPIO89_SSP3_RXD,
 
-	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO37_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
+	GPIO22_SSP2_SCLK,
+	GPIO37_SSP2_SFRM,
+	GPIO38_SSP2_TXD,
+	GPIO88_SSP2_RXD,
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -335,10 +334,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO82_SSP3_RXD,
 
 	/* ssp2 pins to in */
-	GPIO22_GPIO,				/* SSP2_SCLK */
-	GPIO14_GPIO,				/* SSP2_SFRM */
-	GPIO38_GPIO,				/* SSP2_TXD */
-	GPIO88_GPIO,				/* SSP2_RXD */
+	GPIO22_SSP2_SCLK,
+	GPIO14_SSP2_SFRM,
+	GPIO38_SSP2_TXD,
+	GPIO88_SSP2_RXD,
 
 	/* camera */
 	GPIO23_CIF_MCLK,
@@ -1111,6 +1110,9 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-audio",
+		.id		= -1,
 	},
 };
 
@@ -1337,6 +1339,9 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
+	}, {
+		.name		= "pcap-audio",
+		.id		= -1,
 	},
 };
 
@@ -1387,7 +1392,7 @@ static struct platform_device e680_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata e680_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{ I2C_BOARD_INFO("radio-tea5764", 0x10) },
 };
 
 static struct platform_device *e680_devices[] __initdata = {
@@ -1469,6 +1474,9 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-battery",
 		.id		= -1,
+	}, {
+		.name		= "pcap-audio",
+		.id		= -1,
 	},
 };
 
@@ -1520,7 +1528,7 @@ static struct platform_device a1200_gpio_keys = {
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 		.platform_data = &eoc_platform_data,
@@ -1602,6 +1610,9 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 		.platform_data	= &pcap_regulator_VAUX3_data,
 	}, {
 		.name		= "pcap-battery",
+		.id		= -1,
+	}, {
+		.name		= "pcap-audio",
 		.id		= -1,
 	},
 };
@@ -1871,6 +1882,9 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 	}, {
 		.name		= "pcap-battery",
 		.id		= -1,
+	}, {
+		.name		= "pcap-audio",
+		.id		= -1,
 	},
 };
 
@@ -1922,7 +1936,7 @@ static struct platform_device e6_gpio_keys = {
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 	{
-		I2C_BOARD_INFO("tea5767", 0x81),
+		I2C_BOARD_INFO("radio-tea5764", 0x10),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
 		.platform_data = &eoc_platform_data,
@@ -2005,6 +2019,9 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 		.platform_data	= &pcap_regulator_VAUX2_data,
 	}, {
 		.name		= "pcap-battery",
+		.id		= -1,
+	}, {
+		.name		= "pcap-audio",
 		.id		= -1,
 	},
 };
