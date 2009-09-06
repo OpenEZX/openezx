@@ -23,6 +23,7 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
+#include <linux/mfd/ezx-eoc.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
 #include <linux/leds.h>
@@ -357,6 +358,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
+
+static struct eoc_platform_data eoc_platform_data = {
+	.irq_base	= IRQ_BOARD_START + PCAP_NIRQS,
+};
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned long a780_pin_config[] __initdata = {
@@ -1067,28 +1072,6 @@ void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
 	}
 }
 
-struct eoc_platform_data ezx_eoc_data = {
-	.mach_switch_mode = ezx_mach_switch_mode,
-};
-
-static struct regulator_init_data eoc_regulator_data = {
-	.constraints = {
-		.max_uA = 1300000,
-		.valid_modes_mask = REGULATOR_MODE_NORMAL,
-		.valid_ops_mask = REGULATOR_CHANGE_CURRENT
-			| REGULATOR_CHANGE_MODE
-			| REGULATOR_CHANGE_STATUS
-			| REGULATOR_CHANGE_DRMS,
-	},
-};
-
-static struct platform_device eoc_regulator_device = {
-	.name = "eoc-regulator",
-	.id = -1,
-	.dev = {
-		.platform_data = &eoc_regulator_data,
-	},
-};
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
@@ -1540,7 +1523,7 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 		I2C_BOARD_INFO("tea5767", 0x81),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
-		.platform_data = &ezx_eoc_data,
+		.platform_data = &eoc_platform_data,
 	},
 };
 
@@ -1548,7 +1531,6 @@ static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
 	&gen2_flash_device,
 	&gen2_bp_device,
-	&eoc_regulator_device,
 };
 
 static void __init a1200_init(void)
@@ -1806,7 +1788,7 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 		.platform_data = &a910_lp3944_leds,
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
-		.platform_data = &ezx_eoc_data,
+		.platform_data = &eoc_platform_data,
 	},
 };
 
@@ -1815,7 +1797,6 @@ static struct platform_device *a910_devices[] __initdata = {
 	&gen2_flash_device,
 	&a910_camera,
 	&gen2_bp_device,
-	&eoc_regulator_device,
 };
 
 static void __init a910_init(void)
@@ -1944,7 +1925,7 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 		I2C_BOARD_INFO("tea5767", 0x81),
 	}, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
-		.platform_data = &ezx_eoc_data,
+		.platform_data = &eoc_platform_data,
 	},
 };
 
@@ -1953,7 +1934,6 @@ static struct platform_device *e6_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
-	&eoc_regulator_device,
 };
 
 static void __init e6_init(void)
@@ -2053,8 +2033,9 @@ static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("tea5767", 0x81),
+        }, {
 		I2C_BOARD_INFO("ezx-eoc", 0x17),
-		.platform_data = &ezx_eoc_data,
+		.platform_data = &eoc_platform_data,
 	},
 };
 
@@ -2062,7 +2043,6 @@ static struct platform_device *e2_devices[] __initdata = {
 	&gen2_flash_device,
 	&gen2_bp_device,
 	&ezx_usb20_device,
-	&eoc_regulator_device,
 };
 
 static void __init e2_init(void)
