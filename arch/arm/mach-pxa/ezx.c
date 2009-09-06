@@ -30,7 +30,6 @@
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 #include <linux/regulator/machine.h>
-#include <linux/i2c/ezx-eoc.h>
 
 #include <media/soc_camera.h>
 
