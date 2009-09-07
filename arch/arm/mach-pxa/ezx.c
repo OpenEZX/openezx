@@ -23,6 +23,7 @@
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
+#include <linux/mfd/ezx-eoc.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
 #include <linux/leds.h>
@@ -309,6 +310,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
+
+static struct eoc_platform_data eoc_platform_data = {
+	.irq_base	= IRQ_BOARD_START + PCAP_NIRQS,
+};
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned long a780_pin_config[] __initdata = {
@@ -947,6 +952,43 @@ static struct platform_device gen2_flash_device = {
 	.resource      = &gen2_flash_resource,
 	.num_resources = 1,
 };
+
+static unsigned long ezx_gpio_usb_mode_config[] = {
+	GPIO34_USB_P2_2,
+	GPIO35_USB_P2_1,
+	GPIO36_USB_P2_4,
+	GPIO39_USB_P2_6,
+	GPIO40_USB_P2_5,
+	GPIO53_USB_P2_3,
+};
+static unsigned long ezx_gpio_uart_mode_config[] = {
+	GPIO34_GPIO,
+	GPIO35_GPIO,
+	GPIO36_GPIO,
+	GPIO39_FFUART_TXD,
+	GPIO40_GPIO,
+	GPIO53_FFUART_RXD,
+};
+
+void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
+{
+	switch (mode) {
+	case EOC_MODE_USB_CLIENT:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_usb_mode_config));
+		UP2OCR = UP2OCR_SEOS(2);
+		break;
+	case EOC_MODE_USB_HOST:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_usb_mode_config));
+		UP2OCR = UP2OCR_SEOS(2);
+		udelay(300);
+		UP2OCR = UP2OCR_SEOS(3)|UP2OCR_HXS;
+		break;
+	case EOC_MODE_UART:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_uart_mode_config));
+		break;
+	}
+}
+
 #endif
 
 #ifdef CONFIG_MACH_EZX_A780
@@ -1383,7 +1425,12 @@ static struct platform_device a1200_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *a1200_devices[] __initdata = {
@@ -1638,6 +1685,9 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("lp3944", 0x60),
 		.platform_data = &a910_lp3944_leds,
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
 	},
 };
 
@@ -1763,7 +1813,12 @@ static struct platform_device e6_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *e6_devices[] __initdata = {
@@ -1860,7 +1915,12 @@ static struct spi_board_info e2_spi_boardinfo[] __initdata = {
 };
 
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+        }, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *e2_devices[] __initdata = {
