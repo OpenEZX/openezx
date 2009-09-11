@@ -89,7 +89,7 @@ static void eoc_vbus_work(struct work_struct *work)
 
 	if (is_vbus_powered(eoc_vbus->eoc)) {
 		eoc_vbus->otg.state = OTG_STATE_B_PERIPHERAL;
-		eoc_vbus->mach_switch_mode(EOC_MODE_USB_CLIENT);
+		eoc_switch_mode(EOC_MODE_USB_CLIENT);
 		usb_gadget_vbus_connect(eoc_vbus->otg.gadget);
 
 		/* drawing a "unit load" is *always* OK, except for OTG */
@@ -97,7 +97,7 @@ static void eoc_vbus_work(struct work_struct *work)
 
 		/* optionally enable D+ pullup */
 	} else {
-		eoc_vbus->mach_switch_mode(EOC_MODE_NONE);
+		eoc_switch_mode(EOC_MODE_NONE);
 		set_vbus_draw(eoc_vbus, 0);
 
 		usb_gadget_vbus_disconnect(eoc_vbus->otg.gadget);
