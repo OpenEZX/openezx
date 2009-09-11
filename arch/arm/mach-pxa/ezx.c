@@ -1948,6 +1948,7 @@ static void __init e6_init(void)
 	init_gpio_reset(GPIO4_PCAP_WDI, 1, 1);
 
 	pxa_set_i2c_info(NULL);
+	eoc_platform_data.mach_switch_mode = ezx_mach_switch_mode;
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
@@ -2057,6 +2058,7 @@ static void __init e2_init(void)
 	init_gpio_reset(GPIO4_PCAP_WDI, 1, 1);
 
 	pxa_set_i2c_info(NULL);
+	eoc_platform_data.mach_switch_mode = ezx_mach_switch_mode;
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
