@@ -67,8 +67,16 @@
 
 #define EOC_NIRQS 11
 
+struct eoc_subdev {
+	int id;
+	const char *name;
+	void *platform_data;
+};
+
 struct eoc_platform_data {
 	unsigned                                irq_base, irq_end;
+	int num_subdevs;
+	struct eoc_subdev *subdevs;
 };
 
 struct eoc_chip {
