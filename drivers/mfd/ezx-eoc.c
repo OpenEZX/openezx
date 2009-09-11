@@ -83,6 +83,21 @@ int eoc_reg_write_mask(struct eoc_chip *eoc, char reg, int mask, int value)
 }
 EXPORT_SYMBOL_GPL(eoc_reg_write_mask);
 
+int eoc_switch_mode(struct eoc_chip *eoc, enum eoc_transceiver_mode mode)
+{
+	if (eoc->mach_switch_mode)
+		eoc->mach_switch_mode(mode);
+
+	switch (mode) {
+	case EOC_MODE_NONE:
+	case EOC_MODE_USB_CLIENT:
+	case EOC_MODE_USB_HOST:
+	case EOC_MODE_UART:
+		break;
+	}
+}
+EXPORT_SYMBOL_GPL(eoc_switch_mode);
+
 static void eoc_isr_work(struct work_struct *work)
 {
 
@@ -152,6 +167,15 @@ static irqreturn_t eoc_irq(int irq, void *_eoc)
 	return IRQ_HANDLED;
 }
 
+static struct platform_device eoc_vbus = {
+	.name = "eoc-vbus",
+	.id   = -1,
+};
+
+static struct platform_device *eoc_sub_devices[] = {
+	&eoc_vbus,
+};
+
 static inline struct device *add_child(struct eoc_chip *eoc, const char *name,
 		int id,
 		void *pdata, unsigned pdata_len,
@@ -197,17 +221,20 @@ static int
 add_children(struct eoc_chip *eoc)
 {
 
-	struct device	*child;
 	struct device   *charger;
 
-	child = add_child(eoc, "eoc_charger", -1, NULL, 0, false);
+	charger = add_child(eoc, "eoc_charger", -1, NULL, 0, false);
 
+	if (IS_ERR(charger))
+		return PTR_ERR(charger);
 
-	if (IS_ERR(child))
-		return PTR_ERR(child);
-
-	static struct regulator_consumer_supply charge_consumer_c = {
-		.supply = "ac_draw", 
+	static struct regulator_consumer_supply charge_consumer_c[] = {
+		[0] = {
+			.supply = "ac_draw",
+		},
+		[1] = {
+			.supply = "vbus_draw",
+		},
 	};
 
 	static struct regulator_consumer_supply charge_consumer_v = {
@@ -215,12 +242,13 @@ add_children(struct eoc_chip *eoc)
 	};
 
 
-	charge_consumer_c.dev = child;
-	charge_consumer_v.dev = child;
+	charge_consumer_c[0].dev = charger;
+	charge_consumer_c[0].dev = &eoc_vbus.dev;
+	charge_consumer_v.dev = charger;
 	
 	struct regulator_init_data charge_data = {
-		.num_consumer_supplies = 1,
-		.consumer_supplies = &charge_consumer_c,
+		.num_consumer_supplies = 2,
+		.consumer_supplies = charge_consumer_c,
                 .constraints = {
 			.max_uA = 1300000,
 			.valid_modes_mask = REGULATOR_MODE_NORMAL,
@@ -251,10 +279,7 @@ add_children(struct eoc_chip *eoc)
         add_child(eoc, "eoc_reg", 1, &charge_data_voltage,
 			sizeof(charge_data_voltage), false);
 
-	if (IS_ERR(child))
-		return PTR_ERR(child);
-
-	
+	platform_add_devices(eoc_sub_devices, 1);
 	return 0;
 }
 
