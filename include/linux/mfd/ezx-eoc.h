@@ -90,6 +90,10 @@ struct eoc_chip {
 	struct i2c_client *client;
 };
 
+int eoc_reg_read(struct eoc_chip *eoc, char reg, unsigned int *val);
+int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val);
+
+
 int eoc_to_irq(struct eoc_chip *, int);
 int irq_to_eoc(struct eoc_chip *, int);
 
