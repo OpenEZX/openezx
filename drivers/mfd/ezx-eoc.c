@@ -47,6 +47,7 @@ int eoc_reg_read(struct eoc_chip *eoc, char reg, unsigned int *val)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(eoc_reg_read);
 
 int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val)
 {
@@ -61,6 +62,7 @@ int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val)
 		return -EIO;
 	return 0;
 }
+EXPORT_SYMBOL_GPL(eoc_reg_write);
 
 int eoc_reg_write_mask(struct eoc_chip *eoc, char reg, int mask, int value)
 {
