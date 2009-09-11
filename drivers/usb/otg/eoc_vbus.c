@@ -87,11 +87,6 @@ static void eoc_vbus_work(struct work_struct *work)
 	if (!eoc_vbus->otg.gadget)
 		return;
 
-	/* Peripheral controllers which manage the pullup themselves won't have
-	 * gpio_pullup configured here.  If it's configured here, we'll do what
-	 * isp1301_omap::b_peripheral() does and enable the pullup here... although
-	 * that may complicate usb_gadget_{,dis}connect() support.
-	 */
 	if (is_vbus_powered(eoc_vbus->eoc)) {
 		eoc_vbus->otg.state = OTG_STATE_B_PERIPHERAL;
 		eoc_vbus->mach_switch_mode(EOC_MODE_USB_CLIENT);
