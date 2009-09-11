@@ -255,7 +255,7 @@ static int __exit eoc_vbus_remove(struct platform_device *pdev)
 
 	otg_set_transceiver(NULL);
 
-	free_irq(eoc_to_irq(eoc_vbus->eoc ,EOC_IRQ_VBUS), &pdev->dev);
+	free_irq(eoc_to_irq(eoc_vbus->eoc, EOC_IRQ_VBUS), &pdev->dev);
 	platform_set_drvdata(pdev, NULL);
 	kfree(eoc_vbus);
 
