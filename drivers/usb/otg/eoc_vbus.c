@@ -189,13 +189,9 @@ static int __init eoc_vbus_probe(struct platform_device *pdev)
 	struct eoc_vbus_data *eoc_vbus;
 	int err, irq;
 
-	if (!pdata)
-		return -EINVAL;
-
 	eoc_vbus = kzalloc(sizeof(struct eoc_vbus_data), GFP_KERNEL);
 	if (!eoc_vbus)
 		return -ENOMEM;
-
 	platform_set_drvdata(pdev, eoc_vbus);
 	eoc_vbus->eoc = dev_get_drvdata(pdev->dev.parent);
 	eoc_vbus->dev = &pdev->dev;
@@ -204,12 +200,12 @@ static int __init eoc_vbus_probe(struct platform_device *pdev)
 	eoc_vbus->otg.set_peripheral = eoc_vbus_set_peripheral;
 	eoc_vbus->otg.set_power = eoc_vbus_set_power;
 	eoc_vbus->otg.set_suspend = eoc_vbus_set_suspend;
-	eoc_vbus->mach_switch_mode = pdata->mach_switch_mode;
 
 	irq = eoc_to_irq(eoc_vbus->eoc, EOC_IRQ_VBUS);
 
 	err = request_irq(irq, eoc_vbus_irq, 0,
 		"vbus_detect", pdev);
+
 	if (err) {
 		dev_err(&pdev->dev, "can't request irq %i, err: %d\n",
 			irq, err);
@@ -266,12 +262,14 @@ static struct platform_driver eoc_vbus_driver = {
 		.name  = "eoc-vbus",
 		.owner = THIS_MODULE,
 	},
+	.probe	= eoc_vbus_probe,
 	.remove  = __exit_p(eoc_vbus_remove),
 };
 
 static int __init eoc_vbus_init(void)
 {
-	return platform_driver_probe(&eoc_vbus_driver, eoc_vbus_probe);
+	platform_driver_register(&eoc_vbus_driver);
+	return 0;
 }
 subsys_initcall(eoc_vbus_init);
 
