@@ -458,6 +458,7 @@ config PXA_EZX
 	select PXA27x
 	select IWMMXT
 	select HAVE_PWM
+	select PXA_HAVE_BOARD_IRQS
 
 config MACH_EZX_A780
 	bool "Motorola EZX A780"
@@ -488,6 +489,14 @@ config MACH_EZX_E2
 	bool "Motorola EZX E2"
 	default y
 	depends on PXA_EZX
+
+config MACH_MOTOQ
+	bool "Motorola Q CDMA (Franklin)"
+	default y
+	select PXA27x
+	select IWMMXT
+	select HAVE_PWM
+	select PXA_HAVE_BOARD_IRQS
 
 endmenu
 

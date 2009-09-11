@@ -18,10 +18,25 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+#include <linux/gpio.h>
+#include <linux/spi/spi.h>
+#include <linux/mfd/ezx-pcap.h>
+#include <linux/mfd/ezx-eoc.h>
+#include <linux/spi/mmc_spi.h>
+#include <linux/irq.h>
+#include <linux/leds.h>
+#include <linux/leds-pcap.h>
+#include <linux/leds-lp3944.h>
+#include <linux/regulator/machine.h>
+
+#include <media/soc_camera.h>
 
 #include <asm/setup.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+#include <asm/mach/flash.h>
 
 #include <mach/pxa27x.h>
 #include <mach/pxafb.h>
@@ -29,6 +44,13 @@
 #include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <mach/pxa27x_keypad.h>
+#include <mach/pxa2xx_spi.h>
+#include <mach/mmc.h>
+#include <mach/udc.h>
+#include <mach/pxa27x-udc.h>
+#include <mach/ezx-bp.h>
+#include <mach/camera.h>
+#include <mach/irqs.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -38,6 +60,12 @@
 #define GPIO15_A910_FLIP_LID 		15
 #define GPIO12_E680_LOCK_SWITCH 	12
 #define GPIO15_E6_LOCK_SWITCH 		15
+#define GPIO1_PCAP_IRQ			1
+#define GPIO11_MMC_DETECT		11
+#define GPIO20_A910_MMC_CS		20
+#define GPIO24_PCAP_CS			24
+#define GPIO46_E680_LED_RED		46
+#define GPIO47_E680_LED_GREEN		47
 
 static struct platform_pwm_backlight_data ezx_backlight_data = {
 	.pwm_id		= 0,
@@ -93,6 +121,35 @@ static struct pxafb_mach_info ezx_fb_info_2 = {
 	.modes		= &mode_72r89803y01,
 	.num_modes	= 1,
 	.lcd_conn	= LCD_COLOR_TFT_18BPP,
+};
+
+/* MMC */
+static int ezx_mci_init(struct device *dev,
+		irqreturn_t (*detect_int)(int, void *), void *data)
+{
+	int err = 0;
+
+	/* A1200 slot is not hot-plug */
+	if (!machine_is_ezx_a1200()) {
+		err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_int,
+			IRQF_DISABLED | IRQF_SAMPLE_RANDOM |
+			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
+			"MMC card detect", data);
+	}
+
+	return err;
+}
+
+static void ezx_mci_exit(struct device *dev, void *data)
+{
+	if (!machine_is_ezx_a1200())
+		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
+}
+
+static struct pxamci_platform_data ezx_mci_platform_data = {
+	.init           = ezx_mci_init,
+	.exit           = ezx_mci_exit,
+	.detect_delay   = 250 / (1000 / HZ),
 };
 
 static struct platform_device *ezx_devices[] __initdata = {
@@ -217,7 +274,7 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO57_GPIO,				/* WAKEUP */
 
 	/* Neptune handshake */
-	GPIO0_GPIO | WAKEUP_ON_EDGE_FALL,	/* BP_RDY */
+	GPIO0_GPIO | WAKEUP_ON_EDGE_RISE,	/* BP_RDY */
 	GPIO96_GPIO | MFP_LPM_DRIVE_HIGH,	/* AP_RDY */
 	GPIO3_GPIO | WAKEUP_ON_EDGE_FALL,	/* WDI */
 	GPIO116_GPIO | MFP_LPM_DRIVE_HIGH,	/* RESET */
@@ -253,6 +310,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO17_GPIO,				/* CAM_FLASH */
 };
 #endif
+
+static struct eoc_platform_data eoc_platform_data = {
+	.irq_base	= IRQ_BOARD_START + PCAP_NIRQS,
+};
 
 #ifdef CONFIG_MACH_EZX_A780
 static unsigned long a780_pin_config[] __initdata = {
@@ -657,7 +718,340 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
+/* FIXME: EMU driver */
+static void ezx_pcap_init(void *pcap)
+{
+	ezx_pcap_write(pcap, PCAP_REG_BUSCTRL, (PCAP_BUSCTRL_USB_PU |
+			PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	gpio_request(120, "EMU mux1");
+	gpio_request(119, "EMU mux2");
+	gpio_direction_output(120, 0);
+	gpio_direction_output(119, 0);
+}
+
+/* SPI */
+static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
+	.tx_threshold   = 1,
+	.rx_threshold   = 1,
+	.dma_burst_size = 0,
+	.timeout        = 100,
+	.gpio_cs	= GPIO24_PCAP_CS,
+};
+
+static struct pxa2xx_spi_master ezx_spi_masterinfo = {
+	.clock_enable   = CKEN_SSP1,
+	.num_chipselect = 1,
+	.enable_dma     = 1,
+};
+
+/* voltage regulators */
+/* VAUX2: MMC on E680, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_VAUX2_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX2_data = {
+	.constraints = {
+		.min_uV = 1875000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX2_consumers),
+	.consumer_supplies = pcap_regulator_VAUX2_consumers,
+};
+
+/* VAUX3: MMC on A780, A1200, A910 */
+static struct regulator_consumer_supply pcap_regulator_VAUX3_consumers[] = {
+	{ .dev = &pxa_device_mci.dev, .supply = "vmmc", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX3_data = {
+	.constraints = {
+		.min_uV = 1200000,
+		.max_uV = 3600000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX3_consumers),
+	.consumer_supplies = pcap_regulator_VAUX3_consumers,
+};
+
+/* SW1: CORE on A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
+	{ .supply = "vcc_core", },
+};
+
+static struct regulator_init_data pcap_regulator_SW1_data = {
+	.constraints = {
+		.min_uV = 950000,
+		.max_uV = 1600000,
+		.always_on = 1,
+		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_SW1_consumers),
+	.consumer_supplies = pcap_regulator_SW1_consumers,
+};
+
+/* UDC */
+static void ezx_udc_command(int cmd)
+{
+	/* FIXME: This cant work anymore, sorry :( */
+//	unsigned int tmp;
+//	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+//	switch (cmd) {
+//	case PXA2XX_UDC_CMD_DISCONNECT:
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp &= ~PCAP_BUSCTRL_USB_PU;
+//		break;
+//	case PXA2XX_UDC_CMD_CONNECT:
+//		/* temp. set UP2OCR here until we have a transceiver driver */
+//		UP2OCR = UP2OCR_SEOS(2);
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp |= PCAP_BUSCTRL_USB_PU;
+//		break;
+//	}
+//	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+}
+
+static struct pxa2xx_udc_mach_info ezx_udc_info = {
+	.udc_command	= ezx_udc_command,
+	.gpio_pullup	= -1,
+	.gpio_vbus	= -1,
+};
+
+/* OHCI Controller */
+static struct pxaohci_platform_data ezx_ohci_platform_data = {
+	.port_mode	= PMM_PERPORT_MODE,
+	.flags		= ENABLE_PORT3,
+	.power_on_delay	= 400,
+};
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct ezxbp_config gen1_bp_data = {
+	.bp_reset = 82,
+	.bp_wdi = 13,
+	.bp_wdi2 = 3,
+	.bp_rdy = 0,
+	.ap_rdy = 57,
+	.first_step = 2,
+};
+
+static struct platform_device gen1_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen1_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+        defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct ezxbp_config gen2_bp_data = {
+	.bp_reset = 116,
+	.bp_wdi = 3,
+	.bp_wdi2 = -1,
+	.bp_rdy = 0,
+	.ap_rdy = 96,
+	.first_step = 3,
+};
+
+static struct platform_device gen2_bp_device = {
+	.name		= "ezx-bp",
+	.dev		= {
+		.platform_data	= &gen2_bp_data,
+	},
+	.id		= -1,
+};
+#endif
+
+/* MTD partitions on NOR flash */
+#define EZX_MTD_PART(_name, _offset, _size, _flags)	\
+	{						\
+		.name		= #_name,		\
+		.offset		= _offset,		\
+		.size		= _size,		\
+		.mask_flags	= _flags,		\
+	}
+
+#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
+static struct resource gen1_flash_resource = {
+	.start	= PXA_CS0_PHYS,
+	.end	= PXA_CS0_PHYS + SZ_32M - 1,
+	.flags	= IORESOURCE_MEM,
+};
+
+static struct mtd_partition gen1_partitions[] = {
+	EZX_MTD_PART(bootloader,	0x00000000, 131072,	MTD_WRITEABLE),
+	EZX_MTD_PART(kernel,		0x00020000, 1048576,	0),
+	EZX_MTD_PART(rootfs,		0x00120000, 26083328,	0),
+	EZX_MTD_PART(userfs,		0x01a00000, 5767168,	0),
+	EZX_MTD_PART(setup,		0x01fa0000, 131072,	0),
+	EZX_MTD_PART(logo,		0x01fc0000, 131072,	0),
+};
+
+static struct flash_platform_data gen1_flash_data = {
+	.map_name	= "cfi_probe",
+	.name		= "EZX A780/E680 NOR flash",
+	.width		= 2,
+	.parts		= gen1_partitions,
+	.nr_parts	= ARRAY_SIZE(gen1_partitions),
+};
+
+static struct platform_device gen1_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &gen1_flash_data,
+	},
+	.resource      = &gen1_flash_resource,
+	.num_resources = 1,
+};
+#endif
+
+#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
+	defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
+static struct resource gen2_flash_resource = {
+	.start	= PXA_CS0_PHYS,
+	.end	= PXA_CS0_PHYS + SZ_64M - 1,
+	.flags	= IORESOURCE_MEM,
+};
+
+static struct mtd_partition gen2_partitions[] = {
+	EZX_MTD_PART(bootloader,	0x00000000, 393216,	MTD_WRITEABLE),
+	EZX_MTD_PART(bootloader setup,	0x00060000, 131072,	0),
+	EZX_MTD_PART(linux loader,	0x00080000, 131072,	0),
+	EZX_MTD_PART(kernel,		0x000a0000, 1048576,	0),
+	EZX_MTD_PART(resourcefs,	0x001a0000, 9437184,	0),
+	EZX_MTD_PART(userfs db,		0x00aa0000, 6291456,	0),
+	EZX_MTD_PART(userfs general,	0x010a0000, 8388608,	0),
+	EZX_MTD_PART(secure setup,	0x018a0000, 131072,	0),
+	EZX_MTD_PART(tcmd data,		0x018c0000, 131072,	0),
+	EZX_MTD_PART(logo,		0x018e0000, 131072,	0),
+	EZX_MTD_PART(fota,		0x01900000, 917504,	0),
+	EZX_MTD_PART(languagefs,	0x019e0000, 12582912,	0),
+	EZX_MTD_PART(setup,		0x025e0000, 131072,	0),
+	EZX_MTD_PART(rootfs,		0x02600000, 27262976,	0),
+};
+
+static struct flash_platform_data gen2_flash_data = {
+	.map_name	= "cfi_probe",
+	.name		= "EZX A1200/A910/E2/E6 NOR flash",
+	.width		= 2,
+	.parts		= gen2_partitions,
+	.nr_parts	= ARRAY_SIZE(gen2_partitions),
+};
+
+static struct platform_device gen2_flash_device = {
+	.name          = "pxa2xx-flash",
+	.id            = 0,
+	.dev           = {
+		.platform_data = &gen2_flash_data,
+	},
+	.resource      = &gen2_flash_resource,
+	.num_resources = 1,
+};
+
+static unsigned long ezx_gpio_usb_mode_config[] = {
+	GPIO34_USB_P2_2,
+	GPIO35_USB_P2_1,
+	GPIO36_USB_P2_4,
+	GPIO39_USB_P2_6,
+	GPIO40_USB_P2_5,
+	GPIO53_USB_P2_3,
+};
+static unsigned long ezx_gpio_uart_mode_config[] = {
+	GPIO34_GPIO,
+	GPIO35_GPIO,
+	GPIO36_GPIO,
+	GPIO39_FFUART_TXD,
+	GPIO40_GPIO,
+	GPIO53_FFUART_RXD,
+};
+
+void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
+{
+	switch (mode) {
+	case EOC_MODE_USB_CLIENT:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_usb_mode_config));
+		UP2OCR = UP2OCR_SEOS(2);
+		break;
+	case EOC_MODE_USB_HOST:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_usb_mode_config));
+		UP2OCR = UP2OCR_SEOS(2);
+		udelay(300);
+		UP2OCR = UP2OCR_SEOS(3)|UP2OCR_HXS;
+		break;
+	case EOC_MODE_UART:
+		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_uart_mode_config));
+		break;
+	}
+}
+
+#endif
+
 #ifdef CONFIG_MACH_EZX_A780
+/* pcap-leds */
+static struct pcap_leds_platform_data a780_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_BL0,
+			.name = "a780:main",
+		}, {
+			.type = PCAP_BL1,
+			.name = "a780:aux",
+		},
+	},
+	.num_leds = 3,
+};
+
+static struct pcap_subdev a780_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &a780_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a780_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
+	.subdevs	= a780_pcap_subdevs,
+};
+
+static struct spi_board_info a780_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a780_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a780_buttons[] = {
 	[0] = {
@@ -683,24 +1077,119 @@ static struct platform_device a780_gpio_keys = {
 	},
 };
 
+/* camera */
+static int a780_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO19_GPIO is CAM_RST: active high
+	 */
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+static int a780_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+
+#if 0
+	/* 
+	 * This is reported to resolve the vertical line in view finder issue
+	 * (LIBff11930), is this still needed?
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+#endif
+
+	return 0;
+}
+
+static int a780_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO19, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO19, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a780_pxacamera_platform_data = {
+	.init	= a780_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 5000,
+};
+
+static struct i2c_board_info a780_camera_i2c_board_info = {
+	I2C_BOARD_INFO("mt9m111", 0x5d),
+};
+
+static struct soc_camera_link a780_iclink = {
+	.bus_id         = 0,
+	.flags          = SOCAM_SENSOR_INVERT_PCLK,
+	.i2c_adapter_id = 0,
+	.board_info     = &a780_camera_i2c_board_info,
+	.module_name    = "mt9m111",
+	.power          = a780_pxacamera_power,
+	.reset          = a780_pxacamera_reset,
+};
+
+static struct platform_device a780_camera = {
+	.name   = "soc-camera-pdrv",
+	.id     = 0,
+	.dev    = {
+		.platform_data = &a780_iclink,
+	},
+};
+
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
+	&gen1_flash_device,
+	&a780_camera,
+	&gen1_bp_device,
 };
 
 static void __init a780_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
 	pxa_set_i2c_info(NULL);
 
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a780_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_mci_parent(&spi_pd->dev);
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
+	pxa_set_camera_info(&a780_pxacamera_platform_data);
+
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A780, "Motorola EZX A780")
@@ -715,6 +1204,76 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E680
+/* pcap-leds */
+static struct pcap_leds_platform_data e680_pcap_leds = {
+	.leds = {
+		{
+			.type = PCAP_LED0,
+			.name = "e680:red",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = GPIO46_E680_LED_RED | PCAP_LED_GPIO_EN |
+							PCAP_LED_GPIO_INVERT,
+		}, {
+			.type = PCAP_LED0,
+			.name = "e680:green",
+			.curr = PCAP_LED_4MA,
+			.timing = 0xc,
+			.gpio = GPIO47_E680_LED_GREEN | PCAP_LED_GPIO_EN,
+		}, {
+			.type = PCAP_LED1,
+			.name = "e680:blue",
+			.curr = PCAP_LED_3MA,
+			.timing = 0xc,
+			.gpio = 0,
+		},
+	},
+	.num_leds = 3,
+};
+
+static struct pcap_subdev e680_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-leds",
+		.id		= -1,
+		.platform_data	= &e680_pcap_leds,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e680_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
+	.subdevs	= e680_pcap_subdevs,
+};
+
+static struct spi_board_info e680_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e680_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button e680_buttons[] = {
 	[0] = {
@@ -746,10 +1305,14 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 
 static struct platform_device *e680_devices[] __initdata = {
 	&e680_gpio_keys,
+	&gen1_flash_device,
+	&gen1_bp_device,
 };
 
 static void __init e680_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
@@ -757,12 +1320,26 @@ static void __init e680_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e680_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_mci_parent(&spi_pd->dev);
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e680_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E680, "Motorola EZX E680")
@@ -777,6 +1354,51 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A1200
+static struct pcap_subdev a1200_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a1200_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
+	.subdevs	= a1200_pcap_subdevs,
+};
+
+static struct spi_board_info a1200_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a1200_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a1200_buttons[] = {
 	[0] = {
@@ -803,15 +1425,24 @@ static struct platform_device a1200_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
+	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init a1200_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
@@ -819,12 +1450,26 @@ static void __init a1200_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
 
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a1200_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_mci_parent(&spi_pd->dev);
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a1200_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A1200, "Motorola EZX A1200")
@@ -839,6 +1484,76 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_A910
+static struct pcap_subdev a910_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX3,
+		.platform_data	= &pcap_regulator_VAUX3_data,
+	},
+};
+
+static struct pcap_platform_data a910_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
+	.subdevs	= a910_pcap_subdevs,
+};
+
+static struct pxa2xx_spi_master a910_spi_masterinfo = {
+	.clock_enable = CKEN_SSP1,
+	.num_chipselect = 2,
+	.enable_dma = 1,
+};
+
+static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
+	.tx_threshold = 8,
+	.rx_threshold = 8,
+	.dma_burst_size = 8,
+	.timeout = 10000,
+	.gpio_cs = GPIO20_A910_MMC_CS,
+};
+
+static struct mmc_spi_platform_data a910_mci_platform_data = {
+	.init           = ezx_mci_init,
+	.exit           = ezx_mci_exit,
+	.detect_delay   = 250 / (1000 / HZ),
+};
+
+static struct spi_board_info a910_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &a910_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	}, {
+		.modalias = "mmc_spi",
+		.bus_num = 1,
+		.chip_select = 1,
+		.max_speed_hz = 13000000,
+		.platform_data = &a910_mci_platform_data,
+		.controller_data = &a910_mmcspi_chip_info,
+		.mode = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button a910_buttons[] = {
 	[0] = {
@@ -864,24 +1579,155 @@ static struct platform_device a910_gpio_keys = {
 	},
 };
 
+/* camera */
+static int a910_pxacamera_init(struct device *dev)
+{
+	/* 
+	 * GPIO50_GPIO is CAM_EN: active low
+	 * GPIO28_GPIO is CAM_RST: active high
+	 */
+	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	gpio_direction_output(MFP_PIN_GPIO50, 0);
+	gpio_direction_output(MFP_PIN_GPIO28, 1);
+
+	return 0;
+}
+
+static int a910_pxacamera_power(struct device *dev, int on)
+{
+	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+	return 0;
+}
+
+static int a910_pxacamera_reset(struct device *dev)
+{
+	gpio_set_value(MFP_PIN_GPIO28, 0);
+	msleep(10);
+	gpio_set_value(MFP_PIN_GPIO28, 1);
+
+	return 0;
+}
+
+struct pxacamera_platform_data a910_pxacamera_platform_data = {
+	.init	= a910_pxacamera_init,
+	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
+		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
+	.mclk_10khz = 5000,
+};
+
+static struct i2c_board_info a910_camera_i2c_board_info = {
+	I2C_BOARD_INFO("mt9m111", 0x5d),
+};
+
+static struct soc_camera_link a910_iclink = {
+	.bus_id         = 0,
+	.i2c_adapter_id = 0,
+	.board_info     = &a910_camera_i2c_board_info,
+	.module_name    = "mt9m111",
+	.power          = a910_pxacamera_power,
+	.reset          = a910_pxacamera_reset,
+};
+
+static struct platform_device a910_camera = {
+	.name   = "soc-camera-pdrv",
+	.id     = 0,
+	.dev    = {
+		.platform_data = &a910_iclink,
+	},
+};
+
+/* leds-lp3944 */
+static struct lp3944_platform_data a910_lp3944_leds = {
+	.leds_size = LP3944_LEDS_MAX,
+	.leds = {
+		[0] = {
+			.name = "a910:red:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[1] = {
+			.name = "a910:green:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[2] {
+			.name = "a910:blue:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		/* Leds 3 and 4 are used as display power switches */
+		[3] = {
+			.name = "a910::cli_display",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[4] = {
+			.name = "a910::main_display",
+			.status = LP3944_LED_STATUS_ON,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[5] = { .type = LP3944_LED_TYPE_NONE },
+		[6] = {
+			.name = "a910::torch",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[7] = {
+			.name = "a910::flash",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED,
+		},
+	},
+};
+
+static struct i2c_board_info __initdata a910_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("lp3944", 0x60),
+		.platform_data = &a910_lp3944_leds,
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
+};
+
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
+	&gen2_flash_device,
+	&a910_camera,
+	&gen2_bp_device,
 };
 
 static void __init a910_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
+
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &a910_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
+	pxa_set_camera_info(&a910_pxacamera_platform_data);
+
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_A910, "Motorola EZX A910")
@@ -896,6 +1742,51 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E6
+static struct pcap_subdev e6_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e6_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
+	.subdevs	= e6_pcap_subdevs,
+};
+
+static struct spi_board_info e6_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e6_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 /* gpio_keys */
 static struct gpio_keys_button e6_buttons[] = {
 	[0] = {
@@ -922,15 +1813,24 @@ static struct platform_device e6_gpio_keys = {
 };
 
 static struct i2c_board_info __initdata e6_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+	}, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
+	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init e6_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
@@ -938,12 +1838,26 @@ static void __init e6_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e6_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_mci_parent(&spi_pd->dev);
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e6_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E6, "Motorola EZX E6")
@@ -958,15 +1872,66 @@ MACHINE_END
 #endif
 
 #ifdef CONFIG_MACH_EZX_E2
+static struct pcap_subdev e2_pcap_subdevs[] = {
+	{
+		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= SW1,
+		.platform_data	= &pcap_regulator_SW1_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX2,
+		.platform_data	= &pcap_regulator_VAUX2_data,
+	},
+};
+
+static struct pcap_platform_data e2_pcap_platform_data = {
+	.irq_base	= IRQ_BOARD_START,
+	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
+	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
+	.subdevs	= e2_pcap_subdevs,
+};
+
+static struct spi_board_info e2_spi_boardinfo[] __initdata = {
+	{
+		.modalias        = "ezx-pcap",
+		.irq    	 = gpio_to_irq(GPIO1_PCAP_IRQ),
+		.bus_num         = 1,
+		.chip_select     = 0,
+		.max_speed_hz    = 13000000,
+		.platform_data   = &e2_pcap_platform_data,
+		.controller_data = &ezx_pcap_chip_info,
+		.mode            = SPI_MODE_0,
+	},
+};
+
 static struct i2c_board_info __initdata e2_i2c_board_info[] = {
-	{ I2C_BOARD_INFO("tea5767", 0x81) },
+	{
+		I2C_BOARD_INFO("tea5767", 0x81),
+        }, {
+		I2C_BOARD_INFO("ezx-eoc", 0x17),
+		.platform_data = &eoc_platform_data,
+	},
 };
 
 static struct platform_device *e2_devices[] __initdata = {
+	&gen2_flash_device,
+	&gen2_bp_device,
 };
 
 static void __init e2_init(void)
 {
+	struct platform_device *spi_pd;
+
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
@@ -974,12 +1939,26 @@ static void __init e2_init(void)
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
 
+	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
+	spi_pd->dev.platform_data = &ezx_spi_masterinfo;
+	platform_device_add(spi_pd);
+	spi_register_board_info(ARRAY_AND_SIZE(e2_spi_boardinfo));
+
+	pxa_set_ohci_info(&ezx_ohci_platform_data);
+
+	pxa_set_mci_parent(&spi_pd->dev);
+	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(e2_devices));
+	regulator_has_full_constraints();
 }
 
 MACHINE_START(EZX_E2, "Motorola EZX E2")
