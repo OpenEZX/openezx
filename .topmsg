@@ -1,6 +1,6 @@
 From: guiming zhuo <gmzhuo@gbsoft.localdomain>
-Subject: [PATCH] ezx/mach/eoc
+Subject: [PATCH] ezx/mach/eoc-vbus
 
-add eoc board info for gen2
+<patch description>
 
 Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
