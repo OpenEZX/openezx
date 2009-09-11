@@ -279,6 +279,7 @@ add_children(struct eoc_chip *eoc)
         add_child(eoc, "eoc_reg", 1, &charge_data_voltage,
 			sizeof(charge_data_voltage), false);
 
+	eoc_vbus.dev.parent = &eoc->client->dev;
 	platform_add_devices(eoc_sub_devices, 1);
 	return 0;
 }
@@ -347,7 +348,6 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	int i;
         struct eoc_platform_data *pdata = client->dev.platform_data;
 	struct eoc_chip *eoc;
-
 	eoc = kzalloc(sizeof(*eoc), GFP_KERNEL);
 	if (!eoc) {
 		ret = -ENOMEM;
@@ -404,7 +404,9 @@ static int __devinit eoc_probe(struct i2c_client *client,
 #endif
 	}
 
-        ret = add_children(eoc);
+	dev_set_drvdata(&client->dev, eoc);
+
+	ret = add_children(eoc);
 	if (ret)
 		goto remove_subdevs;
 	/* setup subdevs */
