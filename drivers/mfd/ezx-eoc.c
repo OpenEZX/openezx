@@ -460,5 +460,5 @@ MODULE_AUTHOR("Alex Zhang <celeber2@gmail.com>");
 MODULE_DESCRIPTION("ezx-eoc usb tranceiver");
 MODULE_LICENSE("GPL");
 
-module_init(eoc_init);
+subsys_initcall(eoc_init);
 module_exit(eoc_exit);
