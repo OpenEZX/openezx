@@ -98,6 +98,7 @@ int eoc_to_irq(struct eoc_chip *, int);
 int irq_to_eoc(struct eoc_chip *, int);
 
 enum eoc_transceiver_mode {
+	EOC_MODE_NONE = 0,
 	EOC_MODE_USB_CLIENT = 1,
 	EOC_MODE_USB_HOST = 2,
 	EOC_MODE_UART = 3,
