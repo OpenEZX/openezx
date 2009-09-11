@@ -256,6 +256,28 @@ add_children(struct eoc_chip *eoc)
 	return 0;
 }
 
+static int __devinit eoc_add_subdev(struct eoc_chip *eoc,
+						struct eoc_subdev *subdev)
+{
+	struct platform_device *pdev;
+
+	pdev = platform_device_alloc(subdev->name, subdev->id);
+	pdev->dev.parent = &eoc->client->dev;
+	pdev->dev.platform_data = subdev->platform_data;
+	platform_set_drvdata(pdev, eoc);
+
+	return platform_device_add(pdev);
+}
+
+/* subdevs */
+static int eoc_remove_subdev(struct device *dev, void *unused)
+{
+	platform_device_unregister(to_platform_device(dev));
+	return 0;
+}
+
+
+
 /* IRQ */
 int irq_to_eoc(struct eoc_chip *eoc, int irq)
 {
@@ -295,6 +317,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
 	int tmp, x, ret;
+	int i;
         struct eoc_platform_data *pdata = client->dev.platform_data;
 	struct eoc_chip *eoc;
 
@@ -355,12 +378,29 @@ static int __devinit eoc_probe(struct i2c_client *client,
 	}
 
         ret = add_children(eoc);
+	if (ret)
+		goto remove_subdevs;
+	/* setup subdevs */
+	for (i = 0; i < pdata->num_subdevs; i++) {
+		ret = eoc_add_subdev(eoc, &pdata->subdevs[i]);
+		if (ret)
+			goto remove_subdevs;
+	}
+	return 0;
+remove_subdevs:
+	device_for_each_child(&client->dev, NULL, eoc_remove_subdev);
+	for (i = eoc->irq_base; i < (eoc->irq_base + EOC_NIRQS); i++)
+		set_irq_chip_and_handler(i, NULL, NULL);
+	kfree(eoc);
 ret:
 	return ret;
 }
 
 static int __devexit eoc_remove(struct i2c_client *client)
 {
+	/* remove all registered subdevs */
+	device_for_each_child(&client->dev, NULL, eoc_remove_subdev);
+
 	free_irq(gpio_to_irq(10), NULL);
 	flush_scheduled_work();
 	kfree(i2c_get_clientdata(client));
