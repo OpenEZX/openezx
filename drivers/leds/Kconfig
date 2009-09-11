@@ -229,6 +229,12 @@ config LEDS_BD2802
 	  This option enables support for BD2802GU RGB LED driver chips
 	  accessed via the I2C bus.
 
+config LEDS_PCAP
+	tristate "LED Support for PCAP2 ASIC"
+	depends on LEDS_CLASS && EZX_PCAP
+	help
+	  This option enables support for the led controller on PCAP2.
+
 comment "LED Triggers"
 
 config LEDS_TRIGGERS
