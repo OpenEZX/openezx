@@ -203,7 +203,7 @@ static int __init eoc_vbus_probe(struct platform_device *pdev)
 
 	irq = eoc_to_irq(eoc_vbus->eoc, EOC_IRQ_VBUS);
 
-	err = request_irq(irq, eoc_vbus_irq, 0,
+	err = request_irq(irq, eoc_vbus_irq, IRQF_SHARED,
 		"vbus_detect", pdev);
 
 	if (err) {
