@@ -391,6 +391,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 
 	eoc->irq_base = pdata->irq_base;
 	printk("eoc irq base: %d\n",eoc->irq_base);
+	eoc->mach_switch_mode = pdata->mach_switch_mode;
 
 	/* setup irq chip */
 	for (x = eoc->irq_base; x < (eoc->irq_base + EOC_NIRQS); x++) {
