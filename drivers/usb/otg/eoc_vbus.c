@@ -81,9 +81,6 @@ static void eoc_vbus_work(struct work_struct *work)
 {
 	struct eoc_vbus_data *eoc_vbus =
 		container_of(work, struct eoc_vbus_data, work);
-	/*
-	struct eoc_vbus_mach_info *pdata = eoc_vbus->dev->platform_data;
-	*/
 	if (!eoc_vbus->otg.gadget)
 		return;
 
@@ -124,13 +121,11 @@ static int eoc_vbus_set_peripheral(struct otg_transceiver *otg,
 				struct usb_gadget *gadget)
 {
 	struct eoc_vbus_data *eoc_vbus;
-	struct eoc_vbus_mach_info *pdata;
 	struct platform_device *pdev;
 	int irq;
 
 	eoc_vbus = container_of(otg, struct eoc_vbus_data, otg);
 	pdev = to_platform_device(eoc_vbus->dev);
-	pdata = eoc_vbus->dev->platform_data;
 	irq = eoc_to_irq(eoc_vbus->eoc, EOC_IRQ_VBUS);
 
 	if (!gadget) {
@@ -148,9 +143,10 @@ static int eoc_vbus_set_peripheral(struct otg_transceiver *otg,
 
 	otg->gadget = gadget;
 	dev_dbg(&pdev->dev, "registered gadget '%s'\n", gadget->name);
+#ifndef CONFIG_USB_GADGET_PXA27X
 	if (eoc_vbus->otg.gadget)
 		schedule_work(&eoc_vbus->work);
-
+#endif
 	return 0;
 }
 
@@ -187,7 +183,6 @@ static int eoc_vbus_set_suspend(struct otg_transceiver *otg, int suspend)
 static int __init eoc_vbus_probe(struct platform_device *pdev)
 {
 
-	struct eoc_vbus_mach_info *pdata = pdev->dev.platform_data;
 	struct eoc_vbus_data *eoc_vbus;
 	int err, irq;
 
@@ -241,9 +236,6 @@ err_irq:
 static int __exit eoc_vbus_remove(struct platform_device *pdev)
 {
 	struct eoc_vbus_data *eoc_vbus = platform_get_drvdata(pdev);
-	/*
-	struct eoc_vbus_mach_info *pdata = pdev->dev.platform_data;
-	*/
 	regulator_put(eoc_vbus->vbus_draw);
 
 	otg_set_transceiver(NULL);
