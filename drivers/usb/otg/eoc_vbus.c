@@ -72,7 +72,7 @@ static int is_vbus_powered(struct eoc_chip *eoc)
 	int vbus = 0;
 	int sense_reg;
 	eoc_reg_read(eoc, EOC_REG_SENSE, &sense_reg);
-	vbus = !!(sense_reg & EOC_IRQ_VBUS);
+	vbus = !!(sense_reg & (EOC_SENSE_VBUS_4V4 | EOC_SENSE_VBUS_3V4));
 	/*should query eoc chip here,let add it later*/
 	return vbus;
 }
@@ -91,7 +91,7 @@ static void eoc_vbus_work(struct work_struct *work)
 		eoc_vbus->otg.state = OTG_STATE_B_PERIPHERAL;
 		eoc_switch_mode(eoc_vbus->eoc, EOC_MODE_USB_CLIENT);
 		usb_gadget_vbus_connect(eoc_vbus->otg.gadget);
-
+		printk(KERN_DEBUG "vbus connected\n");
 		/* drawing a "unit load" is *always* OK, except for OTG */
 		set_vbus_draw(eoc_vbus, 100);
 
@@ -99,7 +99,7 @@ static void eoc_vbus_work(struct work_struct *work)
 	} else {
 		eoc_switch_mode(eoc_vbus->eoc, EOC_MODE_NONE);
 		set_vbus_draw(eoc_vbus, 0);
-
+		printk(KERN_DEBUG "vbus disconnected\n");
 		usb_gadget_vbus_disconnect(eoc_vbus->otg.gadget);
 		eoc_vbus->otg.state = OTG_STATE_B_IDLE;
 	}
@@ -148,6 +148,8 @@ static int eoc_vbus_set_peripheral(struct otg_transceiver *otg,
 
 	otg->gadget = gadget;
 	dev_dbg(&pdev->dev, "registered gadget '%s'\n", gadget->name);
+	if (eoc_vbus->otg.gadget)
+		schedule_work(&eoc_vbus->work);
 
 	return 0;
 }
