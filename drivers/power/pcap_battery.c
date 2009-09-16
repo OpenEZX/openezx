@@ -366,7 +366,7 @@ static int __devinit eoc_charge_probe(struct platform_device *pdev)
 			"charger", &pcap_bat);
 
 	/* This shoud indicate VBUS change */
-	request_irq(vbus_irq, eoc_charge_vbus, 0,
+	request_irq(vbus_irq, eoc_charge_vbus, IRQF_SHARED,
 			"vbus", &pcap_bat);
 
 	/* This indicates id pin state change */
