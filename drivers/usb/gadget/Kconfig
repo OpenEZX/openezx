@@ -498,6 +498,7 @@ config USB_LANGWELL
 
 config USB_GADGET_ISP1583
 	boolean "ISP1583 on pxa2xx"
+	select USB_OTG_UTILS
 	help
 	 null help
 
