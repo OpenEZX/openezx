@@ -47,6 +47,7 @@ int eoc_reg_read(struct eoc_chip *eoc, char reg, unsigned int *val)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(eoc_reg_read);
 
 int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val)
 {
@@ -61,6 +62,7 @@ int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val)
 		return -EIO;
 	return 0;
 }
+EXPORT_SYMBOL_GPL(eoc_reg_write);
 
 int eoc_reg_write_mask(struct eoc_chip *eoc, char reg, int mask, int value)
 {
@@ -80,6 +82,21 @@ int eoc_reg_write_mask(struct eoc_chip *eoc, char reg, int mask, int value)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(eoc_reg_write_mask);
+
+int eoc_switch_mode(struct eoc_chip *eoc, enum eoc_transceiver_mode mode)
+{
+	if (eoc->mach_switch_mode)
+		eoc->mach_switch_mode(mode);
+
+	switch (mode) {
+	case EOC_MODE_NONE:
+	case EOC_MODE_USB_CLIENT:
+	case EOC_MODE_USB_HOST:
+	case EOC_MODE_UART:
+		break;
+	}
+}
+EXPORT_SYMBOL_GPL(eoc_switch_mode);
 
 static void eoc_isr_work(struct work_struct *work)
 {
@@ -150,6 +167,15 @@ static irqreturn_t eoc_irq(int irq, void *_eoc)
 	return IRQ_HANDLED;
 }
 
+static struct platform_device eoc_vbus = {
+	.name = "eoc-vbus",
+	.id   = -1,
+};
+
+static struct platform_device *eoc_sub_devices[] = {
+	&eoc_vbus,
+};
+
 static inline struct device *add_child(struct eoc_chip *eoc, const char *name,
 		int id,
 		void *pdata, unsigned pdata_len,
@@ -195,17 +221,20 @@ static int
 add_children(struct eoc_chip *eoc)
 {
 
-	struct device	*child;
 	struct device   *charger;
 
-	child = add_child(eoc, "eoc_charger", -1, NULL, 0, false);
+	charger = add_child(eoc, "eoc_charger", -1, NULL, 0, false);
 
+	if (IS_ERR(charger))
+		return PTR_ERR(charger);
 
-	if (IS_ERR(child))
-		return PTR_ERR(child);
-
-	static struct regulator_consumer_supply charge_consumer_c = {
-		.supply = "ac_draw", 
+	static struct regulator_consumer_supply charge_consumer_c[] = {
+		[0] = {
+			.supply = "ac_draw",
+		},
+		[1] = {
+			.supply = "vbus_draw",
+		},
 	};
 
 	static struct regulator_consumer_supply charge_consumer_v = {
@@ -213,12 +242,13 @@ add_children(struct eoc_chip *eoc)
 	};
 
 
-	charge_consumer_c.dev = child;
-	charge_consumer_v.dev = child;
+	charge_consumer_c[0].dev = charger;
+	charge_consumer_c[0].dev = &eoc_vbus.dev;
+	charge_consumer_v.dev = charger;
 	
 	struct regulator_init_data charge_data = {
-		.num_consumer_supplies = 1,
-		.consumer_supplies = &charge_consumer_c,
+		.num_consumer_supplies = 2,
+		.consumer_supplies = charge_consumer_c,
                 .constraints = {
 			.max_uA = 1300000,
 			.valid_modes_mask = REGULATOR_MODE_NORMAL,
@@ -249,12 +279,32 @@ add_children(struct eoc_chip *eoc)
         add_child(eoc, "eoc_reg", 1, &charge_data_voltage,
 			sizeof(charge_data_voltage), false);
 
-	if (IS_ERR(child))
-		return PTR_ERR(child);
-
-	
+	eoc_vbus.dev.parent = &eoc->client->dev;
+	platform_add_devices(eoc_sub_devices, 1);
 	return 0;
 }
+
+static int __devinit eoc_add_subdev(struct eoc_chip *eoc,
+						struct eoc_subdev *subdev)
+{
+	struct platform_device *pdev;
+
+	pdev = platform_device_alloc(subdev->name, subdev->id);
+	pdev->dev.parent = &eoc->client->dev;
+	pdev->dev.platform_data = subdev->platform_data;
+	platform_set_drvdata(pdev, eoc);
+
+	return platform_device_add(pdev);
+}
+
+/* subdevs */
+static int eoc_remove_subdev(struct device *dev, void *unused)
+{
+	platform_device_unregister(to_platform_device(dev));
+	return 0;
+}
+
+
 
 /* IRQ */
 int irq_to_eoc(struct eoc_chip *eoc, int irq)
@@ -295,9 +345,9 @@ static int __devinit eoc_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
 	int tmp, x, ret;
+	int i;
         struct eoc_platform_data *pdata = client->dev.platform_data;
 	struct eoc_chip *eoc;
-
 	eoc = kzalloc(sizeof(*eoc), GFP_KERNEL);
 	if (!eoc) {
 		ret = -ENOMEM;
@@ -341,6 +391,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 
 	eoc->irq_base = pdata->irq_base;
 	printk("eoc irq base: %d\n",eoc->irq_base);
+	eoc->mach_switch_mode = pdata->mach_switch_mode;
 
 	/* setup irq chip */
 	for (x = eoc->irq_base; x < (eoc->irq_base + EOC_NIRQS); x++) {
@@ -354,13 +405,32 @@ static int __devinit eoc_probe(struct i2c_client *client,
 #endif
 	}
 
-        ret = add_children(eoc);
+	dev_set_drvdata(&client->dev, eoc);
+
+	ret = add_children(eoc);
+	if (ret)
+		goto remove_subdevs;
+	/* setup subdevs */
+	for (i = 0; i < pdata->num_subdevs; i++) {
+		ret = eoc_add_subdev(eoc, &pdata->subdevs[i]);
+		if (ret)
+			goto remove_subdevs;
+	}
+	return 0;
+remove_subdevs:
+	device_for_each_child(&client->dev, NULL, eoc_remove_subdev);
+	for (i = eoc->irq_base; i < (eoc->irq_base + EOC_NIRQS); i++)
+		set_irq_chip_and_handler(i, NULL, NULL);
+	kfree(eoc);
 ret:
 	return ret;
 }
 
 static int __devexit eoc_remove(struct i2c_client *client)
 {
+	/* remove all registered subdevs */
+	device_for_each_child(&client->dev, NULL, eoc_remove_subdev);
+
 	free_irq(gpio_to_irq(10), NULL);
 	flush_scheduled_work();
 	kfree(i2c_get_clientdata(client));
@@ -393,5 +463,5 @@ MODULE_AUTHOR("Alex Zhang <celeber2@gmail.com>");
 MODULE_DESCRIPTION("ezx-eoc usb tranceiver");
 MODULE_LICENSE("GPL");
 
-module_init(eoc_init);
+subsys_initcall(eoc_init);
 module_exit(eoc_exit);
