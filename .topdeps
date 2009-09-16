@@ -1,3 +1,4 @@
 ezx/mach/rfkill-bluetooth
 ezx/defconfig
 pxa/sparsemem
+usb/rndis-with-xp2-fix

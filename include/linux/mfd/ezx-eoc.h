@@ -67,8 +67,18 @@
 
 #define EOC_NIRQS 11
 
+struct eoc_subdev {
+	int id;
+	const char *name;
+	void *platform_data;
+};
+
+enum eoc_transceiver_mode;
 struct eoc_platform_data {
 	unsigned                                irq_base, irq_end;
+	void (*mach_switch_mode)(enum eoc_transceiver_mode);
+	int num_subdevs;
+	struct eoc_subdev *subdevs;
 };
 
 struct eoc_chip {
@@ -80,12 +90,18 @@ struct eoc_chip {
 	int power0;
 	int msr;
 	struct i2c_client *client;
+	void (*mach_switch_mode)(enum eoc_transceiver_mode);
 };
+
+int eoc_reg_read(struct eoc_chip *eoc, char reg, unsigned int *val);
+int eoc_reg_write(struct eoc_chip *eoc, char reg, unsigned int val);
+int eoc_switch_mode(struct eoc_chip *eoc, enum eoc_transceiver_mode mode);
 
 int eoc_to_irq(struct eoc_chip *, int);
 int irq_to_eoc(struct eoc_chip *, int);
 
 enum eoc_transceiver_mode {
+	EOC_MODE_NONE = 0,
 	EOC_MODE_USB_CLIENT = 1,
 	EOC_MODE_USB_HOST = 2,
 	EOC_MODE_UART = 3,
