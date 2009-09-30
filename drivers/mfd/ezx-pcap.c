@@ -542,9 +542,10 @@ static void __exit ezx_pcap_exit(void)
 	spi_unregister_driver(&ezxpcap_driver);
 }
 
-module_init(ezx_pcap_init);
+subsys_initcall(ezx_pcap_init);
 module_exit(ezx_pcap_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Daniel Ribeiro / Harald Welte");
 MODULE_DESCRIPTION("Motorola PCAP2 ASIC Driver");
+MODULE_ALIAS("spi:ezx-pcap");
