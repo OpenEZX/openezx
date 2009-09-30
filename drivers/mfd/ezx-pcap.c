@@ -17,6 +17,7 @@
 #include <linux/irq.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/spi.h>
+#include <linux/gpio.h>
 
 #define PCAP_ADC_MAXQ		8
 struct pcap_adc_request {
@@ -106,6 +107,29 @@ int ezx_pcap_read(struct pcap_chip *pcap, u8 reg_num, u32 *value)
 }
 EXPORT_SYMBOL_GPL(ezx_pcap_read);
 
+int ezx_pcap_set_bits(struct pcap_chip *pcap, u8 reg_num, u32 mask, u32 val)
+{
+	int ret;
+	u32 tmp = PCAP_REGISTER_READ_OP_BIT |
+		(reg_num << PCAP_REGISTER_ADDRESS_SHIFT);
+
+	mutex_lock(&pcap->io_mutex);
+	ret = ezx_pcap_putget(pcap, &tmp);
+	if (ret)
+		goto out_unlock;
+
+	tmp &= (PCAP_REGISTER_VALUE_MASK & ~mask);
+	tmp |= (val & mask) | PCAP_REGISTER_WRITE_OP_BIT |
+		(reg_num << PCAP_REGISTER_ADDRESS_SHIFT);
+
+	ret = ezx_pcap_putget(pcap, &tmp);
+out_unlock:
+	mutex_unlock(&pcap->io_mutex);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ezx_pcap_set_bits);
+
 /* IRQ */
 int irq_to_pcap(struct pcap_chip *pcap, int irq)
 {
@@ -155,34 +179,38 @@ static void pcap_isr_work(struct work_struct *work)
 	u32 msr, isr, int_sel, service;
 	int irq;
 
-	ezx_pcap_read(pcap, PCAP_REG_MSR, &msr);
-	ezx_pcap_read(pcap, PCAP_REG_ISR, &isr);
+	do {
+		ezx_pcap_read(pcap, PCAP_REG_MSR, &msr);
+		ezx_pcap_read(pcap, PCAP_REG_ISR, &isr);
 
-	/* We cant service/ack irqs that are assigned to port 2 */
-	if (!(pdata->config & PCAP_SECOND_PORT)) {
-		ezx_pcap_read(pcap, PCAP_REG_INT_SEL, &int_sel);
-		isr &= ~int_sel;
-	}
-	ezx_pcap_write(pcap, PCAP_REG_ISR, isr);
-
-	local_irq_disable();
-	service = isr & ~msr;
-
-	for (irq = pcap->irq_base; service; service >>= 1, irq++) {
-		if (service & 1) {
-			struct irq_desc *desc = irq_to_desc(irq);
-
-			if (WARN(!desc, KERN_WARNING
-					"Invalid PCAP IRQ %d\n", irq))
-				break;
-
-			if (desc->status & IRQ_DISABLED)
-				note_interrupt(irq, desc, IRQ_NONE);
-			else
-				desc->handle_irq(irq, desc);
+		/* We cant service/ack irqs that are assigned to port 2 */
+		if (!(pdata->config & PCAP_SECOND_PORT)) {
+			ezx_pcap_read(pcap, PCAP_REG_INT_SEL, &int_sel);
+			isr &= ~int_sel;
 		}
-	}
-	local_irq_enable();
+
+		ezx_pcap_write(pcap, PCAP_REG_MSR, isr | msr);
+		ezx_pcap_write(pcap, PCAP_REG_ISR, isr);
+
+		local_irq_disable();
+		service = isr & ~msr;
+		for (irq = pcap->irq_base; service; service >>= 1, irq++) {
+			if (service & 1) {
+				struct irq_desc *desc = irq_to_desc(irq);
+
+				if (WARN(!desc, KERN_WARNING
+						"Invalid PCAP IRQ %d\n", irq))
+					break;
+
+				if (desc->status & IRQ_DISABLED)
+					note_interrupt(irq, desc, IRQ_NONE);
+				else
+					desc->handle_irq(irq, desc);
+			}
+		}
+		local_irq_enable();
+		ezx_pcap_write(pcap, PCAP_REG_MSR, pcap->msr);
+	} while (gpio_get_value(irq_to_gpio(pcap->spi->irq)));
 }
 
 static void pcap_irq_handler(unsigned int irq, struct irq_desc *desc)
@@ -514,9 +542,10 @@ static void __exit ezx_pcap_exit(void)
 	spi_unregister_driver(&ezxpcap_driver);
 }
 
-module_init(ezx_pcap_init);
+subsys_initcall(ezx_pcap_init);
 module_exit(ezx_pcap_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Daniel Ribeiro / Harald Welte");
 MODULE_DESCRIPTION("Motorola PCAP2 ASIC Driver");
+MODULE_ALIAS("spi:ezx-pcap");
