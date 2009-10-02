@@ -171,32 +171,11 @@ struct platform_device ezx_usb20_device = {
 };
 
 /* MMC */
-static int ezx_mci_init(struct device *dev,
-		irqreturn_t (*detect_int)(int, void *), void *data)
-{
-	int err = 0;
-
-	/* A1200 slot is not hot-plug */
-	if (!machine_is_ezx_a1200()) {
-		err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_int,
-			IRQF_DISABLED | IRQF_SAMPLE_RANDOM |
-			IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-			"MMC card detect", data);
-	}
-
-	return err;
-}
-
-static void ezx_mci_exit(struct device *dev, void *data)
-{
-	if (!machine_is_ezx_a1200())
-		free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
-}
-
 static struct pxamci_platform_data ezx_mci_platform_data = {
-	.init           = ezx_mci_init,
-	.exit           = ezx_mci_exit,
-	.detect_delay   = 250 / (1000 / HZ),
+	.detect_delay     = 250 / (1000 / HZ),
+	.gpio_card_detect = GPIO11_MMC_DETECT,
+	.gpio_card_ro     = -1,
+	.gpio_power       = -1,
 };
 
 static struct platform_device *ezx_devices[] __initdata = {
@@ -1621,9 +1600,44 @@ static struct pxa2xx_spi_chip a910_mmcspi_chip_info = {
 	.gpio_cs = GPIO20_A910_MMC_CS,
 };
 
+static int a910_mci_init(struct device *dev,
+		irqreturn_t (*detect_irq)(int, void *), void *data)
+{
+	int err;
+
+	err = gpio_request(GPIO11_MMC_DETECT, "mmc card detect");
+	if (err) {
+		pr_err("%s: failed requesting gpio_cd %d\n", __func__,
+				GPIO11_MMC_DETECT);
+		goto out;
+	}
+	gpio_direction_input(GPIO11_MMC_DETECT);
+
+	err = request_irq(gpio_to_irq(GPIO11_MMC_DETECT), detect_irq,
+				IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+				"mmc card detect", data);
+	if (err) {
+		pr_err("%s: failed to request card detect IRQ\n", __func__);
+		goto err_request_irq;
+	}
+
+	return 0;
+	
+err_request_irq:
+	gpio_free(GPIO11_MMC_DETECT);
+out:
+	return err;
+}
+
+static void a910_mci_exit(struct device *dev, void *data)
+{
+	free_irq(gpio_to_irq(GPIO11_MMC_DETECT), data);
+	gpio_free(GPIO11_MMC_DETECT);
+}
+
 static struct mmc_spi_platform_data a910_mci_platform_data = {
-	.init           = ezx_mci_init,
-	.exit           = ezx_mci_exit,
+	.init           = a910_mci_init,
+	.exit           = a910_mci_exit,
 	.detect_delay   = 250 / (1000 / HZ),
 };
 
@@ -1950,6 +1964,8 @@ static void __init e6_init(void)
 	pxa_set_ohci_info(&ezx_ohci_platform_data);
 
 	pxa_set_mci_parent(&spi_pd->dev);
+	/* A1200 slot is not hot-plug */
+	ezx_mci_platform_data.gpio_card_detect = -1;
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
 	pxa_set_udc_parent(&spi_pd->dev);
