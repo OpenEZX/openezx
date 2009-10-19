@@ -255,8 +255,8 @@ static unsigned long gen1_pin_config[] __initdata = {
 	GPIO81_SSP3_TXD,
 	GPIO89_SSP3_RXD,
 
-	GPIO22_SSP2_SCLK,
-	GPIO37_SSP2_SFRM,
+	GPIO22_GPIO				/* SSP2_SCLK, AF0 */,
+	GPIO37_GPIO				/* SSP2_SFRM, AF0 */,
 	GPIO38_SSP2_TXD,
 	GPIO88_SSP2_RXD,
 
