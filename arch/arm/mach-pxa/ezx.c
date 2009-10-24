@@ -853,7 +853,7 @@ static struct pcap_leds_platform_data a780_pcap_leds = {
 			.name = "a780:aux",
 		},
 	},
-	.num_leds = 3,
+	.num_leds = 2,
 };
 
 static struct pcap_subdev a780_pcap_subdevs[] = {
