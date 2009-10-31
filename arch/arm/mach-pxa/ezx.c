@@ -18,8 +18,6 @@
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
@@ -31,7 +29,6 @@
 #include <asm/setup.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
-#include <asm/mach/flash.h>
 
 #include <mach/pxa27x.h>
 #include <mach/pxafb.h>
@@ -736,94 +733,6 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 	.consumer_supplies = pcap_regulator_SW1_consumers,
 };
 
-/* MTD partitions on NOR flash */
-#define EZX_MTD_PART(_name, _offset, _size, _flags)	\
-	{						\
-		.name		= #_name,		\
-		.offset		= _offset,		\
-		.size		= _size,		\
-		.mask_flags	= _flags,		\
-	}
-
-#if defined(CONFIG_MACH_EZX_A780) || defined(CONFIG_MACH_EZX_E680)
-static struct resource gen1_flash_resource = {
-	.start	= PXA_CS0_PHYS,
-	.end	= PXA_CS0_PHYS + SZ_32M - 1,
-	.flags	= IORESOURCE_MEM,
-};
-
-static struct mtd_partition gen1_partitions[] = {
-	EZX_MTD_PART(bootloader,	0x00000000, 131072,	MTD_WRITEABLE),
-	EZX_MTD_PART(kernel,		0x00020000, 1048576,	0),
-	EZX_MTD_PART(rootfs,		0x00120000, 26083328,	0),
-	EZX_MTD_PART(userfs,		0x01a00000, 5767168,	0),
-	EZX_MTD_PART(setup,		0x01fa0000, 131072,	0),
-	EZX_MTD_PART(logo,		0x01fc0000, 131072,	0),
-};
-
-static struct flash_platform_data gen1_flash_data = {
-	.map_name	= "cfi_probe",
-	.name		= "EZX A780/E680 NOR flash",
-	.width		= 2,
-	.parts		= gen1_partitions,
-	.nr_parts	= ARRAY_SIZE(gen1_partitions),
-};
-
-static struct platform_device gen1_flash_device = {
-	.name          = "pxa2xx-flash",
-	.id            = 0,
-	.dev           = {
-		.platform_data = &gen1_flash_data,
-	},
-	.resource      = &gen1_flash_resource,
-	.num_resources = 1,
-};
-#endif
-
-#if defined(CONFIG_MACH_EZX_A1200) || defined(CONFIG_MACH_EZX_A910) || \
-	defined(CONFIG_MACH_EZX_E2) || defined(CONFIG_MACH_EZX_E6)
-static struct resource gen2_flash_resource = {
-	.start	= PXA_CS0_PHYS,
-	.end	= PXA_CS0_PHYS + SZ_64M - 1,
-	.flags	= IORESOURCE_MEM,
-};
-
-static struct mtd_partition gen2_partitions[] = {
-	EZX_MTD_PART(bootloader,	0x00000000, 393216,	MTD_WRITEABLE),
-	EZX_MTD_PART(bootloader setup,	0x00060000, 131072,	0),
-	EZX_MTD_PART(linux loader,	0x00080000, 131072,	0),
-	EZX_MTD_PART(kernel,		0x000a0000, 1048576,	0),
-	EZX_MTD_PART(resourcefs,	0x001a0000, 9437184,	0),
-	EZX_MTD_PART(userfs db,		0x00aa0000, 6291456,	0),
-	EZX_MTD_PART(userfs general,	0x010a0000, 8388608,	0),
-	EZX_MTD_PART(secure setup,	0x018a0000, 131072,	0),
-	EZX_MTD_PART(tcmd data,		0x018c0000, 131072,	0),
-	EZX_MTD_PART(logo,		0x018e0000, 131072,	0),
-	EZX_MTD_PART(fota,		0x01900000, 917504,	0),
-	EZX_MTD_PART(languagefs,	0x019e0000, 12582912,	0),
-	EZX_MTD_PART(setup,		0x025e0000, 131072,	0),
-	EZX_MTD_PART(rootfs,		0x02600000, 27262976,	0),
-};
-
-static struct flash_platform_data gen2_flash_data = {
-	.map_name	= "cfi_probe",
-	.name		= "EZX A1200/A910/E2/E6 NOR flash",
-	.width		= 2,
-	.parts		= gen2_partitions,
-	.nr_parts	= ARRAY_SIZE(gen2_partitions),
-};
-
-static struct platform_device gen2_flash_device = {
-	.name          = "pxa2xx-flash",
-	.id            = 0,
-	.dev           = {
-		.platform_data = &gen2_flash_data,
-	},
-	.resource      = &gen2_flash_resource,
-	.num_resources = 1,
-};
-#endif
-
 #ifdef CONFIG_MACH_EZX_A780
 static struct pcap_subdev a780_pcap_subdevs[] = {
 	{
@@ -961,7 +870,6 @@ static struct platform_device a780_camera = {
 
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
-	&gen1_flash_device,
 	&a780_camera,
 };
 
@@ -1069,7 +977,6 @@ static struct i2c_board_info __initdata e680_i2c_board_info[] = {
 
 static struct platform_device *e680_devices[] __initdata = {
 	&e680_gpio_keys,
-	&gen1_flash_device,
 };
 
 static void __init e680_init(void)
@@ -1175,7 +1082,6 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 
 static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
-	&gen2_flash_device,
 };
 
 static void __init a1200_init(void)
@@ -1386,7 +1292,6 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
-	&gen2_flash_device,
 	&a910_camera,
 };
 
@@ -1495,7 +1400,6 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 
 static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
-	&gen2_flash_device,
 };
 
 static void __init e6_init(void)
@@ -1575,7 +1479,6 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 };
 
 static struct platform_device *e2_devices[] __initdata = {
-	&gen2_flash_device,
 };
 
 static void __init e2_init(void)
