@@ -19,7 +19,6 @@
 #include <linux/input.h>
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
-#include <linux/gpio.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/leds-lp3944.h>
