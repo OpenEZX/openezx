@@ -689,7 +689,7 @@ static struct platform_device a780_gpio_keys = {
 /* camera */
 static int a780_pxacamera_init(struct device *dev)
 {
-	/* 
+	/*
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
@@ -706,7 +706,7 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 
 #if 0
-	/* 
+	/*
 	 * This is reported to resolve the vertical line in view finder issue
 	 * (LIBff11930), is this still needed?
 	 *
@@ -947,7 +947,7 @@ static struct platform_device a910_gpio_keys = {
 /* camera */
 static int a910_pxacamera_init(struct device *dev)
 {
-	/* 
+	/*
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
