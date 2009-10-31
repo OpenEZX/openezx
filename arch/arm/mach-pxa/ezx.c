@@ -17,8 +17,8 @@
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
 #include <linux/input.h>
-#include <linux/gpio_keys.h>
 #include <linux/gpio.h>
+#include <linux/gpio_keys.h>
 #include <linux/spi/spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/mfd/ezx-eoc.h>
@@ -1163,16 +1163,29 @@ static struct platform_device a780_gpio_keys = {
 /* camera */
 static int a780_pxacamera_init(struct device *dev)
 {
-	/* 
+	int err;
+
+	/*
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
-	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	if (err)
+		goto fail;
+
+	err = gpio_request(MFP_PIN_GPIO19, "CAM_RST");
+	if (err)
+		goto fail_gpio_cam_rst;
+
 	gpio_direction_output(MFP_PIN_GPIO50, 0);
 	gpio_direction_output(MFP_PIN_GPIO19, 1);
 
 	return 0;
+
+fail_gpio_cam_rst:
+	gpio_free(MFP_PIN_GPIO50);
+fail:
+	return err;
 }
 
 static int a780_pxacamera_power(struct device *dev, int on)
@@ -1180,9 +1193,11 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
 
 #if 0
-	/* 
-	 * This is reported to resolve the vertical line in view finder issue
-	 * (LIBff11930), is this still needed?
+	/*
+	 * This is reported to resolve the "vertical line in view finder"
+	 * issue (LIBff11930), in the original source code released by
+	 * Motorola, but we never experienced the problem, so we don't use
+	 * this for now.
 	 *
 	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
 	 * and TC_MM_EN to high when camera stops.
@@ -1736,16 +1751,29 @@ static struct platform_device a910_gpio_keys = {
 /* camera */
 static int a910_pxacamera_init(struct device *dev)
 {
-	/* 
+	int err;
+
+	/*
 	 * GPIO50_GPIO is CAM_EN: active low
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
-	gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
+	if (err)
+		goto fail;
+
+	err = gpio_request(MFP_PIN_GPIO28, "CAM_RST");
+	if (err)
+		goto fail_gpio_cam_rst;
+
 	gpio_direction_output(MFP_PIN_GPIO50, 0);
 	gpio_direction_output(MFP_PIN_GPIO28, 1);
 
 	return 0;
+
+fail_gpio_cam_rst:
+	gpio_free(MFP_PIN_GPIO50);
+fail:
+	return err;
 }
 
 static int a910_pxacamera_power(struct device *dev, int on)
