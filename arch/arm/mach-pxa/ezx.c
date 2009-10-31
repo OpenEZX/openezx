@@ -317,10 +317,10 @@ static unsigned long gen2_pin_config[] __initdata = {
 	GPIO82_SSP3_RXD,
 
 	/* ssp2 pins to in */
-	GPIO22_SSP2_SCLK,
-	GPIO14_SSP2_SFRM,
-	GPIO38_SSP2_TXD,
-	GPIO88_SSP2_RXD,
+	GPIO22_GPIO,                            /* SSP2_SCLK, AF0 */
+	GPIO14_GPIO,                            /* SSP2_SFRM, AF0 */
+	GPIO38_GPIO,                            /* SSP2_TXD, AF0 */
+	GPIO88_GPIO,                            /* SSP2_RXD, AF0 */
 
 	/* camera */
 	GPIO23_CIF_MCLK,
