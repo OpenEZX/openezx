@@ -1,6 +1,6 @@
-From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 05/10] PCAP2 SPI driver.
+From: Antonio Ospite <ospite@studenti.unina.it>
+Subject: [PATCH] Pcap fixes.
 
-FIXME
+Fixes fo ezx-pcap driver
 
-Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
+Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
