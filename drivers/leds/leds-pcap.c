@@ -138,9 +138,10 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 
 static struct platform_driver pcap_led_driver = {
 	.probe  = pcap_led_probe,
-	.remove = pcap_led_remove,
+	.remove = __devexit_p(pcap_led_remove),
 	.driver = {
 		.name = "pcap-leds",
+		.owner	= THIS_MODULE,
 	},
 };
 
