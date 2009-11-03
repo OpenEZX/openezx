@@ -1,1 +1,5 @@
-ezx/mach/rfkill-bluetooth
+ezx/mach/pxa2xx-flash_new
+ezx/defconfig
+pxa/sparsemem
+usb/rndis-with-xp2-fix
+ezx/mach/motoq
