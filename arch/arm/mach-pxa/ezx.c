@@ -974,12 +974,16 @@ static int a780_pxacamera_init(struct device *dev)
 	 * GPIO19_GPIO is CAM_RST: active high
 	 */
 	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	if (err)
+	if (err) {
+		pr_err("%s: Failed to request nCAM_EN\n", __func__);
 		goto fail;
+	}
 
 	err = gpio_request(MFP_PIN_GPIO19, "CAM_RST");
-	if (err)
+	if (err) {
+		pr_err("%s: Failed to request CAM_RST\n", __func__);
 		goto fail_gpio_cam_rst;
+	}
 
 	gpio_direction_output(MFP_PIN_GPIO50, 0);
 	gpio_direction_output(MFP_PIN_GPIO19, 1);
@@ -1523,12 +1527,16 @@ static int a910_pxacamera_init(struct device *dev)
 	 * GPIO28_GPIO is CAM_RST: active high
 	 */
 	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	if (err)
+	if (err) {
+		pr_err("%s: Failed to request nCAM_EN\n", __func__);
 		goto fail;
+	}
 
 	err = gpio_request(MFP_PIN_GPIO28, "CAM_RST");
-	if (err)
+	if (err) {
+		pr_err("%s: Failed to request CAM_RST\n", __func__);
 		goto fail_gpio_cam_rst;
+	}
 
 	gpio_direction_output(MFP_PIN_GPIO50, 0);
 	gpio_direction_output(MFP_PIN_GPIO28, 1);
