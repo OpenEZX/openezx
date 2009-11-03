@@ -27,6 +27,16 @@ config USB_GPIO_VBUS
 	  optionally control of a D+ pullup GPIO as well as a VBUS
 	  current limit regulator.
 
+config USB_EOC_VBUS
+	tristate "EOC based peripheral-only VBUS sensing 'transceiver'"
+	depends on EZX_EOC
+	select USB_OTG_UTILS
+	help
+	  Provides simple GPIO VBUS sensing for controllers with an
+	  internal transceiver via the otg_transceiver interface, and
+	  optionally control of a D+ pullup GPIO as well as a VBUS
+	  current limit regulator.
+
 config ISP1301_OMAP
 	tristate "Philips ISP1301 with OMAP OTG"
 	depends on I2C && ARCH_OMAP_OTG
