@@ -1,7 +1,6 @@
-From: Antonio Ospite <ospite@studenti.unina.it>
-Cc: Daniel Ribeiro <drwyrm@gmail.com>, Eric Miao <eric.y.miao@gmail.com>, openezx-devel <openezx-devel@lists.openezx.org>
-Subject: [PATCH] ezx: setup gpio-keys for EzX phones
+From: Antonio Ospite <ao2@openezx.org>
+Subject: [PATCH] ezx/mach/pxa2xx-flash
 
-Setup gpio-keys for EzX phones
+Add support for mtd partitions on internal NOR flash.
 
-Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
+Signed-off-by: Antonio Ospite <ao2@openezx.org>
