@@ -28,6 +28,7 @@
 #include <linux/bitops.h>
 #include <linux/debugfs.h>
 #include <linux/platform_device.h>
+#include <sound/ac97_codec.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -619,8 +620,9 @@ static struct snd_pcm_ops soc_pcm_ops = {
 
 #ifdef CONFIG_PM
 /* powers down audio subsystem for suspend */
-static int soc_suspend(struct platform_device *pdev, pm_message_t state)
+static int soc_suspend(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_card *card = socdev->card;
 	struct snd_soc_platform *platform = card->platform;
@@ -656,7 +658,7 @@ static int soc_suspend(struct platform_device *pdev, pm_message_t state)
 		snd_pcm_suspend_all(card->dai_link[i].pcm);
 
 	if (card->suspend_pre)
-		card->suspend_pre(pdev, state);
+		card->suspend_pre(pdev, PMSG_SUSPEND);
 
 	for (i = 0; i < card->num_links; i++) {
 		struct snd_soc_dai  *cpu_dai = card->dai_link[i].cpu_dai;
@@ -682,7 +684,7 @@ static int soc_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 
 	if (codec_dev->suspend)
-		codec_dev->suspend(pdev, state);
+		codec_dev->suspend(pdev, PMSG_SUSPEND);
 
 	for (i = 0; i < card->num_links; i++) {
 		struct snd_soc_dai *cpu_dai = card->dai_link[i].cpu_dai;
@@ -691,7 +693,7 @@ static int soc_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 
 	if (card->suspend_post)
-		card->suspend_post(pdev, state);
+		card->suspend_post(pdev, PMSG_SUSPEND);
 
 	return 0;
 }
@@ -765,8 +767,9 @@ static void soc_resume_deferred(struct work_struct *work)
 }
 
 /* powers up audio subsystem after a suspend */
-static int soc_resume(struct platform_device *pdev)
+static int soc_resume(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_card *card = socdev->card;
 	struct snd_soc_dai *cpu_dai = card->dai_link[0].cpu_dai;
@@ -788,6 +791,44 @@ static int soc_resume(struct platform_device *pdev)
 	return 0;
 }
 
+/**
+ * snd_soc_suspend_device: Notify core of device suspend
+ *
+ * @dev: Device being suspended.
+ *
+ * In order to ensure that the entire audio subsystem is suspended in a
+ * coordinated fashion ASoC devices should suspend themselves when
+ * called by ASoC.  When the standard kernel suspend process asks the
+ * device to suspend it should call this function to initiate a suspend
+ * of the entire ASoC card.
+ *
+ * \note Currently this function is stubbed out.
+ */
+int snd_soc_suspend_device(struct device *dev)
+{
+	return 0;
+}
+EXPORT_SYMBOL_GPL(snd_soc_suspend_device);
+
+/**
+ * snd_soc_resume_device: Notify core of device resume
+ *
+ * @dev: Device being resumed.
+ *
+ * In order to ensure that the entire audio subsystem is resumed in a
+ * coordinated fashion ASoC devices should resume themselves when called
+ * by ASoC.  When the standard kernel resume process asks the device
+ * to resume it should call this function.  Once all the components of
+ * the card have notified that they are ready to be resumed the card
+ * will be resumed.
+ *
+ * \note Currently this function is stubbed out.
+ */
+int snd_soc_resume_device(struct device *dev)
+{
+	return 0;
+}
+EXPORT_SYMBOL_GPL(snd_soc_resume_device);
 #else
 #define soc_suspend	NULL
 #define soc_resume	NULL
@@ -981,16 +1022,39 @@ static int soc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int soc_poweroff(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
+	struct snd_soc_card *card = socdev->card;
+
+	if (!card->instantiated)
+		return 0;
+
+	/* Flush out pmdown_time work - we actually do want to run it
+	 * now, we're shutting down so no imminent restart. */
+	run_delayed_work(&card->delayed_work);
+
+	snd_soc_dapm_shutdown(socdev);
+
+	return 0;
+}
+
+static struct dev_pm_ops soc_pm_ops = {
+	.suspend = soc_suspend,
+	.resume = soc_resume,
+	.poweroff = soc_poweroff,
+};
+
 /* ASoC platform driver */
 static struct platform_driver soc_driver = {
 	.driver		= {
 		.name		= "soc-audio",
 		.owner		= THIS_MODULE,
+		.pm		= &soc_pm_ops,
 	},
 	.probe		= soc_probe,
 	.remove		= soc_remove,
-	.suspend	= soc_suspend,
-	.resume		= soc_resume,
 };
 
 /* create a new pcm */
@@ -1062,6 +1126,23 @@ static int soc_new_pcm(struct snd_soc_device *socdev,
 	return ret;
 }
 
+/**
+ * snd_soc_codec_volatile_register: Report if a register is volatile.
+ *
+ * @codec: CODEC to query.
+ * @reg: Register to query.
+ *
+ * Boolean function indiciating if a CODEC register is volatile.
+ */
+int snd_soc_codec_volatile_register(struct snd_soc_codec *codec, int reg)
+{
+	if (codec->volatile_register)
+		return codec->volatile_register(reg);
+	else
+		return 0;
+}
+EXPORT_SYMBOL_GPL(snd_soc_codec_volatile_register);
+
 /* codec register dump */
 static ssize_t soc_codec_reg_show(struct snd_soc_codec *codec, char *buf)
 {
@@ -1075,6 +1156,9 @@ static ssize_t soc_codec_reg_show(struct snd_soc_codec *codec, char *buf)
 
 	count += sprintf(buf, "%s registers\n", codec->name);
 	for (i = 0; i < codec->reg_cache_size; i += step) {
+		if (codec->readable_register && !codec->readable_register(i))
+			continue;
+
 		count += sprintf(buf + count, "%2x: ", i);
 		if (count >= PAGE_SIZE - 1)
 			break;
@@ -1183,10 +1267,18 @@ static void soc_init_codec_debugfs(struct snd_soc_codec *codec)
 	if (!codec->debugfs_pop_time)
 		printk(KERN_WARNING
 		       "Failed to create pop time debugfs file\n");
+
+	codec->debugfs_dapm = debugfs_create_dir("dapm", debugfs_root);
+	if (!codec->debugfs_dapm)
+		printk(KERN_WARNING
+		       "Failed to create DAPM debugfs directory\n");
+
+	snd_soc_dapm_debugfs_init(codec);
 }
 
 static void soc_cleanup_codec_debugfs(struct snd_soc_codec *codec)
 {
+	debugfs_remove_recursive(codec->debugfs_dapm);
 	debugfs_remove(codec->debugfs_pop_time);
 	debugfs_remove(codec->debugfs_reg);
 }
@@ -1381,8 +1473,11 @@ int snd_soc_init_card(struct snd_soc_device *socdev)
 				continue;
 			}
 		}
-		if (card->dai_link[i].codec_dai->ac97_control)
+		if (card->dai_link[i].codec_dai->ac97_control) {
 			ac97 = 1;
+			snd_ac97_dev_add_pdata(codec->ac97,
+				card->dai_link[i].cpu_dai->ac97_pdata);
+		}
 	}
 	snprintf(codec->card->shortname, sizeof(codec->card->shortname),
 		 "%s",  card->name);

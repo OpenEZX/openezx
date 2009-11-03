@@ -259,7 +259,9 @@ static int link_free_space(struct btrfs_block_group_cache *block_group,
 
 static void recalculate_thresholds(struct btrfs_block_group_cache *block_group)
 {
-	u64 max_bytes, possible_bytes;
+	u64 max_bytes;
+	u64 bitmap_bytes;
+	u64 extent_bytes;
 
 	/*
 	 * The goal is to keep the total amount of memory used per 1gb of space
@@ -269,22 +271,27 @@ static void recalculate_thresholds(struct btrfs_block_group_cache *block_group)
 	max_bytes = MAX_CACHE_BYTES_PER_GIG *
 		(div64_u64(block_group->key.offset, 1024 * 1024 * 1024));
 
-	possible_bytes = (block_group->total_bitmaps * PAGE_CACHE_SIZE) +
-		(sizeof(struct btrfs_free_space) *
-		 block_group->extents_thresh);
+	/*
+	 * we want to account for 1 more bitmap than what we have so we can make
+	 * sure we don't go over our overall goal of MAX_CACHE_BYTES_PER_GIG as
+	 * we add more bitmaps.
+	 */
+	bitmap_bytes = (block_group->total_bitmaps + 1) * PAGE_CACHE_SIZE;
 
-	if (possible_bytes > max_bytes) {
-		int extent_bytes = max_bytes -
-			(block_group->total_bitmaps * PAGE_CACHE_SIZE);
-
-		if (extent_bytes <= 0) {
-			block_group->extents_thresh = 0;
-			return;
-		}
-
-		block_group->extents_thresh = extent_bytes /
-			(sizeof(struct btrfs_free_space));
+	if (bitmap_bytes >= max_bytes) {
+		block_group->extents_thresh = 0;
+		return;
 	}
+
+	/*
+	 * we want the extent entry threshold to always be at most 1/2 the maxw
+	 * bytes we can have, or whatever is less than that.
+	 */
+	extent_bytes = max_bytes - bitmap_bytes;
+	extent_bytes = min_t(u64, extent_bytes, div64_u64(max_bytes, 2));
+
+	block_group->extents_thresh =
+		div64_u64(extent_bytes, (sizeof(struct btrfs_free_space)));
 }
 
 static void bitmap_clear_bits(struct btrfs_block_group_cache *block_group,
@@ -403,6 +410,7 @@ static void add_new_bitmap(struct btrfs_block_group_cache *block_group,
 	BUG_ON(block_group->total_bitmaps >= max_bitmaps);
 
 	info->offset = offset_to_bitmap(block_group, offset);
+	info->bytes = 0;
 	link_free_space(block_group, info);
 	block_group->total_bitmaps++;
 
@@ -414,10 +422,28 @@ static noinline int remove_from_bitmap(struct btrfs_block_group_cache *block_gro
 			      u64 *offset, u64 *bytes)
 {
 	u64 end;
+	u64 search_start, search_bytes;
+	int ret;
 
 again:
 	end = bitmap_info->offset +
 		(u64)(BITS_PER_BITMAP * block_group->sectorsize) - 1;
+
+	/*
+	 * XXX - this can go away after a few releases.
+	 *
+	 * since the only user of btrfs_remove_free_space is the tree logging
+	 * stuff, and the only way to test that is under crash conditions, we
+	 * want to have this debug stuff here just in case somethings not
+	 * working.  Search the bitmap for the space we are trying to use to
+	 * make sure its actually there.  If its not there then we need to stop
+	 * because something has gone wrong.
+	 */
+	search_start = *offset;
+	search_bytes = *bytes;
+	ret = search_bitmap(block_group, bitmap_info, &search_start,
+			    &search_bytes);
+	BUG_ON(ret < 0 || search_start != *offset);
 
 	if (*offset > bitmap_info->offset && *offset + *bytes > end) {
 		bitmap_clear_bits(block_group, bitmap_info, *offset,
@@ -430,6 +456,7 @@ again:
 	}
 
 	if (*bytes) {
+		struct rb_node *next = rb_next(&bitmap_info->offset_index);
 		if (!bitmap_info->bytes) {
 			unlink_free_space(block_group, bitmap_info);
 			kfree(bitmap_info->bitmap);
@@ -438,14 +465,34 @@ again:
 			recalculate_thresholds(block_group);
 		}
 
-		bitmap_info = tree_search_offset(block_group,
-						 offset_to_bitmap(block_group,
-								  *offset),
-						 1, 0);
-		if (!bitmap_info)
+		/*
+		 * no entry after this bitmap, but we still have bytes to
+		 * remove, so something has gone wrong.
+		 */
+		if (!next)
 			return -EINVAL;
 
+		bitmap_info = rb_entry(next, struct btrfs_free_space,
+				       offset_index);
+
+		/*
+		 * if the next entry isn't a bitmap we need to return to let the
+		 * extent stuff do its work.
+		 */
 		if (!bitmap_info->bitmap)
+			return -EAGAIN;
+
+		/*
+		 * Ok the next item is a bitmap, but it may not actually hold
+		 * the information for the rest of this free space stuff, so
+		 * look for it, and if we don't find it return so we can try
+		 * everything over again.
+		 */
+		search_start = *offset;
+		search_bytes = *bytes;
+		ret = search_bitmap(block_group, bitmap_info, &search_start,
+				    &search_bytes);
+		if (ret < 0 || search_start != *offset)
 			return -EAGAIN;
 
 		goto again;
@@ -644,8 +691,17 @@ int btrfs_remove_free_space(struct btrfs_block_group_cache *block_group,
 again:
 	info = tree_search_offset(block_group, offset, 0, 0);
 	if (!info) {
-		WARN_ON(1);
-		goto out_lock;
+		/*
+		 * oops didn't find an extent that matched the space we wanted
+		 * to remove, look for a bitmap instead
+		 */
+		info = tree_search_offset(block_group,
+					  offset_to_bitmap(block_group, offset),
+					  1, 0);
+		if (!info) {
+			WARN_ON(1);
+			goto out_lock;
+		}
 	}
 
 	if (info->bytes < bytes && rb_next(&info->offset_index)) {
@@ -957,8 +1013,15 @@ static u64 btrfs_alloc_from_bitmap(struct btrfs_block_group_cache *block_group,
 	if (cluster->block_group != block_group)
 		goto out;
 
-	entry = tree_search_offset(block_group, search_start, 0, 0);
-
+	/*
+	 * search_start is the beginning of the bitmap, but at some point it may
+	 * be a good idea to point to the actual start of the free area in the
+	 * bitmap, so do the offset_to_bitmap trick anyway, and set bitmap_only
+	 * to 1 to make sure we get the bitmap entry
+	 */
+	entry = tree_search_offset(block_group,
+				   offset_to_bitmap(block_group, search_start),
+				   1, 0);
 	if (!entry || !entry->bitmap)
 		goto out;
 
