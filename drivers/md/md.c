@@ -138,7 +138,7 @@ static ctl_table raid_root_table[] = {
 	{ .ctl_name = 0 }
 };
 
-static struct block_device_operations md_fops;
+static const struct block_device_operations md_fops;
 
 static int start_readonly;
 
@@ -262,6 +262,12 @@ static void mddev_resume(mddev_t *mddev)
 	mddev->pers->quiesce(mddev, 0);
 }
 
+int mddev_congested(mddev_t *mddev, int bits)
+{
+	return mddev->suspended;
+}
+EXPORT_SYMBOL(mddev_congested);
+
 
 static inline mddev_t *mddev_get(mddev_t *mddev)
 {
@@ -359,6 +365,7 @@ static mddev_t * mddev_find(dev_t unit)
 	else
 		new->md_minor = MINOR(unit) >> MdpMinorShift;
 
+	mutex_init(&new->open_mutex);
 	mutex_init(&new->reconfig_mutex);
 	INIT_LIST_HEAD(&new->disks);
 	INIT_LIST_HEAD(&new->all_mddevs);
@@ -1974,17 +1981,14 @@ repeat:
 		/* otherwise we have to go forward and ... */
 		mddev->events ++;
 		if (!mddev->in_sync || mddev->recovery_cp != MaxSector) { /* not clean */
-			/* .. if the array isn't clean, insist on an odd 'events' */
-			if ((mddev->events&1)==0) {
-				mddev->events++;
+			/* .. if the array isn't clean, an 'even' event must also go
+			 * to spares. */
+			if ((mddev->events&1)==0)
 				nospares = 0;
-			}
 		} else {
-			/* otherwise insist on an even 'events' (for clean states) */
-			if ((mddev->events&1)) {
-				mddev->events++;
+			/* otherwise an 'odd' event must go to spares */
+			if ((mddev->events&1))
 				nospares = 0;
-			}
 		}
 	}
 
@@ -3601,6 +3605,7 @@ max_sync_store(mddev_t *mddev, const char *buf, size_t len)
 		if (max < mddev->resync_min)
 			return -EINVAL;
 		if (max < mddev->resync_max &&
+		    mddev->ro == 0 &&
 		    test_bit(MD_RECOVERY_RUNNING, &mddev->recovery))
 			return -EBUSY;
 
@@ -4219,7 +4224,7 @@ static int do_md_run(mddev_t * mddev)
 			set_bit(MD_RECOVERY_RUNNING, &mddev->recovery);
 			mddev->sync_thread = md_register_thread(md_do_sync,
 								mddev,
-								"%s_resync");
+								"resync");
 			if (!mddev->sync_thread) {
 				printk(KERN_ERR "%s: could not start resync"
 				       " thread...\n",
@@ -4304,12 +4309,11 @@ static int do_md_stop(mddev_t * mddev, int mode, int is_open)
 	struct gendisk *disk = mddev->gendisk;
 	mdk_rdev_t *rdev;
 
+	mutex_lock(&mddev->open_mutex);
 	if (atomic_read(&mddev->openers) > is_open) {
 		printk("md: %s still in use.\n",mdname(mddev));
-		return -EBUSY;
-	}
-
-	if (mddev->pers) {
+		err = -EBUSY;
+	} else if (mddev->pers) {
 
 		if (mddev->sync_thread) {
 			set_bit(MD_RECOVERY_FROZEN, &mddev->recovery);
@@ -4366,8 +4370,12 @@ static int do_md_stop(mddev_t * mddev, int mode, int is_open)
 		if (mode == 1)
 			set_disk_ro(disk, 1);
 		clear_bit(MD_RECOVERY_FROZEN, &mddev->recovery);
+		err = 0;
 	}
-
+out:
+	mutex_unlock(&mddev->open_mutex);
+	if (err)
+		return err;
 	/*
 	 * Free resources if final stop
 	 */
@@ -4433,7 +4441,6 @@ static int do_md_stop(mddev_t * mddev, int mode, int is_open)
 	blk_integrity_unregister(disk);
 	md_new_event(mddev);
 	sysfs_notify_dirent(mddev->sysfs_state);
-out:
 	return err;
 }
 
@@ -4574,10 +4581,10 @@ static int get_version(void __user * arg)
 static int get_array_info(mddev_t * mddev, void __user * arg)
 {
 	mdu_array_info_t info;
-	int nr,working,active,failed,spare;
+	int nr,working,insync,failed,spare;
 	mdk_rdev_t *rdev;
 
-	nr=working=active=failed=spare=0;
+	nr=working=insync=failed=spare=0;
 	list_for_each_entry(rdev, &mddev->disks, same_set) {
 		nr++;
 		if (test_bit(Faulty, &rdev->flags))
@@ -4585,7 +4592,7 @@ static int get_array_info(mddev_t * mddev, void __user * arg)
 		else {
 			working++;
 			if (test_bit(In_sync, &rdev->flags))
-				active++;	
+				insync++;	
 			else
 				spare++;
 		}
@@ -4610,7 +4617,7 @@ static int get_array_info(mddev_t * mddev, void __user * arg)
 		info.state = (1<<MD_SB_CLEAN);
 	if (mddev->bitmap && mddev->bitmap_offset)
 		info.state = (1<<MD_SB_BITMAP_PRESENT);
-	info.active_disks  = active;
+	info.active_disks  = insync;
 	info.working_disks = working;
 	info.failed_disks  = failed;
 	info.spare_disks   = spare;
@@ -4720,7 +4727,7 @@ static int add_new_disk(mddev_t * mddev, mdu_disk_info_t *info)
 		if (!list_empty(&mddev->disks)) {
 			mdk_rdev_t *rdev0 = list_entry(mddev->disks.next,
 							mdk_rdev_t, same_set);
-			int err = super_types[mddev->major_version]
+			err = super_types[mddev->major_version]
 				.load_super(rdev, rdev0, mddev->minor_version);
 			if (err < 0) {
 				printk(KERN_WARNING 
@@ -5518,12 +5525,12 @@ static int md_open(struct block_device *bdev, fmode_t mode)
 	}
 	BUG_ON(mddev != bdev->bd_disk->private_data);
 
-	if ((err = mutex_lock_interruptible_nested(&mddev->reconfig_mutex, 1)))
+	if ((err = mutex_lock_interruptible(&mddev->open_mutex)))
 		goto out;
 
 	err = 0;
 	atomic_inc(&mddev->openers);
-	mddev_unlock(mddev);
+	mutex_unlock(&mddev->open_mutex);
 
 	check_disk_change(bdev);
  out:
@@ -5555,7 +5562,7 @@ static int md_revalidate(struct gendisk *disk)
 	mddev->changed = 0;
 	return 0;
 }
-static struct block_device_operations md_fops =
+static const struct block_device_operations md_fops =
 {
 	.owner		= THIS_MODULE,
 	.open		= md_open,
@@ -5630,7 +5637,10 @@ mdk_thread_t *md_register_thread(void (*run) (mddev_t *), mddev_t *mddev,
 	thread->run = run;
 	thread->mddev = mddev;
 	thread->timeout = MAX_SCHEDULE_TIMEOUT;
-	thread->tsk = kthread_run(md_thread, thread, name, mdname(thread->mddev));
+	thread->tsk = kthread_run(md_thread, thread,
+				  "%s_%s",
+				  mdname(thread->mddev),
+				  name ?: mddev->pers->name);
 	if (IS_ERR(thread->tsk)) {
 		kfree(thread);
 		return NULL;
@@ -6744,7 +6754,7 @@ void md_check_recovery(mddev_t *mddev)
 			}
 			mddev->sync_thread = md_register_thread(md_do_sync,
 								mddev,
-								"%s_resync");
+								"resync");
 			if (!mddev->sync_thread) {
 				printk(KERN_ERR "%s: could not start resync"
 					" thread...\n", 

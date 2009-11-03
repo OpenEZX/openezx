@@ -387,7 +387,6 @@ static int __devinit pcap_add_subdev(struct pcap_chip *pcap,
 	pdev = platform_device_alloc(subdev->name, subdev->id);
 	pdev->dev.parent = &pcap->spi->dev;
 	pdev->dev.platform_data = subdev->platform_data;
-	platform_set_drvdata(pdev, pcap);
 
 	return platform_device_add(pdev);
 }
@@ -548,3 +547,4 @@ module_exit(ezx_pcap_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Daniel Ribeiro / Harald Welte");
 MODULE_DESCRIPTION("Motorola PCAP2 ASIC Driver");
+MODULE_ALIAS("spi:ezx-pcap");

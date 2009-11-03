@@ -141,7 +141,10 @@ static void ipcusb_timeout(unsigned long data)
 static void usb_ipc_read_bulk(struct urb *urb)
 {
 	int count = urb->actual_length;
-	struct tty_struct *tty = ipc->tty;
+	struct tty_struct *tty;
+	if (!ipc)
+		return;
+	tty = ipc->tty;
 
 	if (urb->status)
 		printk("read bulk status received: %d, len %d\n", urb->status, count);
@@ -267,6 +270,14 @@ static int usb_ipc_chars_in_buffer(struct tty_struct *tty)
 static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 {
 	int index;
+
+        /* dont try to open nonconnected device */
+        if (!bvd_ipc->ipc_dev)
+          return -ENODEV;
+
+        /* dont try to open nonconnected device */
+        if (!bvd_ipc->ipc_dev)
+          return -ENODEV;
 
 	/* initialize the pointer in case something fails */
 	tty->driver_data = NULL;
