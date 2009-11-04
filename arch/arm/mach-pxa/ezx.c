@@ -724,7 +724,7 @@ fail:
 
 static int a780_pxacamera_power(struct device *dev, int on)
 {
-	gpio_set_value(GPIO50_nCAM_EN, on ? 0 : 1);
+	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
@@ -984,7 +984,7 @@ fail:
 
 static int a910_pxacamera_power(struct device *dev, int on)
 {
-	gpio_set_value(GPIO50_nCAM_EN, on ? 0 : 1);
+	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
