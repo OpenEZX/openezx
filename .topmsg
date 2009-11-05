@@ -1,8 +1,7 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
-Cc: Eric Miao <eric.y.miao@gmail.com>, linux-arm-kernel@lists.arm.linux.org.uk, openezx-devel@lists.openezx.org, Bart Visscher <bartv@thisnet.nl>, linux-media@vger.kernel.org, Guennadi Liakhovetski <g.liakhovetski@gmx.de>
-Subject: [PATCH] Add camera support for A780 and A910 EZX phones
+Cc: Richard Purdie <rpurdie@linux.intel.com>, linux-arm-kernel@lists.arm.linux.org.uk, openezx-devel@lists.openezx.org
+Subject: [PATCH] Add leds-lp3944 support for A910 EZX phone
 
-Add camera support for A780 and A910 EZX phones.
+Add leds-lp3944 support for A910 EZX phone
 
 Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
-Signed-off-by: Bart Visscher <bartv@thisnet.nl>
