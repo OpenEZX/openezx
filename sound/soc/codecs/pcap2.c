@@ -47,6 +47,27 @@ static unsigned int pcap2_codec_read(struct snd_soc_codec *codec,
 	return tmp;
 }
 
+static ssize_t pcap2_regs_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	int ret;
+        int codec, stereo, in, out;
+        struct pcap_chip *pcap = dev_get_drvdata(dev->parent);
+
+        ezx_pcap_read(pcap, PCAP2_CODEC, &codec);
+        ezx_pcap_read(pcap, PCAP2_ST_DAC, &stereo);
+        ezx_pcap_read(pcap, PCAP2_INPUT_AMP, &in);
+        ezx_pcap_read(pcap, PCAP2_OUTPUT_AMP, &out);
+
+
+	ret = sprintf(buf,"codec: %x\nstereo: %x\nin: %x\nout: %x\n",
+            codec, stereo, in, out);
+
+	return ret;
+}
+
+static DEVICE_ATTR(pcap2_regs, 0444, pcap2_regs_show, NULL);
+
 static const char *pcap2_downmix_select[] = {
 	"Off",
 	"2->1ch",
@@ -235,6 +256,7 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 		pcap2_codec_write(codec, PCAP2_ST_DAC, st_dac);
 		break;
 	case PCAP2_ID_MONO_DAC:
+	case PCAP2_ID_MONO_GSM_DAC:
 		mono_dac &= ~PCAP2_CODEC_RATE_MASK;
 		switch (params_rate(params)) {
 		case 8000:
@@ -326,6 +348,7 @@ static int pcap2_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 		break;
 	case PCAP2_ID_MONO_DAC:
+	case PCAP2_ID_MONO_GSM_DAC:
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 
 		tmp &= ~PCAP2_CODEC_CLKSEL_MASK;
@@ -414,6 +437,9 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		st_dac |= 0x18000;
 		break;
 	case PCAP2_ID_MONO_DAC:
+		mono_dac |= 0x8000;
+
+	case PCAP2_ID_MONO_GSM_DAC:
 		switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 		case SND_SOC_DAIFMT_CBM_CFM:
 			break;
@@ -425,7 +451,7 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 		}
 
 		switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-		case SND_SOC_DAIFMT_DSP_A:
+		case SND_SOC_DAIFMT_DSP_B:
 			break;
 		default:
 			return -EINVAL;
@@ -445,9 +471,6 @@ static int pcap2_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			mono_dac |= PCAP2_CODEC_BCLK_INV;
 			break;
 		}
-//		if (pcap2_dai_mode == DAI_AP_MONO)
-			/* FIXME set dai to AP */
-		mono_dac |= 0x8000;
 
 		mono_dac |= 0x5; /* IHF / OHF */
 		break;
@@ -467,13 +490,22 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
-	unsigned int st_dac, mono_dac;
+	unsigned int st_dac, mono_dac, input;
 
 	st_dac = pcap2_codec_read(codec, PCAP2_ST_DAC);
 	mono_dac = pcap2_codec_read(codec, PCAP2_CODEC);
 
 	if (st_dac & PCAP2_ST_DAC_EN || mono_dac & PCAP2_CODEC_EN)
 		return -EBUSY;
+
+        /* 
+         * powerup amp 
+         * */
+        input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
+        input |= PCAP2_INPUT_AMP_V2EN2;
+        /*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
+        pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
+
 
 	switch (codec_dai->id) {
 	case PCAP2_ID_ST_DAC:
@@ -483,6 +515,7 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 		pcap2_codec_write(codec, PCAP2_ST_DAC, st_dac);
 		break;
 	case PCAP2_ID_MONO_DAC:
+	case PCAP2_ID_MONO_GSM_DAC:
 		mono_dac |= PCAP2_CODEC_EN;
 		if (!(mono_dac & PCAP2_CODEC_SLAVE))
 			mono_dac |= PCAP2_CODEC_CLK_EN;
@@ -544,8 +577,25 @@ struct snd_soc_dai pcap2_dai[] = {
 			.formats = SNDRV_PCM_FMTBIT_S16_LE,
 		},
 		.ops = &pcap2_dai_ops,
+	}, {
+		.name = "PCAP2 GSM MONO_DAC",
+		.id = PCAP2_ID_MONO_GSM_DAC,
+		.playback = {
+			.channels_min = 1,
+			.channels_max = 1,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,},
+		.capture = {
+			.channels_min = 1,
+			.channels_max = 1,
+			.rates = SNDRV_PCM_RATE_8000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &pcap2_dai_ops,
 	},
 };
+
+
 EXPORT_SYMBOL_GPL(pcap2_dai);
 
 static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
@@ -683,10 +733,6 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 		snd_soc_dapm_free(socdev);
 	}
 
-/*	pcap2_dai_mode = DAI_AP_ST;
-	pcap2_set_dai_mode(codec, pcap2_dai_mode); */
-
-
 	ret = pcap2_jack_init(socdev);
 
 	// FIXME, here just to make sure snd_jack_dev_register() gets called
@@ -734,14 +780,26 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
-	pcap2_dai[0].private_data = dev_get_drvdata(pdev->dev.parent);
 
-	return snd_soc_register_dai(&pcap2_dai[0]);
+        int link_num;
+
+        for (link_num=0;link_num<=2;link_num++) {
+          pcap2_dai[link_num].private_data = dev_get_drvdata(pdev->dev.parent);
+          snd_soc_register_dai(&pcap2_dai[link_num]);
+        }
+
+	device_create_file(&pdev->dev, &dev_attr_pcap2_regs);
+
+	return 0;
 }
 
 static int __devexit pcap2_driver_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_dai(&pcap2_dai[0]);
+        int link_num;
+
+        for (link_num=0;link_num<=2;link_num++)
+        	snd_soc_unregister_dai(&pcap2_dai[link_num]);
+
 	return 0;
 }
 
