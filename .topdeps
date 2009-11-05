@@ -1,1 +1,5 @@
-ezx/mach/pxa2xx-flash_new
+ezx/mach/a780_camera_gpio99_fix
+ezx/defconfig
+pxa/sparsemem
+usb/rndis-with-xp2-fix
+ezx/mach/motoq
