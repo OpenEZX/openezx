@@ -42,6 +42,8 @@
 #include <mach/pxa27x_keypad.h>
 #include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
+#include <mach/udc.h>
+#include <mach/pxa27x-udc.h>
 #include <mach/camera.h>
 #include <mach/irqs.h>
 
@@ -689,6 +691,17 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
+/* FIXME: EMU driver */
+static void ezx_pcap_init(void *pcap)
+{
+	ezx_pcap_write(pcap, PCAP_REG_BUSCTRL, (PCAP_BUSCTRL_USB_PU |
+			PCAP_BUSCTRL_RS232ENB | PCAP_BUSCTRL_VUSB_EN));
+	gpio_request(120, "EMU mux1");
+	gpio_request(119, "EMU mux2");
+	gpio_direction_output(120, 0);
+	gpio_direction_output(119, 0);
+}
+
 /* SPI */
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
 	.tx_threshold   = 1,
@@ -753,6 +766,33 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 	.consumer_supplies = pcap_regulator_SW1_consumers,
 };
 
+/* UDC */
+static void ezx_udc_command(int cmd)
+{
+	/* FIXME: This cant work anymore, sorry :( */
+//	unsigned int tmp;
+//	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+//	switch (cmd) {
+//	case PXA2XX_UDC_CMD_DISCONNECT:
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp &= ~PCAP_BUSCTRL_USB_PU;
+//		break;
+//	case PXA2XX_UDC_CMD_CONNECT:
+//		/* temp. set UP2OCR here until we have a transceiver driver */
+//		UP2OCR = UP2OCR_SEOS(2);
+//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+//			tmp |= PCAP_BUSCTRL_USB_PU;
+//		break;
+//	}
+//	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+}
+
+static struct pxa2xx_udc_mach_info ezx_udc_info = {
+	.udc_command	= ezx_udc_command,
+	.gpio_pullup	= -1,
+	.gpio_vbus	= -1,
+};
+
 #ifdef CONFIG_MACH_EZX_A780
 /* pcap-leds */
 static struct pcap_leds_platform_data a780_pcap_leds = {
@@ -796,6 +836,7 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 static struct pcap_platform_data a780_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
 	.subdevs	= a780_pcap_subdevs,
 };
@@ -937,6 +978,9 @@ static void __init a780_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
@@ -1012,6 +1056,7 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 static struct pcap_platform_data e680_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
 	.subdevs	= e680_pcap_subdevs,
 };
@@ -1081,6 +1126,9 @@ static void __init e680_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
@@ -1129,6 +1177,7 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 static struct pcap_platform_data a1200_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
 	.subdevs	= a1200_pcap_subdevs,
 };
@@ -1198,6 +1247,9 @@ static void __init a1200_init(void)
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
@@ -1243,6 +1295,7 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 static struct pcap_platform_data a910_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
 	.subdevs	= a910_pcap_subdevs,
 };
@@ -1495,6 +1548,9 @@ static void __init a910_init(void)
 	platform_device_add(spi_pd);
 	spi_register_board_info(ARRAY_AND_SIZE(a910_spi_boardinfo));
 
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
@@ -1545,6 +1601,7 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 static struct pcap_platform_data e6_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
 	.subdevs	= e6_pcap_subdevs,
 };
@@ -1616,6 +1673,9 @@ static void __init e6_init(void)
 	ezx_mci_platform_data.gpio_card_detect = -1;
 	pxa_set_mci_info(&ezx_mci_platform_data);
 
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
+
 	set_pxa_fb_info(&ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
@@ -1661,6 +1721,7 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 static struct pcap_platform_data e2_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
 	.subdevs	= e2_pcap_subdevs,
 };
@@ -1703,6 +1764,9 @@ static void __init e2_init(void)
 
 	pxa_set_mci_parent(&spi_pd->dev);
 	pxa_set_mci_info(&ezx_mci_platform_data);
+
+	pxa_set_udc_parent(&spi_pd->dev);
+	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
