@@ -114,6 +114,37 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 
 static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 {
+    	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+
+	snd_soc_dapm_disable_pin(codec, "A5");
+	snd_soc_dapm_disable_pin(codec, "A5 Switch");
+
+	snd_soc_dapm_disable_pin(codec, "Input Mixer");
+
+	snd_soc_dapm_sync(codec);
+
+	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
+
+	return 0;
+}
+
+static int bp_hw_free(struct snd_pcm_substream *substream)
+{
+    	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+
+        snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
+            SND_SOC_DAPM_STREAM_STOP);
+
+        snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
+            SND_SOC_DAPM_STREAM_STOP);
+
+        snd_soc_dapm_disable_pin(codec, "Input Mixer");
+        snd_soc_dapm_disable_pin(codec, "Output Mixer");
+
+        snd_soc_dapm_sync(codec);
+
 	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
 
 	return 0;
@@ -129,8 +160,11 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	int ret = 0;
+        
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
 		SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
@@ -141,8 +175,23 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_sysclk(codec_dai, PCAP2_CLK_BP,
 					13000000, SND_SOC_CLOCK_IN);
 
+	snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
+		SND_SOC_DAPM_STREAM_START);
+
+	snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
+		SND_SOC_DAPM_STREAM_START);
+
+	snd_soc_dapm_sync(codec);
+
+	OSCC &= ~0x8;
+
 	return ret;
 }
+
+static struct snd_soc_ops ezx_ops_gsm = {
+	.hw_params = bp_hw_params,
+        .hw_free = bp_hw_free,
+};
 
 /* machine dapm widgets */
 static const struct snd_soc_dapm_widget ezx_dapm_widgets[] = {
@@ -199,6 +248,25 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 	return 0;
 }
 
+
+/*
+ * GSM Codec DAI
+ */
+static struct snd_soc_dai gsm_dai = {
+	.name = "GSM",
+	.id = 1,
+	.playback = {
+		.channels_min = 1,
+		.channels_max = 1,
+		.rates = SNDRV_PCM_RATE_8000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE,},
+	.capture = {
+		.channels_min = 1,
+		.channels_max = 1,
+		.rates = SNDRV_PCM_RATE_8000,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE,},
+};
+
 /* template digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link ezx_dai[] = {
 {
@@ -209,6 +277,22 @@ static struct snd_soc_dai_link ezx_dai[] = {
 	.init = ezx_machine_init,
 	.ops = &ezx_ops,
 },
+{
+	.name = "PCAP2 MONO",
+	.stream_name = "Mono playback",
+	//.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
+        .cpu_dai = &gsm_dai,
+	.codec_dai = &pcap2_dai[1],
+	.ops = &ezx_ops,
+},
+{
+	.name = "PCAP2 MONO GSM",
+	.stream_name = "Mono voice",
+	.cpu_dai = &gsm_dai,
+	.codec_dai = &pcap2_dai[2],
+	.ops = &ezx_ops_gsm,
+}
+
 };
 
 /* template audio machine driver */
@@ -235,6 +319,10 @@ static int __init ezx_init(void)
 {
 	int ret;
 
+	ret = snd_soc_register_dai(&gsm_dai);
+	if (ret)
+		return ret;
+
 	ezx_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!ezx_snd_device)
 		return -ENOMEM;
@@ -245,6 +333,8 @@ static int __init ezx_init(void)
 
 	if (ret)
 		platform_device_put(ezx_snd_device);
+
+        ezx_dai[1].cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3];
 
 #ifdef CONFIG_PXA_EZX_A780
 	if (machine_is_ezx_a780())
