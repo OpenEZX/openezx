@@ -63,6 +63,9 @@
 #define GPIO15_A910_FLIP_LID 		15
 #define GPIO12_E680_LOCK_SWITCH 	12
 #define GPIO15_E6_LOCK_SWITCH 		15
+#define GPIO50_nCAM_EN			50
+#define GPIO19_GEN1_CAM_RST		19
+#define GPIO28_GEN2_CAM_RST		28
 #define GPIO1_PCAP_IRQ			1
 #define GPIO11_MMC_DETECT		11
 #define GPIO20_A910_MMC_CS		20
@@ -1166,33 +1169,37 @@ static int a780_pxacamera_init(struct device *dev)
 	int err;
 
 	/*
-	 * GPIO50_GPIO is CAM_EN: active low
-	 * GPIO19_GPIO is CAM_RST: active high
+	 * GPIO50_nCAM_EN is active low
+	 * GPIO19_GEN1_CAM_RST is active high
 	 */
-	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	if (err)
+	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
+	if (err) {
+		pr_err("%s: Failed to request nCAM_EN\n", __func__);
 		goto fail;
+	}
 
-	err = gpio_request(MFP_PIN_GPIO19, "CAM_RST");
-	if (err)
+	err = gpio_request(GPIO19_GEN1_CAM_RST, "CAM_RST");
+	if (err) {
+		pr_err("%s: Failed to request CAM_RST\n", __func__);
 		goto fail_gpio_cam_rst;
+	}
 
-	gpio_direction_output(MFP_PIN_GPIO50, 0);
-	gpio_direction_output(MFP_PIN_GPIO19, 1);
+	gpio_direction_output(GPIO50_nCAM_EN, 0);
+	gpio_direction_output(GPIO19_GEN1_CAM_RST, 1);
 
 	return 0;
 
 fail_gpio_cam_rst:
-	gpio_free(MFP_PIN_GPIO50);
+	gpio_free(GPIO50_nCAM_EN);
 fail:
 	return err;
 }
 
 static int a780_pxacamera_power(struct device *dev, int on)
 {
-	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
-
+	gpio_set_value(GPIO50_nCAM_EN, !on);
 #if 0
+#define GPIO99_A780_TC_MM_EN 99
 	/*
 	 * This is reported to resolve the "vertical line in view finder"
 	 * issue (LIBff11930), in the original source code released by
@@ -1205,17 +1212,16 @@ static int a780_pxacamera_power(struct device *dev, int on)
 	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
 	 * BP can sleep itself.
 	 */
-	gpio_set_value(MFP_PIN_GPIO99, on ? 0 : 1);
+	gpio_set_value(GPIO99_A780_TC_MM_EN, !on);
 #endif
-
 	return 0;
 }
 
 static int a780_pxacamera_reset(struct device *dev)
 {
-	gpio_set_value(MFP_PIN_GPIO19, 0);
+	gpio_set_value(GPIO19_GEN1_CAM_RST, 0);
 	msleep(10);
-	gpio_set_value(MFP_PIN_GPIO19, 1);
+	gpio_set_value(GPIO19_GEN1_CAM_RST, 1);
 
 	return 0;
 }
@@ -1754,39 +1760,43 @@ static int a910_pxacamera_init(struct device *dev)
 	int err;
 
 	/*
-	 * GPIO50_GPIO is CAM_EN: active low
-	 * GPIO28_GPIO is CAM_RST: active high
+	 * GPIO50_nCAM_EN is active low
+	 * GPIO28_GEN2_CAM_RST is active high
 	 */
-	err = gpio_request(MFP_PIN_GPIO50, "nCAM_EN");
-	if (err)
+	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
+	if (err) {
+		pr_err("%s: Failed to request nCAM_EN\n", __func__);
 		goto fail;
+	}
 
-	err = gpio_request(MFP_PIN_GPIO28, "CAM_RST");
-	if (err)
+	err = gpio_request(GPIO28_GEN2_CAM_RST, "CAM_RST");
+	if (err) {
+		pr_err("%s: Failed to request CAM_RST\n", __func__);
 		goto fail_gpio_cam_rst;
+	}
 
-	gpio_direction_output(MFP_PIN_GPIO50, 0);
-	gpio_direction_output(MFP_PIN_GPIO28, 1);
+	gpio_direction_output(GPIO50_nCAM_EN, 0);
+	gpio_direction_output(GPIO28_GEN2_CAM_RST, 1);
 
 	return 0;
 
 fail_gpio_cam_rst:
-	gpio_free(MFP_PIN_GPIO50);
+	gpio_free(GPIO50_nCAM_EN);
 fail:
 	return err;
 }
 
 static int a910_pxacamera_power(struct device *dev, int on)
 {
-	gpio_set_value(MFP_PIN_GPIO50, on ? 0 : 1);
+	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
 static int a910_pxacamera_reset(struct device *dev)
 {
-	gpio_set_value(MFP_PIN_GPIO28, 0);
+	gpio_set_value(GPIO28_GEN2_CAM_RST, 0);
 	msleep(10);
-	gpio_set_value(MFP_PIN_GPIO28, 1);
+	gpio_set_value(GPIO28_GEN2_CAM_RST, 1);
 
 	return 0;
 }
