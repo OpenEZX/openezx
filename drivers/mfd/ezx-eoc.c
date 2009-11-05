@@ -243,7 +243,7 @@ add_children(struct eoc_chip *eoc)
 
 
 	charge_consumer_c[0].dev = charger;
-	charge_consumer_c[0].dev = &eoc_vbus.dev;
+	charge_consumer_c[1].dev = &eoc_vbus.dev;
 	charge_consumer_v.dev = charger;
 	
 	struct regulator_init_data charge_data = {
@@ -266,9 +266,6 @@ add_children(struct eoc_chip *eoc)
 			.max_uV = 4500000,
 			.valid_modes_mask = REGULATOR_MODE_NORMAL,
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE
-			| REGULATOR_CHANGE_MODE
-			| REGULATOR_CHANGE_STATUS
-			| REGULATOR_CHANGE_DRMS
 		},
 	};
 
