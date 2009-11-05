@@ -1,6 +1,7 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
-Subject: [PATCH] ezx/mach/pxa2xx-flash_new
+Subject: [PATCH] ezx/mach/a780_camera_gpio99_fix
 
-Add support for mtd partitions on internal NOR flash.
+A possible fix for camera on A780 when BP sleeps.
+To be confirmed!
 
 Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
