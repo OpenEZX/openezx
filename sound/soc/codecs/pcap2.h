@@ -23,6 +23,7 @@
 
 #define PCAP2_ID_ST_DAC			0
 #define PCAP2_ID_MONO_DAC		1
+#define PCAP2_ID_MONO_GSM_DAC		2
 
 #define PCAP2_CODEC_EN			0x2000
 #define PCAP2_CODEC_CLK_EN		0x1000
