@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: [PATCH 04/14] EZX: i2c config
+Subject: EZX: PCAP2 config
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-add i2c board info
+PCAP2 board info.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
