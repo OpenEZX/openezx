@@ -697,7 +697,7 @@ static int a780_camera_init(void)
 
 	/*
 	 * GPIO50_nCAM_EN is active low
-	 * GPIO19_GEN1_CAM_RST is active high
+	 * GPIO19_GEN1_CAM_RST is active on rising edge
 	 */
 	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
 	if (err) {
@@ -957,7 +957,7 @@ static int a910_camera_init(void)
 
 	/*
 	 * GPIO50_nCAM_EN is active low
-	 * GPIO28_GEN2_CAM_RST is active high
+	 * GPIO28_GEN2_CAM_RST is active on rising edge
 	 */
 	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
 	if (err) {
