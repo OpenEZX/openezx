@@ -1,6 +1,8 @@
 From: Daniel Ribeiro <drwyrm@gmail.com>
-Subject: EZX: PCAP2 based TS support
+Subject: EZX: PCAP2 LED setup
+To: linux-arm-kernel@lists.arm.linux.org.uk
+Cc: eric.y.miao@gmail.com
 
-Board info for the PCAP2 based touchscreen
+PCAP2 LED driver board setup.
 
 Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
