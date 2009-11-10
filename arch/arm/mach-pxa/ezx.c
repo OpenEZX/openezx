@@ -722,13 +722,13 @@ fail:
 	return err;
 }
 
-static int a780_pxacamera_power(struct device *dev, int on)
+static int a780_camera_power(struct device *dev, int on)
 {
 	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
-static int a780_pxacamera_reset(struct device *dev)
+static int a780_camera_reset(struct device *dev)
 {
 	gpio_set_value(GPIO19_GEN1_CAM_RST, 0);
 	msleep(10);
@@ -753,8 +753,8 @@ static struct soc_camera_link a780_iclink = {
 	.i2c_adapter_id = 0,
 	.board_info     = &a780_camera_i2c_board_info,
 	.module_name    = "mt9m111",
-	.power          = a780_pxacamera_power,
-	.reset          = a780_pxacamera_reset,
+	.power          = a780_camera_power,
+	.reset          = a780_camera_reset,
 };
 
 static struct platform_device a780_camera = {
@@ -982,13 +982,13 @@ fail:
 	return err;
 }
 
-static int a910_pxacamera_power(struct device *dev, int on)
+static int a910_camera_power(struct device *dev, int on)
 {
 	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
-static int a910_pxacamera_reset(struct device *dev)
+static int a910_camera_reset(struct device *dev)
 {
 	gpio_set_value(GPIO28_GEN2_CAM_RST, 0);
 	msleep(10);
@@ -1012,8 +1012,8 @@ static struct soc_camera_link a910_iclink = {
 	.i2c_adapter_id = 0,
 	.board_info     = &a910_camera_i2c_board_info,
 	.module_name    = "mt9m111",
-	.power          = a910_pxacamera_power,
-	.reset          = a910_pxacamera_reset,
+	.power          = a910_camera_power,
+	.reset          = a910_camera_reset,
 };
 
 static struct platform_device a910_camera = {
