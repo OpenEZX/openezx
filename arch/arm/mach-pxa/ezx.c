@@ -1198,6 +1198,22 @@ fail:
 static int a780_pxacamera_power(struct device *dev, int on)
 {
 	gpio_set_value(GPIO50_nCAM_EN, !on);
+#if 0
+#define GPIO99_A780_TC_MM_EN 99
+	/*
+	 * This is reported to resolve the "vertical line in view finder"
+	 * issue (LIBff11930), in the original source code released by
+	 * Motorola, but we never experienced the problem, so we don't use
+	 * this for now.
+	 *
+	 * AP Kernel camera driver: set TC_MM_EN to low when camera is running
+	 * and TC_MM_EN to high when camera stops.
+	 *
+	 * BP Software: if TC_MM_EN is low, BP do not shut off 26M clock, but
+	 * BP can sleep itself.
+	 */
+	gpio_set_value(GPIO99_A780_TC_MM_EN, !on);
+#endif
 	return 0;
 }
 
