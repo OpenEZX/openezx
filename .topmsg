@@ -1,6 +1,6 @@
-From: Antonio Ospite <ao2@openezx.org>
-Subject: [PATCH] ezx/mach/leds-lp3944
+From: guiming zhuo <gmzhuo@gbsoft.localdomain>
+Subject: [PATCH] ezx/mach/eoc
 
-Add support for leds-lp3944 to ezx phones
+add eoc board info for gen2
 
-Signed-off-by: Antonio Ospite <ao2@openezx.org>
+Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
