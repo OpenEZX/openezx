@@ -818,8 +818,8 @@ static int a780_camera_init(void)
 		goto fail_gpio_cam_rst;
 	}
 
-	gpio_direction_output(GPIO50_nCAM_EN, 0);
-	gpio_direction_output(GPIO19_GEN1_CAM_RST, 1);
+	gpio_direction_output(GPIO50_nCAM_EN, 1);
+	gpio_direction_output(GPIO19_GEN1_CAM_RST, 0);
 
 	return 0;
 
@@ -1207,8 +1207,8 @@ static int a910_camera_init(void)
 		goto fail_gpio_cam_rst;
 	}
 
-	gpio_direction_output(GPIO50_nCAM_EN, 0);
-	gpio_direction_output(GPIO28_GEN2_CAM_RST, 1);
+	gpio_direction_output(GPIO50_nCAM_EN, 1);
+	gpio_direction_output(GPIO28_GEN2_CAM_RST, 0);
 
 	return 0;
 
