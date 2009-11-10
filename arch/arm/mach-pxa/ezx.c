@@ -1073,13 +1073,13 @@ static struct platform_device a780_gpio_keys = {
 };
 
 /* camera */
-static int a780_pxacamera_init(struct device *dev)
+static int a780_camera_init(void)
 {
 	int err;
 
 	/*
 	 * GPIO50_nCAM_EN is active low
-	 * GPIO19_GEN1_CAM_RST is active high
+	 * GPIO19_GEN1_CAM_RST is active on rising edge
 	 */
 	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
 	if (err) {
@@ -1104,13 +1104,13 @@ fail:
 	return err;
 }
 
-static int a780_pxacamera_power(struct device *dev, int on)
+static int a780_camera_power(struct device *dev, int on)
 {
 	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
-static int a780_pxacamera_reset(struct device *dev)
+static int a780_camera_reset(struct device *dev)
 {
 	gpio_set_value(GPIO19_GEN1_CAM_RST, 0);
 	msleep(10);
@@ -1120,7 +1120,6 @@ static int a780_pxacamera_reset(struct device *dev)
 }
 
 struct pxacamera_platform_data a780_pxacamera_platform_data = {
-	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
 	.mclk_10khz = 5000,
@@ -1136,8 +1135,8 @@ static struct soc_camera_link a780_iclink = {
 	.i2c_adapter_id = 0,
 	.board_info     = &a780_camera_i2c_board_info,
 	.module_name    = "mt9m111",
-	.power          = a780_pxacamera_power,
-	.reset          = a780_pxacamera_reset,
+	.power          = a780_camera_power,
+	.reset          = a780_camera_reset,
 };
 
 static struct platform_device a780_camera = {
@@ -1185,6 +1184,7 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
+	a780_camera_init();
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
@@ -1645,13 +1645,13 @@ static struct platform_device a910_gpio_keys = {
 };
 
 /* camera */
-static int a910_pxacamera_init(struct device *dev)
+static int a910_camera_init(void)
 {
 	int err;
 
 	/*
 	 * GPIO50_nCAM_EN is active low
-	 * GPIO28_GEN2_CAM_RST is active high
+	 * GPIO28_GEN2_CAM_RST is active on rising edge
 	 */
 	err = gpio_request(GPIO50_nCAM_EN, "nCAM_EN");
 	if (err) {
@@ -1676,13 +1676,13 @@ fail:
 	return err;
 }
 
-static int a910_pxacamera_power(struct device *dev, int on)
+static int a910_camera_power(struct device *dev, int on)
 {
 	gpio_set_value(GPIO50_nCAM_EN, !on);
 	return 0;
 }
 
-static int a910_pxacamera_reset(struct device *dev)
+static int a910_camera_reset(struct device *dev)
 {
 	gpio_set_value(GPIO28_GEN2_CAM_RST, 0);
 	msleep(10);
@@ -1692,7 +1692,6 @@ static int a910_pxacamera_reset(struct device *dev)
 }
 
 struct pxacamera_platform_data a910_pxacamera_platform_data = {
-	.init	= a910_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
 	.mclk_10khz = 5000,
@@ -1707,8 +1706,8 @@ static struct soc_camera_link a910_iclink = {
 	.i2c_adapter_id = 0,
 	.board_info     = &a910_camera_i2c_board_info,
 	.module_name    = "mt9m111",
-	.power          = a910_pxacamera_power,
-	.reset          = a910_pxacamera_reset,
+	.power          = a910_camera_power,
+	.reset          = a910_camera_reset,
 };
 
 static struct platform_device a910_camera = {
@@ -1809,6 +1808,7 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
+	a910_camera_init();
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
