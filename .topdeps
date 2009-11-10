@@ -1,2 +1,2 @@
-ezx/mach/leds-lp3944_new
-ezx/local/pcap
+ezx/mach/pcap
+mmc/workaround-regulator-bugs
