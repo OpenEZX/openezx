@@ -691,7 +691,7 @@ static struct platform_device a780_gpio_keys = {
 };
 
 /* camera */
-static int a780_pxacamera_init(struct device *dev)
+static int a780_camera_init(void)
 {
 	int err;
 
@@ -738,7 +738,6 @@ static int a780_pxacamera_reset(struct device *dev)
 }
 
 struct pxacamera_platform_data a780_pxacamera_platform_data = {
-	.init	= a780_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
 	.mclk_10khz = 5000,
@@ -783,6 +782,7 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
+	a780_camera_init();
 	pxa_set_camera_info(&a780_pxacamera_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
@@ -951,7 +951,7 @@ static struct platform_device a910_gpio_keys = {
 };
 
 /* camera */
-static int a910_pxacamera_init(struct device *dev)
+static int a910_camera_init(void)
 {
 	int err;
 
@@ -998,7 +998,6 @@ static int a910_pxacamera_reset(struct device *dev)
 }
 
 struct pxacamera_platform_data a910_pxacamera_platform_data = {
-	.init	= a910_pxacamera_init,
 	.flags  = PXA_CAMERA_MASTER | PXA_CAMERA_DATAWIDTH_8 |
 		PXA_CAMERA_PCLK_EN | PXA_CAMERA_MCLK_EN,
 	.mclk_10khz = 5000,
@@ -1042,6 +1041,7 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
+	a910_camera_init();
 	pxa_set_camera_info(&a910_pxacamera_platform_data);
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
