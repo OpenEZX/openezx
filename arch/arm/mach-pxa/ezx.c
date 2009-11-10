@@ -776,6 +776,9 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
 		.name		= "pcap-leds",
 		.id		= -1,
 		.platform_data	= &a780_pcap_leds,
@@ -1110,6 +1113,9 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
 		.name		= "pcap-regulator",
 		.id		= SW1,
 		.platform_data	= &pcap_regulator_SW1_data,
@@ -1219,6 +1225,9 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
@@ -1520,6 +1529,9 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
+		.name		= "pcap-keys",
+		.id		= -1,
+	}, {
 		.name		= "pcap-regulator",
 		.id		= SW1,
 		.platform_data	= &pcap_regulator_SW1_data,
@@ -1631,6 +1643,9 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 		.id		= -1,
 	}, {
 		.name		= "pcap-rtc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-keys",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
