@@ -755,6 +755,9 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-adc",
 		.id		= -1,
 	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
 		.name		= "pcap-regulator",
 		.id		= SW1,
 		.platform_data	= &pcap_regulator_SW1_data,
@@ -937,6 +940,9 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 		.name		= "pcap-adc",
 		.id		= -1,
 	}, {
+		.name		= "pcap-ts",
+		.id		= -1,
+	}, {
 		.name		= "pcap-regulator",
 		.id		= SW1,
 		.platform_data	= &pcap_regulator_SW1_data,
@@ -1043,6 +1049,9 @@ MACHINE_END
 static struct pcap_subdev a1200_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
@@ -1444,6 +1453,9 @@ MACHINE_END
 static struct pcap_subdev e6_pcap_subdevs[] = {
 	{
 		.name		= "pcap-adc",
+		.id		= -1,
+	}, {
+		.name		= "pcap-ts",
 		.id		= -1,
 	}, {
 		.name		= "pcap-regulator",
