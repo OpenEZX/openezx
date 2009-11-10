@@ -300,6 +300,7 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream,
 				!strcmp(w->name, "CDC_ADC")) && w->connected)
 				goto in_use;
 		}
+	case PCAP2_ID_MONO_GSM_DAC:
 		tmp = pcap2_codec_read(codec, PCAP2_CODEC);
 		tmp &= ~(PCAP2_CODEC_EN | PCAP2_CODEC_CLK_EN);
 		pcap2_codec_write(codec, PCAP2_CODEC, tmp);
