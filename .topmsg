@@ -1,6 +1,6 @@
-From: gmzhuo <gmzhuo@gmail.com>
-Subject: [PATCH] ezx/current
+From: Antonio Ospite <ospite@studenti.unina.it>
+Subject: [PATCH] ezx/mach/pxa2xx-flash_new
 
-placeholder to checkout all the ezx patches
+Add support for mtd partitions on internal NOR flash.
 
-Signed-off-by: gmzhuo <gmzhuo@gmail.com>
+Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
