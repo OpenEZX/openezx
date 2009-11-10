@@ -1,2 +1,2 @@
-ezx/mach/pcap
-mmc/workaround-regulator-bugs
+ezx/mach/pcap-regulator
+pxa/set_mci_parent
