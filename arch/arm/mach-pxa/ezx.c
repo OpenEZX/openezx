@@ -1044,7 +1044,6 @@ static struct platform_device a780_camera = {
 
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
-	&a780_camera,
 	&gen1_bp_device,
 };
 
@@ -1075,8 +1074,10 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
-	a780_camera_init();
-	pxa_set_camera_info(&a780_pxacamera_platform_data);
+	if(a780_camera_init() == 0) {
+		pxa_set_camera_info(&a780_pxacamera_platform_data);
+		platform_add_device(&a780_camera);
+	}
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a780_devices));
@@ -1633,7 +1634,6 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
-	&a910_camera,
 	&gen2_bp_device,
 };
 
@@ -1662,8 +1662,10 @@ static void __init a910_init(void)
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
-	a910_camera_init();
-	pxa_set_camera_info(&a910_pxacamera_platform_data);
+	if (a910_camera_init() == 0) {
+		pxa_set_camera_info(&a910_pxacamera_platform_data);
+		platform_add_device(&a910_camera);
+	}
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
 	platform_add_devices(ARRAY_AND_SIZE(a910_devices));
