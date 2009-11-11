@@ -1135,7 +1135,7 @@ static void __init a780_init(void)
 
 	if(a780_camera_init() == 0) {
 		pxa_set_camera_info(&a780_pxacamera_platform_data);
-		platform_add_device(&a780_camera);
+		platform_device_register(&a780_camera);
 	}
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
@@ -1723,7 +1723,7 @@ static void __init a910_init(void)
 
 	if (a910_camera_init() == 0) {
 		pxa_set_camera_info(&a910_pxacamera_platform_data);
-		platform_add_device(&a910_camera);
+		platform_device_register(&a910_camera);
 	}
 
 	platform_add_devices(ARRAY_AND_SIZE(ezx_devices));
