@@ -781,7 +781,7 @@ static void __init a780_init(void)
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
-	if(a780_camera_init() == 0) {
+	if (a780_camera_init() == 0) {
 		pxa_set_camera_info(&a780_pxacamera_platform_data);
 		platform_device_register(&a780_camera);
 	}
