@@ -379,12 +379,17 @@ static int pcap_remove_subdev(struct device *dev, void *unused)
 	return 0;
 }
 
+static void pcap_subdev_release(struct device *dev)
+{
+}
+
 static int __devinit pcap_add_subdev(struct pcap_chip *pcap,
 						struct pcap_subdev *subdev)
 {
 	struct platform_device *pdev;
 
 	pdev = platform_device_alloc(subdev->name, subdev->id);
+	pdev->dev.release = pcap_subdev_release;
 	pdev->dev.parent = &pcap->spi->dev;
 	pdev->dev.platform_data = subdev->platform_data;
 
