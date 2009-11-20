@@ -1,5 +1,5 @@
 /*
- * linux/drivers/leds/leds-pcap.c
+ * leds-pcap.c - leds driver for PCAP mfd chip used on EZX platform
  *
  * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
@@ -8,9 +8,7 @@
  * published by the Free Software Foundation.
  */
 
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/device.h>
+#include <linux/module.h>
 #include <linux/workqueue.h>
 #include <linux/leds.h>
 #include <linux/leds-pcap.h>
@@ -28,45 +26,33 @@ static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 	schedule_work(&led->work);
 }
 
-static void pcap_led_work(struct work_struct *work)
+static inline void pcap_led_set_led(struct pcap_led *led)
 {
 	u32 tmp;
-	u8 t, c, e;
-	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	u8 t, c, e; /* timing, current, enable shifts */
 
-	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 	switch (led->type) {
 	case PCAP_LED0:
 		t = PCAP_LED0_T_SHIFT;
 		c = PCAP_LED0_C_SHIFT;
 		e = PCAP_LED0_EN;
-		if (led->brightness)
-			led->brightness = 1;
 		break;
 	case PCAP_LED1:
 		t = PCAP_LED1_T_SHIFT;
 		c = PCAP_LED1_C_SHIFT;
 		e = PCAP_LED1_EN;
-		if (led->brightness)
-			led->brightness = 1;
 		break;
-	case PCAP_BL0:
-		if (led->brightness > PCAP_BL_MASK)
-			led->brightness = PCAP_BL_MASK;
-		tmp &= ~(PCAP_BL_MASK << PCAP_BL0_SHIFT);
-		tmp |= led->brightness << PCAP_BL0_SHIFT;
-		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
-		return;
-	case PCAP_BL1:
-		if (led->brightness > PCAP_BL_MASK)
-			led->brightness = PCAP_BL_MASK;
-		tmp &= ~(PCAP_BL_MASK << PCAP_BL1_SHIFT);
-		tmp |= led->brightness << PCAP_BL1_SHIFT;
-		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
-		return;
 	default:
+		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
 		return;
 	}
+
+	/* XXX this can be removed if we set max_brightness at probe time */
+	if (led->brightness)
+		led->brightness = 1;
+
+	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
+
 	/* turn off */
 	tmp &= ~(e | (PCAP_LED_T_MASK << t) | (PCAP_LED_C_MASK << c));
 
@@ -81,6 +67,52 @@ static void pcap_led_work(struct work_struct *work)
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
 
+static inline void pcap_led_set_bl(struct pcap_led *led)
+{
+	u32 tmp;
+	u32 shift;
+
+	switch (led->type) {
+	case PCAP_BL0:
+		shift = PCAP_BL0_SHIFT;
+		break;
+	case PCAP_BL1:
+		shift = PCAP_BL1_SHIFT;
+		break;
+	default:
+		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		return;
+	}
+
+	/* XXX this can be removed if we set max_brightness at probe time */
+	if (led->brightness > PCAP_BL_MASK)
+		led->brightness = PCAP_BL_MASK;
+
+	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
+	tmp &= ~(PCAP_BL_MASK << shift);
+	tmp |= led->brightness << shift;
+	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
+}
+
+static void pcap_led_work(struct work_struct *work)
+{
+	struct pcap_led *led = container_of(work, struct pcap_led, work);
+
+	switch (led->type) {
+	case PCAP_LED0:
+	case PCAP_LED1:
+		pcap_led_set_led(led);
+		break;
+	case PCAP_BL0:
+	case PCAP_BL1:
+		pcap_led_set_bl(led);
+		break;
+	default:
+		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		break;
+	}
+}
+
 static int __devinit pcap_led_probe(struct platform_device *pdev)
 {
 	int i, err;
@@ -90,37 +122,50 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "%s: no platform data\n", __func__);
 		return -EINVAL;
 	}
+
 	for (i = 0; i < pdata->num_leds; i++) {
 		struct pcap_led *led = &pdata->leds[i];
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
 		led->pcap = dev_get_drvdata(pdev->dev.parent);
-		if (led->gpio & PCAP_LED_GPIO_EN) {
-			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
-			err = gpio_request(gpio, "PCAP LED");
-			if (err) {
-				dev_err(&pdev->dev,
-					"couldn't request gpio %d\n", gpio);
-				goto fail;
-			}
-			gpio_direction_output(gpio,
-				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
-		}
+
+		INIT_WORK(&led->work, pcap_led_work);
 		err = led_classdev_register(&pdev->dev, &led->ldev);
 		if (err) {
 			dev_err(&pdev->dev, "couldn't register LED %s\n",
 					led->name);
 			goto fail;
 		}
-		INIT_WORK(&led->work, pcap_led_work);
+
+		if (led->gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
+			err = gpio_request(gpio, "PCAP LED");
+			if (err) {
+				dev_err(&pdev->dev,
+					"couldn't request gpio %d\n", gpio);
+				led_classdev_unregister(&led->ldev);
+				cancel_work_sync(&led->work);
+				goto fail;
+			}
+			gpio_direction_output(gpio,
+				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
+		}
 	}
+
 	return 0;
 
 fail:
-	while (i >= 0) {
-		led_classdev_unregister(&pdata->leds[--i].ldev);
-		cancel_work_sync(&pdata->leds[i].work);
-	}
+	if (i > 0)
+		for (i = i - 1; i >= 0; i--) {
+			if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+				int gpio = (pdata->leds[i].gpio &
+						PCAP_LED_GPIO_VAL_MASK);
+				gpio_free(gpio);
+			}
+			led_classdev_unregister(&pdata->leds[i].ldev);
+			cancel_work_sync(&pdata->leds[i].work);
+		}
+
 	return err;
 }
 
@@ -130,9 +175,15 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
 
 	for (i = 0; i < pdata->num_leds; i++) {
+		if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (pdata->leds[i].gpio &
+					PCAP_LED_GPIO_VAL_MASK);
+			gpio_free(gpio);
+		}
 		led_classdev_unregister(&pdata->leds[i].ldev);
 		cancel_work_sync(&pdata->leds[i].work);
 	}
+
 	return 0;
 }
 
@@ -140,7 +191,7 @@ static struct platform_driver pcap_led_driver = {
 	.probe  = pcap_led_probe,
 	.remove = __devexit_p(pcap_led_remove),
 	.driver = {
-		.name = "pcap-leds",
+		.name   = "pcap-leds",
 		.owner	= THIS_MODULE,
 	},
 };
@@ -152,7 +203,7 @@ static int __init pcap_led_init(void)
 
 static void __exit pcap_led_exit(void)
 {
-	return platform_driver_unregister(&pcap_led_driver);
+	platform_driver_unregister(&pcap_led_driver);
 }
 
 module_init(pcap_led_init);
