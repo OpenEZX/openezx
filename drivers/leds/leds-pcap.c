@@ -157,8 +157,8 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 fail:
 	if (i > 0)
 		for (i = i - 1; i >= 0; i--) {
-			if (&pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
-				int gpio = (&pdata->leds[i].gpio &
+			if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+				int gpio = (pdata->leds[i].gpio &
 						PCAP_LED_GPIO_VAL_MASK);
 				gpio_free(gpio);
 			}
@@ -175,8 +175,8 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
 
 	for (i = 0; i < pdata->num_leds; i++) {
-		if (&pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
-			int gpio = (&pdata->leds[i].gpio &
+		if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (pdata->leds[i].gpio &
 					PCAP_LED_GPIO_VAL_MASK);
 			gpio_free(gpio);
 		}
