@@ -26,46 +26,32 @@ static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 	schedule_work(&led->work);
 }
 
-static void pcap_led_work(struct work_struct *work)
+static inline void pcap_led_set_led(struct pcap_led *led)
 {
 	u32 tmp;
-	u8 t, c, e;
-	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	u8 t, c, e; /* timing, current, enable shifts */
 
-	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 	switch (led->type) {
 	case PCAP_LED0:
 		t = PCAP_LED0_T_SHIFT;
 		c = PCAP_LED0_C_SHIFT;
 		e = PCAP_LED0_EN;
-		if (led->brightness)
-			led->brightness = 1;
 		break;
 	case PCAP_LED1:
 		t = PCAP_LED1_T_SHIFT;
 		c = PCAP_LED1_C_SHIFT;
 		e = PCAP_LED1_EN;
-		if (led->brightness)
-			led->brightness = 1;
 		break;
-	case PCAP_BL0:
-		if (led->brightness > PCAP_BL_MASK)
-			led->brightness = PCAP_BL_MASK;
-		tmp &= ~(PCAP_BL_MASK << PCAP_BL0_SHIFT);
-		tmp |= led->brightness << PCAP_BL0_SHIFT;
-		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
-		return;
-	case PCAP_BL1:
-		if (led->brightness > PCAP_BL_MASK)
-			led->brightness = PCAP_BL_MASK;
-		tmp &= ~(PCAP_BL_MASK << PCAP_BL1_SHIFT);
-		tmp |= led->brightness << PCAP_BL1_SHIFT;
-		ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
-		return;
 	default:
 		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
 		return;
 	}
+
+	/* XXX this can be removed if we set max_brightness at probe time */
+	if (led->brightness)
+		led->brightness = 1;
+
+	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 
 	/* turn off */
 	tmp &= ~(e | (PCAP_LED_T_MASK << t) | (PCAP_LED_C_MASK << c));
@@ -79,6 +65,52 @@ static void pcap_led_work(struct work_struct *work)
 			!led->brightness : led->brightness));
 
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
+}
+
+static inline void pcap_led_set_bl(struct pcap_led *led)
+{
+	u32 tmp;
+	u32 shift;
+
+	switch (led->type) {
+	case PCAP_BL0:
+		shift = PCAP_BL0_SHIFT;
+		break;
+	case PCAP_BL1:
+		shift = PCAP_BL1_SHIFT;
+		break;
+	default:
+		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		return;
+	}
+
+	/* XXX this can be removed if we set max_brightness at probe time */
+	if (led->brightness > PCAP_BL_MASK)
+		led->brightness = PCAP_BL_MASK;
+
+	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
+	tmp &= ~(PCAP_BL_MASK << shift);
+	tmp |= led->brightness << shift;
+	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
+}
+
+static void pcap_led_work(struct work_struct *work)
+{
+	struct pcap_led *led = container_of(work, struct pcap_led, work);
+
+	switch (led->type) {
+	case PCAP_LED0:
+	case PCAP_LED1:
+		pcap_led_set_led(led);
+		break;
+	case PCAP_BL0:
+	case PCAP_BL1:
+		pcap_led_set_bl(led);
+		break;
+	default:
+		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		break;
+	}
 }
 
 static int __devinit pcap_led_probe(struct platform_device *pdev)
