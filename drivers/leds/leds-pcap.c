@@ -129,18 +129,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		led->ldev.brightness_set = pcap_led_set_brightness;
 		led->pcap = dev_get_drvdata(pdev->dev.parent);
 
-		if (led->gpio & PCAP_LED_GPIO_EN) {
-			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
-			err = gpio_request(gpio, "PCAP LED");
-			if (err) {
-				dev_err(&pdev->dev,
-					"couldn't request gpio %d\n", gpio);
-				goto fail;
-			}
-			gpio_direction_output(gpio,
-				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
-		}
-
+		INIT_WORK(&led->work, pcap_led_work);
 		err = led_classdev_register(&pdev->dev, &led->ldev);
 		if (err) {
 			dev_err(&pdev->dev, "couldn't register LED %s\n",
@@ -148,16 +137,34 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 			goto fail;
 		}
 
-		INIT_WORK(&led->work, pcap_led_work);
+		if (led->gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
+			err = gpio_request(gpio, "PCAP LED");
+			if (err) {
+				dev_err(&pdev->dev,
+					"couldn't request gpio %d\n", gpio);
+				led_classdev_unregister(&led->ldev);
+				cancel_work_sync(&led->work);
+				goto fail;
+			}
+			gpio_direction_output(gpio,
+				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
+		}
 	}
 
 	return 0;
 
 fail:
-	while (i >= 0) {
-		led_classdev_unregister(&pdata->leds[--i].ldev);
-		cancel_work_sync(&pdata->leds[i].work);
-	}
+	if (i > 0)
+		for (i = i - 1; i >= 0; i--) {
+			if (&pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+				int gpio = (&pdata->leds[i].gpio &
+						PCAP_LED_GPIO_VAL_MASK);
+				gpio_free(gpio);
+			}
+			led_classdev_unregister(&pdata->leds[i].ldev);
+			cancel_work_sync(&pdata->leds[i].work);
+		}
 
 	return err;
 }
@@ -168,6 +175,11 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
 
 	for (i = 0; i < pdata->num_leds; i++) {
+		if (&pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
+			int gpio = (&pdata->leds[i].gpio &
+					PCAP_LED_GPIO_VAL_MASK);
+			gpio_free(gpio);
+		}
 		led_classdev_unregister(&pdata->leds[i].ldev);
 		cancel_work_sync(&pdata->leds[i].work);
 	}
