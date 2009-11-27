@@ -47,10 +47,6 @@ static inline void pcap_led_set_led(struct pcap_led *led)
 		return;
 	}
 
-	/* XXX this can be removed if we set max_brightness at probe time */
-	if (led->brightness)
-		led->brightness = 1;
-
 	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 
 	/* turn off */
@@ -59,10 +55,8 @@ static inline void pcap_led_set_led(struct pcap_led *led)
 	if (led->brightness) /* turn on */
 		tmp |= (e | (led->curr << c) | (led->timing << t));
 
-	if (led->gpio & PCAP_LED_GPIO_EN)
-		gpio_set_value((led->gpio & PCAP_LED_GPIO_VAL_MASK),
-			((led->gpio & PCAP_LED_GPIO_INVERT) ?
-			!led->brightness : led->brightness));
+	if (gpio_is_valid(led->gpio))
+		gpio_set_value(led->gpio, !!led->brightness ^ led->gpio_invert);
 
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
@@ -84,33 +78,22 @@ static inline void pcap_led_set_bl(struct pcap_led *led)
 		return;
 	}
 
-	/* XXX this can be removed if we set max_brightness at probe time */
-	if (led->brightness > PCAP_BL_MASK)
-		led->brightness = PCAP_BL_MASK;
-
 	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 	tmp &= ~(PCAP_BL_MASK << shift);
 	tmp |= led->brightness << shift;
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
 
-static void pcap_led_work(struct work_struct *work)
+static void pcap_led_led_work(struct work_struct *work)
 {
 	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	pcap_led_set_led(led);
+}
 
-	switch (led->type) {
-	case PCAP_LED0:
-	case PCAP_LED1:
-		pcap_led_set_led(led);
-		break;
-	case PCAP_BL0:
-	case PCAP_BL1:
-		pcap_led_set_bl(led);
-		break;
-	default:
-		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
-		break;
-	}
+static void pcap_led_bl_work(struct work_struct *work)
+{
+	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	pcap_led_set_bl(led);
 }
 
 static int __devinit pcap_led_probe(struct platform_device *pdev)
@@ -125,11 +108,28 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 
 	for (i = 0; i < pdata->num_leds; i++) {
 		struct pcap_led *led = &pdata->leds[i];
+
+		switch (led->type) {
+		case PCAP_LED0:
+		case PCAP_LED1:
+			led->ldev.max_brightness = 1;
+			INIT_WORK(&led->work, pcap_led_led_work);
+			break;
+		case PCAP_BL0:
+		case PCAP_BL1:
+			led->ldev.max_brightness = PCAP_BL_MASK;
+			INIT_WORK(&led->work, pcap_led_bl_work);
+			break;
+		default:
+			dev_warn(led->ldev.dev, "unknown led type %d\n",
+					led->type);
+			continue;
+		}
+
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
 		led->pcap = dev_get_drvdata(pdev->dev.parent);
 
-		INIT_WORK(&led->work, pcap_led_work);
 		err = led_classdev_register(&pdev->dev, &led->ldev);
 		if (err) {
 			dev_err(&pdev->dev, "couldn't register LED %s\n",
@@ -137,8 +137,8 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 			goto fail;
 		}
 
-		if (led->gpio & PCAP_LED_GPIO_EN) {
-			int gpio = (led->gpio & PCAP_LED_GPIO_VAL_MASK);
+		if (gpio_is_valid(led->gpio)) {
+			int gpio = led->gpio;
 			err = gpio_request(gpio, "PCAP LED");
 			if (err) {
 				dev_err(&pdev->dev,
@@ -147,8 +147,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 				cancel_work_sync(&led->work);
 				goto fail;
 			}
-			gpio_direction_output(gpio,
-				(led->gpio & PCAP_LED_GPIO_INVERT) ? 1 : 0);
+			gpio_direction_output(gpio, led->gpio_invert);
 		}
 	}
 
@@ -157,11 +156,8 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 fail:
 	if (i > 0)
 		for (i = i - 1; i >= 0; i--) {
-			if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
-				int gpio = (pdata->leds[i].gpio &
-						PCAP_LED_GPIO_VAL_MASK);
-				gpio_free(gpio);
-			}
+			if (gpio_is_valid(pdata->leds[i].gpio))
+				gpio_free(pdata->leds[i].gpio);
 			led_classdev_unregister(&pdata->leds[i].ldev);
 			cancel_work_sync(&pdata->leds[i].work);
 		}
@@ -175,11 +171,8 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
 
 	for (i = 0; i < pdata->num_leds; i++) {
-		if (pdata->leds[i].gpio & PCAP_LED_GPIO_EN) {
-			int gpio = (pdata->leds[i].gpio &
-					PCAP_LED_GPIO_VAL_MASK);
-			gpio_free(gpio);
-		}
+		if (gpio_is_valid(pdata->leds[i].gpio))
+			gpio_free(pdata->leds[i].gpio);
 		led_classdev_unregister(&pdata->leds[i].ldev);
 		cancel_work_sync(&pdata->leds[i].work);
 	}
