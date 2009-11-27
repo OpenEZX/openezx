@@ -760,9 +760,11 @@ static struct pcap_leds_platform_data a780_pcap_leds = {
 		{
 			.type = PCAP_BL0,
 			.name = "a780:main",
+			.gpio = -1,
 		}, {
 			.type = PCAP_BL1,
 			.name = "a780:aux",
+			.gpio = -1,
 		},
 	},
 	.num_leds = 2,
@@ -966,20 +968,20 @@ static struct pcap_leds_platform_data e680_pcap_leds = {
 			.name = "e680:red",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = GPIO46_E680_LED_RED | PCAP_LED_GPIO_EN |
-							PCAP_LED_GPIO_INVERT,
+			.gpio = GPIO46_E680_LED_RED,
+			.gpio_invert = 1,
 		}, {
 			.type = PCAP_LED0,
 			.name = "e680:green",
 			.curr = PCAP_LED_4MA,
 			.timing = 0xc,
-			.gpio = GPIO47_E680_LED_GREEN | PCAP_LED_GPIO_EN,
+			.gpio = GPIO47_E680_LED_GREEN,
 		}, {
 			.type = PCAP_LED1,
 			.name = "e680:blue",
 			.curr = PCAP_LED_3MA,
 			.timing = 0xc,
-			.gpio = 0,
+			.gpio = -1,
 		},
 	},
 	.num_leds = 3,
