@@ -20,7 +20,8 @@ struct pcap_led {
 	char *name;
 	u8 curr;
 	u8 timing;
-	u32 gpio;
+	int gpio;
+	bool gpio_invert;
 	int brightness;
 	struct led_classdev ldev;
 	struct work_struct work;
