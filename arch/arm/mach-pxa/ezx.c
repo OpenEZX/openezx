@@ -26,7 +26,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
-#include <linux/leds.h>
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
 #include <linux/regulator/machine.h>
