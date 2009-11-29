@@ -26,6 +26,7 @@
 #include <linux/irq.h>
 #include <linux/leds-pcap.h>
 #include <linux/leds-lp3944.h>
+#include <linux/leds-regulator.h>
 #include <linux/regulator/machine.h>
 #include <linux/udc_isp158x.h>
 
@@ -832,6 +833,22 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 	.consumer_supplies = pcap_regulator_SW1_consumers,
 };
 
+/* VVIB: Vibrator on A780, A1200, A910, E6, E2 */
+static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
+	{ .dev_name = "leds-regulator", .supply = "vibrator", },
+};
+
+static struct regulator_init_data pcap_regulator_VVIB_data = {
+	.constraints = {
+		.min_uV = 1300000,
+		.max_uV = 3000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VVIB_consumers),
+	.consumer_supplies = pcap_regulator_VVIB_consumers,
+};
+
 /* UDC */
 static void ezx_udc_command(int cmd)
 {
@@ -1002,6 +1019,10 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VVIB,
+		.platform_data	= &pcap_regulator_VVIB_data,
 	},
 };
 
@@ -1126,8 +1147,24 @@ static struct platform_device a780_camera = {
 	},
 };
 
+/* vibrator */
+static struct led_regulator_platform_data a780_vibrator_data = {
+	.name   = "a780::vibrator",
+	.supply = "vibrator"
+};
+
+static struct platform_device a780_vibrator = {
+	.name = "leds-regulator",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &a780_vibrator_data,
+	},
+};
+
+
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
+	&a780_vibrator
 	&gen1_bp_device,
 };
 
