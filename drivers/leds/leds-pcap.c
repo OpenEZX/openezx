@@ -2,6 +2,7 @@
  * leds-pcap.c - leds driver for PCAP mfd chip used on EZX platform
  *
  * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Antonio Ospite <ospite@studenti.unina.it>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -15,6 +16,18 @@
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/mfd/ezx-pcap.h>
+
+/* 
+ * PCAP supports different types of leds:
+ *  - two backlights with 32 possible brightness values
+ *  - two simple leds
+ * 
+ * On some phones on which PCAP2 is used there are some leds with the output
+ * connected to a switch controlled by a GPIO.
+ * 
+ * In Motorola e680, for instance, this allows to control three leds by
+ * sharing one PCAP2 simple led between two actual leds.
+ */
 
 static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 					enum led_brightness val)
