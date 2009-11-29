@@ -1164,7 +1164,7 @@ static struct platform_device a780_vibrator = {
 
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
-	&a780_vibrator
+	&a780_vibrator,
 	&gen1_bp_device,
 };
 
