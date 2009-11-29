@@ -1,0 +1,6 @@
+From: Antonio Ospite <ospite@studenti.unina.it>
+Subject: [PATCH] leds-regulator
+
+A LED class driver for regulator driven LEDs.
+
+Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
