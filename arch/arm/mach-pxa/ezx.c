@@ -887,7 +887,7 @@ static struct pcap_leds_platform_data a780_pcap_leds = {
 	.leds = {
 		{
 			.type = PCAP_BL0,
-			.name = "a780::main",
+			.name = "a780::keypad",
 			.gpio = -1,
 		}, {
 			.type = PCAP_BL1,
