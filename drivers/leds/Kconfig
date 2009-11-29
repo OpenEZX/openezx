@@ -195,6 +195,12 @@ config LEDS_PCA955X
 	  LED driver chips accessed via the I2C bus.  Supported
 	  devices include PCA9550, PCA9551, PCA9552, and PCA9553.
 
+config LEDS_PCAP
+	tristate "LED Support for PCAP2 ASIC"
+	depends on LEDS_CLASS && EZX_PCAP
+	help
+	  This option enables support for the led controller on PCAP2.
+	  
 config LEDS_WM831X_STATUS
 	tristate "LED support for status LEDs on WM831x PMICs"
 	depends on LEDS_CLASS && MFD_WM831X
@@ -236,11 +242,11 @@ config LEDS_BD2802
 	  This option enables support for BD2802GU RGB LED driver chips
 	  accessed via the I2C bus.
 
-config LEDS_PCAP
-	tristate "LED Support for PCAP2 ASIC"
-	depends on LEDS_CLASS && EZX_PCAP
+config LEDS_REGULATOR
+	tristate "REGULATOR driven LED support"
+	depends on LEDS_CLASS && REGULATOR
 	help
-	  This option enables support for the led controller on PCAP2.
+	  This option enables support for regulator driven LEDs.
 
 comment "LED Triggers"
 
