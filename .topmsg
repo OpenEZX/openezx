@@ -1,6 +1,11 @@
 From: Antonio Ospite <ospite@studenti.unina.it>
-Subject: [PATCH] leds-regulator
+Subject: [PATCH] leds-regulator: LED class driver for regulator driven LEDs.
+Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>, Liam Girdwood <lrg@slimlogic.co.uk>, Daniel Ribeiro <drwyrm@gmail.com>, linux-arm-kernel@lists.infradead.org, openezx-devel@lists.openezx.org
 
-A LED class driver for regulator driven LEDs.
+This driver provides an interface for controlling LEDs (or vibrators)
+connected to PMICs for which there is a regulator framework driver.
+
+This driver can be used, for instance, to control vibrator on all Motorola EZX
+phones using the pcap-regulator driver services.
 
 Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
