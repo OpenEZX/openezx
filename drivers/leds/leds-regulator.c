@@ -81,9 +81,11 @@ static void regulator_led_disable(struct regulator_led *led)
 
 static void led_work(struct work_struct *work)
 {
-	struct regulator_led *led = container_of(work, struct regulator_led, work);
+	struct regulator_led *led;
 	int voltage;
 	int ret;
+
+	led = container_of(work, struct regulator_led, work);
 
 	mutex_lock(&led->mutex);
 
