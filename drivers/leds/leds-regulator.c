@@ -107,7 +107,7 @@ out:
 	mutex_unlock(&led->mutex);
 }
 
-static void regulator_led_set(struct led_classdev *led_cdev,
+static void regulator_led_brightness_set(struct led_classdev *led_cdev,
 			   enum led_brightness value)
 {
 	struct regulator_led *led = to_regulator_led(led_cdev);
@@ -146,7 +146,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 
 	led->cdev.max_brightness = ret;
 
-	led->cdev.brightness_set = regulator_led_set;
+	led->cdev.brightness_set = regulator_led_brightness_set;
 	led->cdev.name = pdata->name;
 	led->cdev.flags |= LED_CORE_SUSPENDRESUME;
 	led->enabled = regulator_is_enabled(vcc);
