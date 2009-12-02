@@ -13,7 +13,7 @@
 #define __LINUX_LEDS_REGULATOR_H
 
 struct led_regulator_platform_data {
-	char *name;
+	char *name;	/* LED name as expected by LED class */
 	char *supply;
 };
 
