@@ -141,6 +141,7 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 
 		led->ldev.name = led->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
+		led->ldev.flags |= LED_CORE_SUSPENDRESUME;
 		led->pcap = dev_get_drvdata(pdev->dev.parent);
 
 		err = led_classdev_register(&pdev->dev, &led->ldev);
