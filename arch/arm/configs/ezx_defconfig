@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.32-rc8
-# Sun Nov 29 22:28:12 2009
+# Linux kernel version: 2.6.32
+# Thu Dec  3 10:27:34 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -111,6 +111,7 @@ CONFIG_HAVE_CLK=y
 #
 # CONFIG_GCOV_KERNEL is not set
 CONFIG_SLOW_WORK=y
+# CONFIG_SLOW_WORK_DEBUG is not set
 CONFIG_HAVE_GENERIC_DMA_COHERENT=y
 CONFIG_SLABINFO=y
 CONFIG_RT_MUTEXES=y
