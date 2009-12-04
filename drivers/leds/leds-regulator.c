@@ -50,7 +50,7 @@ static int led_regulator_get_vdd(struct regulator *supply,
 		enum led_brightness brightness)
 {
 	if (brightness == 0)
-		return 0;
+		return -EINVAL;
 
 	return regulator_list_voltage(supply, brightness - 1);
 }
