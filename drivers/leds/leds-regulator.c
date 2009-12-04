@@ -46,7 +46,7 @@ static inline int led_regulator_get_max_brightness(struct regulator *supply)
 	return ret;
 }
 
-static int led_regulator_get_vdd(struct regulator *supply,
+static int led_regulator_get_voltage(struct regulator *supply,
 		enum led_brightness brightness)
 {
 	if (brightness == 0)
@@ -103,7 +103,7 @@ static void led_work(struct work_struct *work)
 		goto out;
 	}
 
-	voltage = led_regulator_get_vdd(led->vcc, led->value);
+	voltage = led_regulator_get_voltage(led->vcc, led->value);
 	if (voltage) {
 		dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
 				led->value, voltage);
