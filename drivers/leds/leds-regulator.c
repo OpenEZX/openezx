@@ -34,14 +34,23 @@ struct regulator_led {
 
 static inline int led_regulator_get_max_brightness(struct regulator *supply)
 {
-	return regulator_count_voltages(supply);
+	int ret = regulator_count_voltages(supply);
+
+	/* even if regulator can't change voltages,
+	 * we still assume it can change status
+	 * and the LED can be turned on and off.
+	 */
+	if (ret == -EINVAL)
+		return 1;
+
+	return ret;
 }
 
-static int led_regulator_get_vdd(struct regulator *supply,
+static int led_regulator_get_voltage(struct regulator *supply,
 		enum led_brightness brightness)
 {
 	if (brightness == 0)
-		return 0;
+		return -EINVAL;
 
 	return regulator_list_voltage(supply, brightness - 1);
 }
@@ -79,34 +88,41 @@ static void regulator_led_disable(struct regulator_led *led)
 	led->enabled = 0;
 }
 
-static void led_work(struct work_struct *work)
+static void regulator_led_set_value(struct regulator_led *led)
 {
-	struct regulator_led *led;
 	int voltage;
 	int ret;
 
-	led = container_of(work, struct regulator_led, work);
-
 	mutex_lock(&led->mutex);
 
-	if (led->value == 0) {
+	if (led->value == LED_OFF) {
 		regulator_led_disable(led);
 		goto out;
 	}
 
-	voltage = led_regulator_get_vdd(led->vcc, led->value);
-	dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
-			led->value, voltage);
+	voltage = led_regulator_get_voltage(led->vcc, led->value);
+	if (voltage) {
+		dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
+				led->value, voltage);
 
-	ret = regulator_set_voltage(led->vcc, voltage, voltage);
-	if (ret != 0)
-		dev_err(led->cdev.dev, "Failed to set voltage %d: %d\n",
-			voltage, ret);
+		ret = regulator_set_voltage(led->vcc, voltage, voltage);
+		if (ret != 0)
+			dev_err(led->cdev.dev, "Failed to set voltage %d: %d\n",
+				voltage, ret);
+	}
 
 	regulator_led_enable(led);
 
 out:
 	mutex_unlock(&led->mutex);
+}
+
+static void led_work(struct work_struct *work)
+{
+	struct regulator_led *led;
+
+	led = container_of(work, struct regulator_led, work);
+	regulator_led_set_value(led);
 }
 
 static void regulator_led_brightness_set(struct led_classdev *led_cdev,
@@ -130,10 +146,10 @@ static int regulator_led_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	vcc = regulator_get(&pdev->dev, pdata->supply);
+	vcc = regulator_get_exclusive(&pdev->dev, "vled");
 	if (IS_ERR(vcc)) {
 		dev_err(&pdev->dev, "Cannot get vcc for %s\n", pdata->name);
-		return PTR_ERR(vcc);;
+		return PTR_ERR(vcc);
 	}
 
 	led = kzalloc(sizeof(*led), GFP_KERNEL);
@@ -142,22 +158,22 @@ static int regulator_led_probe(struct platform_device *pdev)
 		goto err_vcc;
 	}
 
-	ret = led_regulator_get_max_brightness(vcc);
-	if (ret < 0)
+	led->cdev.max_brightness = led_regulator_get_max_brightness(vcc);
+	if (pdata->brightness > led->cdev.max_brightness) {
+		dev_err(&pdev->dev, "Invalid default brightness %d\n",
+				pdata->brightness);
 		goto err_led;
-
-	led->cdev.max_brightness = ret;
+	}
+	led->value = pdata->brightness;
 
 	led->cdev.brightness_set = regulator_led_brightness_set;
 	led->cdev.name = pdata->name;
 	led->cdev.flags |= LED_CORE_SUSPENDRESUME;
-	led->enabled = regulator_is_enabled(vcc);
 	led->vcc = vcc;
 
 	mutex_init(&led->mutex);
 	INIT_WORK(&led->work, led_work);
 
-	led->value = LED_OFF;
 	platform_set_drvdata(pdev, led);
 
 	ret = led_classdev_register(&pdev->dev, &led->cdev);
@@ -165,6 +181,12 @@ static int regulator_led_probe(struct platform_device *pdev)
 		cancel_work_sync(&led->work);
 		goto err_led;
 	}
+
+	/* to expose the default value to userspace */
+	led->ldev.brightness = led->value;
+
+	/* Set the default led status */
+	regulator_led_set_value(led);
 
 	return 0;
 
