@@ -133,7 +133,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 	vcc = regulator_get_exclusive(&pdev->dev, "vled");
 	if (IS_ERR(vcc)) {
 		dev_err(&pdev->dev, "Cannot get vcc for %s\n", pdata->name);
-		return PTR_ERR(vcc);;
+		return PTR_ERR(vcc);
 	}
 
 	led = kzalloc(sizeof(*led), GFP_KERNEL);
