@@ -89,7 +89,7 @@ static void led_work(struct work_struct *work)
 
 	mutex_lock(&led->mutex);
 
-	if (led->value == 0) {
+	if (led->value == LED_OFF) {
 		regulator_led_disable(led);
 		goto out;
 	}
