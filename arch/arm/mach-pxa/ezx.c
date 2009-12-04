@@ -774,7 +774,7 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 
 /* VVIB: Vibrator on A780, A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
-	{ .dev_name = "leds-regulator", .supply = "vibrator", },
+	{ .dev_name = "leds-regulator", .supply = "vled", },
 };
 
 static struct regulator_init_data pcap_regulator_VVIB_data = {
@@ -1067,7 +1067,6 @@ static struct platform_device a780_camera = {
 /* vibrator */
 static struct led_regulator_platform_data a780_vibrator_data = {
 	.name   = "a780::vibrator",
-	.supply = "vibrator"
 };
 
 static struct platform_device a780_vibrator = {
