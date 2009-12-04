@@ -183,7 +183,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 	}
 
 	/* to expose the default value to userspace */
-	led->ldev.brightness = led->value;
+	led->cdev.brightness = led->value;
 
 	/* Set the default led status */
 	regulator_led_set_value(led);
