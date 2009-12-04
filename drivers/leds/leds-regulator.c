@@ -88,13 +88,10 @@ static void regulator_led_disable(struct regulator_led *led)
 	led->enabled = 0;
 }
 
-static void led_work(struct work_struct *work)
+static void regulator_led_set_value(struct regulator_led *led)
 {
-	struct regulator_led *led;
 	int voltage;
 	int ret;
-
-	led = container_of(work, struct regulator_led, work);
 
 	mutex_lock(&led->mutex);
 
@@ -118,6 +115,14 @@ static void led_work(struct work_struct *work)
 
 out:
 	mutex_unlock(&led->mutex);
+}
+
+static void led_work(struct work_struct *work)
+{
+	struct regulator_led *led;
+
+	led = container_of(work, struct regulator_led, work);
+	regulator_led_set_value(led);
 }
 
 static void regulator_led_brightness_set(struct led_classdev *led_cdev,
