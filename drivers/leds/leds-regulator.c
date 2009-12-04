@@ -34,7 +34,16 @@ struct regulator_led {
 
 static inline int led_regulator_get_max_brightness(struct regulator *supply)
 {
-	return regulator_count_voltages(supply);
+	int ret = regulator_count_voltages(supply);
+
+	/* even if regulator can't change voltages,
+	 * we still assume it can change status
+	 * and the LED can be turned on and off.
+	 */
+	if (ret == -EINVAL)
+		return 1;
+
+	return ret;
 }
 
 static int led_regulator_get_vdd(struct regulator *supply,
@@ -95,13 +104,15 @@ static void led_work(struct work_struct *work)
 	}
 
 	voltage = led_regulator_get_vdd(led->vcc, led->value);
-	dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
-			led->value, voltage);
+	if (voltage) {
+		dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
+				led->value, voltage);
 
-	ret = regulator_set_voltage(led->vcc, voltage, voltage);
-	if (ret != 0)
-		dev_err(led->cdev.dev, "Failed to set voltage %d: %d\n",
-			voltage, ret);
+		ret = regulator_set_voltage(led->vcc, voltage, voltage);
+		if (ret != 0)
+			dev_err(led->cdev.dev, "Failed to set voltage %d: %d\n",
+				voltage, ret);
+	}
 
 	regulator_led_enable(led);
 
