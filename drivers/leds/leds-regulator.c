@@ -158,22 +158,22 @@ static int regulator_led_probe(struct platform_device *pdev)
 		goto err_vcc;
 	}
 
-	ret = led_regulator_get_max_brightness(vcc);
-	if (ret < 0)
+	led->cdev.max_brightness = led_regulator_get_max_brightness(vcc);
+	if (pdata->brightness > led->cdev.max_brightness) {
+		dev_err(&pdev->dev, "Invalid default brightness %d\n",
+				pdata->brightness);
 		goto err_led;
-
-	led->cdev.max_brightness = ret;
+	}
+	led->value = pdata->brightness;
 
 	led->cdev.brightness_set = regulator_led_brightness_set;
 	led->cdev.name = pdata->name;
 	led->cdev.flags |= LED_CORE_SUSPENDRESUME;
-	led->enabled = regulator_is_enabled(vcc);
 	led->vcc = vcc;
 
 	mutex_init(&led->mutex);
 	INIT_WORK(&led->work, led_work);
 
-	led->value = LED_OFF;
 	platform_set_drvdata(pdev, led);
 
 	ret = led_classdev_register(&pdev->dev, &led->cdev);
@@ -181,6 +181,12 @@ static int regulator_led_probe(struct platform_device *pdev)
 		cancel_work_sync(&led->work);
 		goto err_led;
 	}
+
+	/* to expose the default value to userspace */
+	led->ldev.brightness = led->value;
+
+	/* Set the default led status */
+	regulator_led_set_value(led);
 
 	return 0;
 
