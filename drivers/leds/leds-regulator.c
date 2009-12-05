@@ -144,7 +144,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 	struct led_regulator_platform_data *pdata = pdev->dev.platform_data;
 	struct regulator_led *led;
 	struct regulator *vcc;
-	int ret;
+	int ret = 0;
 
 	if (pdata == NULL) {
 		dev_err(&pdev->dev, "no platform data\n");
@@ -167,6 +167,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 	if (pdata->brightness > led->cdev.max_brightness) {
 		dev_err(&pdev->dev, "Invalid default brightness %d\n",
 				pdata->brightness);
+		ret = -EINVAL;
 		goto err_led;
 	}
 	led->value = pdata->brightness;
