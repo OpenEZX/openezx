@@ -34,16 +34,21 @@ struct regulator_led {
 
 static inline int led_regulator_get_max_brightness(struct regulator *supply)
 {
-	int ret = regulator_count_voltages(supply);
+	int ret;
+	int voltage = regulator_list_voltage(supply, 0);
+
+	if (voltage == -EINVAL)
+		return 1;
 
 	/* even if regulator can't change voltages,
 	 * we still assume it can change status
 	 * and the LED can be turned on and off.
 	 */
-	if (ret == -EINVAL)
+	ret = regulator_set_voltage(supply, voltage, voltage);
+	if (ret < 0)
 		return 1;
 
-	return ret;
+	return regulator_count_voltages(supply);
 }
 
 static int led_regulator_get_voltage(struct regulator *supply,
@@ -100,9 +105,9 @@ static void regulator_led_set_value(struct regulator_led *led)
 		goto out;
 	}
 
-	voltage = led_regulator_get_voltage(led->vcc, led->value);
-	if (voltage) {
-		dev_dbg(led->cdev.dev, "brightness: %d voltage: %d",
+	if (led->cdev.max_brightness > 1) {
+		voltage = led_regulator_get_voltage(led->vcc, led->value);
+		dev_dbg(led->cdev.dev, "brightness: %d voltage: %d\n",
 				led->value, voltage);
 
 		ret = regulator_set_voltage(led->vcc, voltage, voltage);
@@ -134,12 +139,12 @@ static void regulator_led_brightness_set(struct led_classdev *led_cdev,
 	schedule_work(&led->work);
 }
 
-static int regulator_led_probe(struct platform_device *pdev)
+static int __devinit regulator_led_probe(struct platform_device *pdev)
 {
 	struct led_regulator_platform_data *pdata = pdev->dev.platform_data;
 	struct regulator_led *led;
 	struct regulator *vcc;
-	int ret;
+	int ret = 0;
 
 	if (pdata == NULL) {
 		dev_err(&pdev->dev, "no platform data\n");
@@ -162,6 +167,7 @@ static int regulator_led_probe(struct platform_device *pdev)
 	if (pdata->brightness > led->cdev.max_brightness) {
 		dev_err(&pdev->dev, "Invalid default brightness %d\n",
 				pdata->brightness);
+		ret = -EINVAL;
 		goto err_led;
 	}
 	led->value = pdata->brightness;
@@ -197,7 +203,7 @@ err_vcc:
 	return ret;
 }
 
-static int regulator_led_remove(struct platform_device *pdev)
+static int __devexit regulator_led_remove(struct platform_device *pdev)
 {
 	struct regulator_led *led = platform_get_drvdata(pdev);
 
@@ -215,16 +221,16 @@ static struct platform_driver regulator_led_driver = {
 		   .owner = THIS_MODULE,
 		   },
 	.probe  = regulator_led_probe,
-	.remove = regulator_led_remove,
+	.remove = __devexit_p(regulator_led_remove),
 };
 
-static int __devinit regulator_led_init(void)
+static int __init regulator_led_init(void)
 {
 	return platform_driver_register(&regulator_led_driver);
 }
 module_init(regulator_led_init);
 
-static void regulator_led_exit(void)
+static void __exit regulator_led_exit(void)
 {
 	platform_driver_unregister(&regulator_led_driver);
 }
