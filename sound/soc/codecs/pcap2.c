@@ -478,13 +478,13 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	if (st_dac & PCAP2_ST_DAC_EN || mono_dac & PCAP2_CODEC_EN)
 		return -EBUSY;
 
-        /* 
-         * powerup amp 
-         * */
-        input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
-        input |= PCAP2_INPUT_AMP_V2EN2;
-        /*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
-        pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
+	/*
+	 * powerup amp
+	 */
+	input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
+	input |= PCAP2_INPUT_AMP_V2EN2;
+	/*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
+	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 
 
 	switch (codec_dai->id) {
@@ -760,23 +760,23 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
+	int link_num;
 
-        int link_num;
-
-        for (link_num=0;link_num<=2;link_num++) {
-          pcap2_dai[link_num].private_data = dev_get_drvdata(pdev->dev.parent);
-          snd_soc_register_dai(&pcap2_dai[link_num]);
-        }
+	for (link_num=0;link_num<=2;link_num++) {
+		pcap2_dai[link_num].private_data =
+			dev_get_drvdata(pdev->dev.parent);
+		snd_soc_register_dai(&pcap2_dai[link_num]);
+	}
 
 	return 0;
 }
 
 static int __devexit pcap2_driver_remove(struct platform_device *pdev)
 {
-        int link_num;
+	int link_num;
 
-        for (link_num=0;link_num<=2;link_num++)
-        	snd_soc_unregister_dai(&pcap2_dai[link_num]);
+	for (link_num=0;link_num<=2;link_num++)
+		snd_soc_unregister_dai(&pcap2_dai[link_num]);
 
 	return 0;
 }

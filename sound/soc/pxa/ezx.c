@@ -114,7 +114,7 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 
 static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 {
-    	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->socdev->card->codec;
 
 	snd_soc_dapm_disable_pin(codec, "A5");
@@ -131,19 +131,19 @@ static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 
 static int bp_hw_free(struct snd_pcm_substream *substream)
 {
-    	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->socdev->card->codec;
 
-        snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
-            SND_SOC_DAPM_STREAM_STOP);
+	snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
+		SND_SOC_DAPM_STREAM_STOP);
 
-        snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
-            SND_SOC_DAPM_STREAM_STOP);
+	snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
+		SND_SOC_DAPM_STREAM_STOP);
 
-        snd_soc_dapm_disable_pin(codec, "Input Mixer");
-        snd_soc_dapm_disable_pin(codec, "Output Mixer");
+	snd_soc_dapm_disable_pin(codec, "Input Mixer");
+	snd_soc_dapm_disable_pin(codec, "Output Mixer");
 
-        snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(codec);
 
 	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
 
@@ -164,7 +164,7 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 
 	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
 	int ret = 0;
-        
+
 	/* set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_B |
 		SND_SOC_DAIFMT_IB_IF | SND_SOC_DAIFMT_CBM_CFM);
@@ -190,7 +190,7 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 
 static struct snd_soc_ops ezx_ops_gsm = {
 	.hw_params = bp_hw_params,
-        .hw_free = bp_hw_free,
+	.hw_free = bp_hw_free,
 };
 
 /* machine dapm widgets */
@@ -281,7 +281,7 @@ static struct snd_soc_dai_link ezx_dai[] = {
 	.name = "PCAP2 MONO",
 	.stream_name = "Mono playback",
 	//.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
-        .cpu_dai = &gsm_dai,
+	.cpu_dai = &gsm_dai,
 	.codec_dai = &pcap2_dai[1],
 	.ops = &ezx_ops,
 },
@@ -334,7 +334,7 @@ static int __init ezx_init(void)
 	if (ret)
 		platform_device_put(ezx_snd_device);
 
-        ezx_dai[1].cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3];
+	ezx_dai[1].cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3];
 
 #ifdef CONFIG_PXA_EZX_A780
 	if (machine_is_ezx_a780())
