@@ -574,8 +574,6 @@ struct snd_soc_dai pcap2_dai[] = {
 		.ops = &pcap2_dai_ops,
 	},
 };
-
-
 EXPORT_SYMBOL_GPL(pcap2_dai);
 
 static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
@@ -698,9 +696,9 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
-	if (ret < 0) {
+	if (ret < 0)
 		return ret;
-	}
+
 	/* power on device */
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
@@ -715,7 +713,8 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 	ret = pcap2_jack_init(socdev);
 
-	// FIXME, here just to make sure snd_jack_dev_register() gets called
+	/* FIXME, here just to make sure snd_jack_dev_register() gets called
+	 */
 	snd_device_register_all(socdev->card->codec->card);
 
 
@@ -762,7 +761,7 @@ static int pcap2_driver_probe(struct platform_device *pdev)
 {
 	int link_num;
 
-	for (link_num=0;link_num<=2;link_num++) {
+	for (link_num = 0; link_num <= 2; link_num++) {
 		pcap2_dai[link_num].private_data =
 			dev_get_drvdata(pdev->dev.parent);
 		snd_soc_register_dai(&pcap2_dai[link_num]);
@@ -775,7 +774,7 @@ static int __devexit pcap2_driver_remove(struct platform_device *pdev)
 {
 	int link_num;
 
-	for (link_num=0;link_num<=2;link_num++)
+	for (link_num = 0; link_num <= 2; link_num++)
 		snd_soc_unregister_dai(&pcap2_dai[link_num]);
 
 	return 0;
@@ -788,6 +787,7 @@ struct snd_soc_codec_device soc_codec_dev_pcap2 = {
 	.suspend =	pcap2_codec_suspend,
 	.resume =	pcap2_codec_resume,
 };
+EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
 
 static struct platform_driver pcap2_driver = {
 	.probe		= pcap2_driver_probe,
@@ -797,7 +797,6 @@ static struct platform_driver pcap2_driver = {
 		.owner		= THIS_MODULE,
 	},
 };
-
 
 static int __devinit pcap2_init(void)
 {
@@ -811,8 +810,6 @@ static void __exit pcap2_exit(void)
 
 module_init(pcap2_init);
 module_exit(pcap2_exit);
-
-EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
 
 MODULE_DESCRIPTION("ASoC PCAP2 codec");
 MODULE_AUTHOR("Daniel Ribeiro");
