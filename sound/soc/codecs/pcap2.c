@@ -47,27 +47,6 @@ static unsigned int pcap2_codec_read(struct snd_soc_codec *codec,
 	return tmp;
 }
 
-static ssize_t pcap2_regs_show(struct device *dev,
-				     struct device_attribute *attr, char *buf)
-{
-	int ret;
-        int codec, stereo, in, out;
-        struct pcap_chip *pcap = dev_get_drvdata(dev->parent);
-
-        ezx_pcap_read(pcap, PCAP2_CODEC, &codec);
-        ezx_pcap_read(pcap, PCAP2_ST_DAC, &stereo);
-        ezx_pcap_read(pcap, PCAP2_INPUT_AMP, &in);
-        ezx_pcap_read(pcap, PCAP2_OUTPUT_AMP, &out);
-
-
-	ret = sprintf(buf,"codec: %x\nstereo: %x\nin: %x\nout: %x\n",
-            codec, stereo, in, out);
-
-	return ret;
-}
-
-static DEVICE_ATTR(pcap2_regs, 0444, pcap2_regs_show, NULL);
-
 static const char *pcap2_downmix_select[] = {
 	"Off",
 	"2->1ch",
@@ -788,8 +767,6 @@ static int pcap2_driver_probe(struct platform_device *pdev)
           pcap2_dai[link_num].private_data = dev_get_drvdata(pdev->dev.parent);
           snd_soc_register_dai(&pcap2_dai[link_num]);
         }
-
-	device_create_file(&pdev->dev, &dev_attr_pcap2_regs);
 
 	return 0;
 }
