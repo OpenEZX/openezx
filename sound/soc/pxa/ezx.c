@@ -34,35 +34,11 @@
 
 static struct snd_soc_codec *control_codec;
 
-static void ezx_ext_control(struct snd_soc_codec *codec)
-{
-/* FIXME	u32 tmp;
-
-	ezx_pcap_read(PCAP_REG_PSTAT, &tmp);
-
-	if (tmp & PCAP_IRQ_A1) {
-		snd_soc_dapm_enable_pin(codec, "Headset");
-		snd_soc_dapm_enable_pin(codec, "External Mic");
-	} else {
-		snd_soc_dapm_disable_pin(codec, "Headset");
-		snd_soc_dapm_disable_pin(codec, "External Mic");
-	}
-	snd_soc_dapm_sync(codec); */
-}
-
-static irqreturn_t jack_irq(struct work_struct *unused)
-{
-	ezx_ext_control(control_codec);
-	return IRQ_HANDLED;
-}
-
 static int ezx_machine_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->socdev->card->codec;
 
-	/* check the jack status at stream startup */
-	ezx_ext_control(codec);
 	return 0;
 }
 
@@ -353,20 +329,11 @@ static int __init ezx_init(void)
 		gpio_direction_output(96, 1);
 #endif
 
-	/* request jack event */
-	/* not deal this event temporarily */
-	/*
-	ezx_pcap_register_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1, jack_irq,
-							NULL, "HP/MIC");
-	*/
 	return ret;
 }
 
 static void __exit ezx_exit(void)
 {
-	/*
-	ezx_pcap_unregister_event(PCAP_IRQ_MB2 | PCAP_IRQ_A1);
-	*/
 	platform_device_unregister(ezx_snd_device);
 }
 
