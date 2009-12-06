@@ -396,11 +396,45 @@ static int __devinit pcap_add_subdev(struct pcap_chip *pcap,
 	return platform_device_add(pdev);
 }
 
+
+static ssize_t pcap2_regs_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct pcap_chip *pcap = dev_get_drvdata(dev);
+	int len = 0;
+	int reg;
+	int val;
+
+	char *pcap_registers[] = {
+		"ISR\t", "MSR\t", "PSTAT\t", "INT_SEL\t", "SWCTRL\t", "VREG1\t",
+		"VREG2\t", "AUXVREG\t", "BATT_DAC", "ADC1\t", "ADC2\t", "AUD_CODEC",
+		"RX_AUD_AMPS", "ST_DAC\t", "RTC_TOD\t", "RTC_TODA", "RTC_DAY\t",
+		"RTC_DAYA", "MTRTMR\t", "PWRCTRL\t", "BUSCTRL\t", "PERIPH\t",
+		"AUXVREG_MASK", "VENDOR_REV", "LOWPWR_CTRL", "PERIPH_MASK",
+		"TX_AUD_AMPS", "GP\t",
+		NULL, NULL, NULL, NULL
+	};
+
+	for (reg = 0; reg < 32; reg++) {
+		if (pcap_registers[reg] == NULL)
+			continue;
+
+		ezx_pcap_read(pcap, reg, &val);
+		len += sprintf(buf+len, "%s\t%08X\n", pcap_registers[reg], val);
+	}
+
+	return len;
+}
+
+static DEVICE_ATTR(pcap2_regs, 0444, pcap2_regs_show, NULL);
+
 static int __devexit ezx_pcap_remove(struct spi_device *spi)
 {
 	struct pcap_chip *pcap = dev_get_drvdata(&spi->dev);
 	struct pcap_platform_data *pdata = spi->dev.platform_data;
 	int i, adc_irq;
+
+	device_remove_file(&spi->dev, &dev_attr_pcap2_regs);
 
 	/* remove all registered subdevs */
 	device_for_each_child(&spi->dev, NULL, pcap_remove_subdev);
@@ -509,6 +543,10 @@ static int __devinit ezx_pcap_probe(struct spi_device *spi)
 	/* board specific quirks */
 	if (pdata->init)
 		pdata->init(pcap);
+
+	ret = device_create_file(&spi->dev, &dev_attr_pcap2_regs);
+	if (ret)
+		goto remove_subdevs;
 
 	return 0;
 
