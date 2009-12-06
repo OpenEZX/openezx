@@ -1,7 +1,7 @@
 /*
  * pcap2.c - PCAP2 PMIC Audio driver
  *
- * 	Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2009 Daniel Ribeiro <drwyrm@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -46,27 +46,6 @@ static unsigned int pcap2_codec_read(struct snd_soc_codec *codec,
 
 	return tmp;
 }
-
-static ssize_t pcap2_regs_show(struct device *dev,
-				     struct device_attribute *attr, char *buf)
-{
-	int ret;
-        int codec, stereo, in, out;
-        struct pcap_chip *pcap = dev_get_drvdata(dev->parent);
-
-        ezx_pcap_read(pcap, PCAP2_CODEC, &codec);
-        ezx_pcap_read(pcap, PCAP2_ST_DAC, &stereo);
-        ezx_pcap_read(pcap, PCAP2_INPUT_AMP, &in);
-        ezx_pcap_read(pcap, PCAP2_OUTPUT_AMP, &out);
-
-
-	ret = sprintf(buf,"codec: %x\nstereo: %x\nin: %x\nout: %x\n",
-            codec, stereo, in, out);
-
-	return ret;
-}
-
-static DEVICE_ATTR(pcap2_regs, 0444, pcap2_regs_show, NULL);
 
 static const char *pcap2_downmix_select[] = {
 	"Off",
@@ -499,13 +478,13 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	if (st_dac & PCAP2_ST_DAC_EN || mono_dac & PCAP2_CODEC_EN)
 		return -EBUSY;
 
-        /* 
-         * powerup amp 
-         * */
-        input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
-        input |= PCAP2_INPUT_AMP_V2EN2;
-        /*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
-        pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
+	/*
+	 * powerup amp
+	 */
+	input = pcap2_codec_read(codec, PCAP2_INPUT_AMP);
+	input |= PCAP2_INPUT_AMP_V2EN2;
+	/*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
+	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 
 
 	switch (codec_dai->id) {
@@ -595,8 +574,6 @@ struct snd_soc_dai pcap2_dai[] = {
 		.ops = &pcap2_dai_ops,
 	},
 };
-
-
 EXPORT_SYMBOL_GPL(pcap2_dai);
 
 static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
@@ -719,9 +696,9 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 	/* register pcms */
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
-	if (ret < 0) {
+	if (ret < 0)
 		return ret;
-	}
+
 	/* power on device */
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
@@ -736,7 +713,8 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 
 	ret = pcap2_jack_init(socdev);
 
-	// FIXME, here just to make sure snd_jack_dev_register() gets called
+	/* FIXME, here just to make sure snd_jack_dev_register() gets called
+	 */
 	snd_device_register_all(socdev->card->codec->card);
 
 
@@ -781,25 +759,23 @@ static int pcap2_codec_remove(struct platform_device *pdev)
 
 static int pcap2_driver_probe(struct platform_device *pdev)
 {
+	int link_num;
 
-        int link_num;
-
-        for (link_num=0;link_num<=2;link_num++) {
-          pcap2_dai[link_num].private_data = dev_get_drvdata(pdev->dev.parent);
-          snd_soc_register_dai(&pcap2_dai[link_num]);
-        }
-
-	device_create_file(&pdev->dev, &dev_attr_pcap2_regs);
+	for (link_num = 0; link_num <= 2; link_num++) {
+		pcap2_dai[link_num].private_data =
+			dev_get_drvdata(pdev->dev.parent);
+		snd_soc_register_dai(&pcap2_dai[link_num]);
+	}
 
 	return 0;
 }
 
 static int __devexit pcap2_driver_remove(struct platform_device *pdev)
 {
-        int link_num;
+	int link_num;
 
-        for (link_num=0;link_num<=2;link_num++)
-        	snd_soc_unregister_dai(&pcap2_dai[link_num]);
+	for (link_num = 0; link_num <= 2; link_num++)
+		snd_soc_unregister_dai(&pcap2_dai[link_num]);
 
 	return 0;
 }
@@ -811,6 +787,7 @@ struct snd_soc_codec_device soc_codec_dev_pcap2 = {
 	.suspend =	pcap2_codec_suspend,
 	.resume =	pcap2_codec_resume,
 };
+EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
 
 static struct platform_driver pcap2_driver = {
 	.probe		= pcap2_driver_probe,
@@ -820,7 +797,6 @@ static struct platform_driver pcap2_driver = {
 		.owner		= THIS_MODULE,
 	},
 };
-
 
 static int __devinit pcap2_init(void)
 {
@@ -834,8 +810,6 @@ static void __exit pcap2_exit(void)
 
 module_init(pcap2_init);
 module_exit(pcap2_exit);
-
-EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
 
 MODULE_DESCRIPTION("ASoC PCAP2 codec");
 MODULE_AUTHOR("Daniel Ribeiro");
