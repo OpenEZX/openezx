@@ -1,13 +1,12 @@
 /*
  * ezx.c - Machine specific code for EZX phones
  *
- *	Copyright (C) 2007-2008 Daniel Ribeiro <drwyrm@gmail.com>
+ * Copyright (C) 2007-2008 Daniel Ribeiro <drwyrm@gmail.com>
  *
- *  This program is free software; you can redistribute  it and/or modify it
- *  under  the terms of  the GNU General  Public License as published by the
- *  Free Software Foundation;  either version 2 of the  License, or (at your
- *  option) any later version.
- *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
  */
 
 #include <linux/module.h>
