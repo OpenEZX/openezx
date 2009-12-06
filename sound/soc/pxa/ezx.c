@@ -234,9 +234,9 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 
 #if 0
 	for (i = 0; i < ARRAY_SIZE(ezx_snd_controls); i++) {
-		if ((err = snd_ctl_add(codec->card,
-				snd_soc_cnew(&ezx_snd_controls[i], codec,
-				NULL))) < 0)
+		err = snd_ctl_add(codec->card, snd_soc_cnew(&ezx_snd_controls[i],
+					codec, NULL));
+		if (err < 0)
 			return err;
 	}
 #endif
