@@ -13,7 +13,7 @@
 #define __LINUX_LEDS_REGULATOR_H
 
 /*
- * Use "vled" as supply id when declaring the regulator:
+ * Use "vled" as supply id when declaring the regulator consumer:
  *
  * static struct regulator_consumer_supply pcap_regulator_VVIB_consumers [] = {
  * 	{ .dev_name = "leds-regulator.0", supply = "vled" },
