@@ -37,7 +37,7 @@ static inline int led_regulator_get_max_brightness(struct regulator *supply)
 	int ret;
 	int voltage = regulator_list_voltage(supply, 0);
 
-	if (voltage == -EINVAL)
+	if (voltage <= 0)
 		return 1;
 
 	/* even if regulator can't change voltages,
