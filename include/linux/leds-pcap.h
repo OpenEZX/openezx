@@ -24,9 +24,6 @@ struct pcap_led {
 	int gpio;
 	bool gpio_invert;
 	int brightness;
-	struct led_classdev ldev;
-	struct work_struct work;
-	struct pcap_chip *pcap;
 };
 
 struct pcap_leds_platform_data {
