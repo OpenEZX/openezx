@@ -17,18 +17,17 @@
 #include <linux/platform_device.h>
 #include <linux/mfd/ezx-pcap.h>
 
-/* 
+/*
  * PCAP supports different types of leds:
  *  - two backlights with 32 possible brightness values
  *  - two simple leds
- * 
+ *
  * On some phones on which PCAP2 is used there are some leds with the output
  * connected to a switch controlled by a GPIO.
- * 
+ *
  * In Motorola e680, for instance, this allows to control three leds by
  * sharing one PCAP2 simple led between two actual leds.
  */
-
 
 struct pcap_led_data {
 	struct pcap_led *pled;
@@ -112,7 +111,7 @@ static inline void pcap_led_set_bl(struct pcap_led_data *led)
 static void pcap_led_led_work(struct work_struct *work)
 {
 	struct pcap_led_data *led;
-	
+
 	led = container_of(work, struct pcap_led_data, work);
 	pcap_led_set_led(led);
 }
@@ -120,7 +119,7 @@ static void pcap_led_led_work(struct work_struct *work)
 static void pcap_led_bl_work(struct work_struct *work)
 {
 	struct pcap_led_data *led;
-	
+
 	led = container_of(work, struct pcap_led_data, work);
 	pcap_led_set_bl(led);
 }
@@ -137,9 +136,8 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 	}
 
 	leds = kzalloc(sizeof(*leds) * pdata->num_leds, GFP_KERNEL);
-	if (leds == NULL) {
+	if (leds == NULL)
 		return -ENOMEM;
-	}
 
 	for (i = 0; i < pdata->num_leds; i++) {
 		struct pcap_led_data *led = &leds[i];
