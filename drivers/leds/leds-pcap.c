@@ -29,22 +29,32 @@
  * sharing one PCAP2 simple led between two actual leds.
  */
 
+
+struct pcap_led_data {
+	struct pcap_led *pled;
+	struct led_classdev ldev;
+	struct work_struct work;
+	struct pcap_chip *pcap;
+};
+
 static void pcap_led_set_brightness(struct led_classdev *led_cdev,
 					enum led_brightness val)
 {
-	struct pcap_led *led = container_of(led_cdev, struct pcap_led, ldev);
+	struct pcap_led_data *led;
 
-	led->brightness = val;
+	led = container_of(led_cdev, struct pcap_led_data, ldev);
+	led->pled->brightness = val;
 
 	schedule_work(&led->work);
 }
 
-static inline void pcap_led_set_led(struct pcap_led *led)
+static inline void pcap_led_set_led(struct pcap_led_data *led)
 {
 	u32 tmp;
 	u8 t, c, e; /* timing, current, enable shifts */
+	struct pcap_led *pled = led->pled;
 
-	switch (led->type) {
+	switch (pled->type) {
 	case PCAP_LED0:
 		t = PCAP_LED0_T_SHIFT;
 		c = PCAP_LED0_C_SHIFT;
@@ -56,7 +66,7 @@ static inline void pcap_led_set_led(struct pcap_led *led)
 		e = PCAP_LED1_EN;
 		break;
 	default:
-		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		dev_warn(led->ldev.dev, "unknown led type %d\n", pled->type);
 		return;
 	}
 
@@ -65,21 +75,23 @@ static inline void pcap_led_set_led(struct pcap_led *led)
 	/* turn off */
 	tmp &= ~(e | (PCAP_LED_T_MASK << t) | (PCAP_LED_C_MASK << c));
 
-	if (led->brightness) /* turn on */
-		tmp |= (e | (led->curr << c) | (led->timing << t));
+	if (pled->brightness) /* turn on */
+		tmp |= (e | (pled->curr << c) | (pled->timing << t));
 
-	if (gpio_is_valid(led->gpio))
-		gpio_set_value(led->gpio, !!led->brightness ^ led->gpio_invert);
+	if (gpio_is_valid(pled->gpio))
+		gpio_set_value(pled->gpio,
+				!!pled->brightness ^ pled->gpio_invert);
 
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
 
-static inline void pcap_led_set_bl(struct pcap_led *led)
+static inline void pcap_led_set_bl(struct pcap_led_data *led)
 {
 	u32 tmp;
 	u32 shift;
+	struct pcap_led *pled = led->pled;
 
-	switch (led->type) {
+	switch (pled->type) {
 	case PCAP_BL0:
 		shift = PCAP_BL0_SHIFT;
 		break;
@@ -87,25 +99,29 @@ static inline void pcap_led_set_bl(struct pcap_led *led)
 		shift = PCAP_BL1_SHIFT;
 		break;
 	default:
-		dev_warn(led->ldev.dev, "unknown led type %d\n", led->type);
+		dev_warn(led->ldev.dev, "unknown led type %d\n", pled->type);
 		return;
 	}
 
 	ezx_pcap_read(led->pcap, PCAP_REG_PERIPH, &tmp);
 	tmp &= ~(PCAP_BL_MASK << shift);
-	tmp |= led->brightness << shift;
+	tmp |= pled->brightness << shift;
 	ezx_pcap_write(led->pcap, PCAP_REG_PERIPH, tmp);
 }
 
 static void pcap_led_led_work(struct work_struct *work)
 {
-	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	struct pcap_led_data *led;
+	
+	led = container_of(work, struct pcap_led_data, work);
 	pcap_led_set_led(led);
 }
 
 static void pcap_led_bl_work(struct work_struct *work)
 {
-	struct pcap_led *led = container_of(work, struct pcap_led, work);
+	struct pcap_led_data *led;
+	
+	led = container_of(work, struct pcap_led_data, work);
 	pcap_led_set_bl(led);
 }
 
@@ -113,16 +129,25 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 {
 	int i, err;
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
+	struct pcap_led_data *leds;
 
 	if (!pdata) {
 		dev_err(&pdev->dev, "%s: no platform data\n", __func__);
 		return -EINVAL;
 	}
 
-	for (i = 0; i < pdata->num_leds; i++) {
-		struct pcap_led *led = &pdata->leds[i];
+	leds = kzalloc(sizeof(*leds) * pdata->num_leds, GFP_KERNEL);
+	if (leds == NULL) {
+		return -ENOMEM;
+	}
 
-		switch (led->type) {
+	for (i = 0; i < pdata->num_leds; i++) {
+		struct pcap_led_data *led = &leds[i];
+		struct pcap_led *pled = &pdata->leds[i];
+
+		led->pled = pled;
+
+		switch (pled->type) {
 		case PCAP_LED0:
 		case PCAP_LED1:
 			led->ldev.max_brightness = 1;
@@ -135,11 +160,11 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 			break;
 		default:
 			dev_warn(led->ldev.dev, "unknown led type %d\n",
-					led->type);
+					pled->type);
 			continue;
 		}
 
-		led->ldev.name = led->name;
+		led->ldev.name = pled->name;
 		led->ldev.brightness_set = pcap_led_set_brightness;
 		led->ldev.flags |= LED_CORE_SUSPENDRESUME;
 		led->pcap = dev_get_drvdata(pdev->dev.parent);
@@ -147,12 +172,12 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 		err = led_classdev_register(&pdev->dev, &led->ldev);
 		if (err) {
 			dev_err(&pdev->dev, "couldn't register LED %s\n",
-					led->name);
+					pled->name);
 			goto fail;
 		}
 
-		if (gpio_is_valid(led->gpio)) {
-			int gpio = led->gpio;
+		if (gpio_is_valid(pled->gpio)) {
+			int gpio = pled->gpio;
 			err = gpio_request(gpio, "PCAP LED");
 			if (err) {
 				dev_err(&pdev->dev,
@@ -161,10 +186,12 @@ static int __devinit pcap_led_probe(struct platform_device *pdev)
 				cancel_work_sync(&led->work);
 				goto fail;
 			}
-			gpio_direction_output(gpio, led->gpio_invert);
+			gpio_direction_output(gpio, pled->gpio_invert);
 		}
 	}
 
+
+	platform_set_drvdata(pdev, leds);
 	return 0;
 
 fail:
@@ -172,9 +199,11 @@ fail:
 		for (i = i - 1; i >= 0; i--) {
 			if (gpio_is_valid(pdata->leds[i].gpio))
 				gpio_free(pdata->leds[i].gpio);
-			led_classdev_unregister(&pdata->leds[i].ldev);
-			cancel_work_sync(&pdata->leds[i].work);
+			led_classdev_unregister(&leds[i].ldev);
+			cancel_work_sync(&leds[i].work);
 		}
+
+	kfree(leds);
 
 	return err;
 }
@@ -183,13 +212,16 @@ static int __devexit pcap_led_remove(struct platform_device *pdev)
 {
 	int i;
 	struct pcap_leds_platform_data *pdata = pdev->dev.platform_data;
+	struct pcap_led_data *leds = platform_get_drvdata(pdev);
 
 	for (i = 0; i < pdata->num_leds; i++) {
 		if (gpio_is_valid(pdata->leds[i].gpio))
 			gpio_free(pdata->leds[i].gpio);
-		led_classdev_unregister(&pdata->leds[i].ldev);
-		cancel_work_sync(&pdata->leds[i].work);
+		led_classdev_unregister(&leds[i].ldev);
+		cancel_work_sync(&leds[i].work);
 	}
+
+	kfree(leds);
 
 	return 0;
 }
