@@ -19,6 +19,7 @@
 #include <linux/input.h>
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
+#include <linux/leds-lp3944.h>
 
 #include <media/soc_camera.h>
 
@@ -775,6 +776,10 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
@@ -841,6 +846,10 @@ static void __init e680_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
@@ -902,6 +911,10 @@ static void __init a1200_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
+
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
@@ -1025,6 +1038,57 @@ static struct platform_device a910_camera = {
 	},
 };
 
+/* leds-lp3944 */
+static struct lp3944_platform_data a910_lp3944_leds = {
+	.leds_size = LP3944_LEDS_MAX,
+	.leds = {
+		[0] = {
+			.name = "a910:red:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[1] = {
+			.name = "a910:green:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[2] {
+			.name = "a910:blue:",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		/* Leds 3 and 4 are used as display power switches */
+		[3] = {
+			.name = "a910::cli_display",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[4] = {
+			.name = "a910::main_display",
+			.status = LP3944_LED_STATUS_ON,
+			.type = LP3944_LED_TYPE_LED_INVERTED
+		},
+		[5] = { .type = LP3944_LED_TYPE_NONE },
+		[6] = {
+			.name = "a910::torch",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED,
+		},
+		[7] = {
+			.name = "a910::flash",
+			.status = LP3944_LED_STATUS_OFF,
+			.type = LP3944_LED_TYPE_LED_INVERTED,
+		},
+	},
+};
+
+static struct i2c_board_info __initdata a910_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("lp3944", 0x60),
+		.platform_data = &a910_lp3944_leds,
+	},
+};
+
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 };
@@ -1035,7 +1099,12 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
+	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
 	set_pxa_fb_info(&ezx_fb_info_2);
 
@@ -1101,6 +1170,10 @@ static void __init e6_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
@@ -1136,6 +1209,10 @@ static void __init e2_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
+
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
