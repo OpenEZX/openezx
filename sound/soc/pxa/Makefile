@@ -24,6 +24,7 @@ snd-soc-magician-objs := magician.o
 snd-soc-mioa701-objs := mioa701_wm9713.o
 snd-soc-imote2-objs := imote2.o
 snd-soc-ezx-objs := ezx.o
+snd-soc-raumfeld-objs := raumfeld.o
 
 obj-$(CONFIG_SND_PXA2XX_SOC_CORGI) += snd-soc-corgi.o
 obj-$(CONFIG_SND_PXA2XX_SOC_POODLE) += snd-soc-poodle.o
@@ -39,3 +40,4 @@ obj-$(CONFIG_SND_PXA2XX_SOC_MIOA701) += snd-soc-mioa701.o
 obj-$(CONFIG_SND_PXA2XX_SOC_EZX) += snd-soc-ezx.o
 obj-$(CONFIG_SND_SOC_ZYLONITE) += snd-soc-zylonite.o
 obj-$(CONFIG_SND_PXA2XX_SOC_IMOTE2) += snd-soc-imote2.o
+obj-$(CONFIG_SND_SOC_RAUMFELD) += snd-soc-raumfeld.o
