@@ -705,11 +705,6 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 	snd_soc_add_controls(codec, pcap2_codec_snd_controls,
 			ARRAY_SIZE(pcap2_codec_snd_controls));
 	pcap2_codec_add_widgets(codec);
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		snd_soc_free_pcms(socdev);
-		snd_soc_dapm_free(socdev);
-	}
 
 	ret = pcap2_jack_init(socdev);
 
