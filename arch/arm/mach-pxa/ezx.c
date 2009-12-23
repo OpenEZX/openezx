@@ -1003,6 +1003,10 @@ static void __init a780_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a780_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 
 	spi_pd = platform_device_alloc("pxa2xx-spi", 1);
@@ -1153,6 +1157,10 @@ static void __init e680_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen1_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e680_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e680_i2c_board_info));
 
@@ -1273,6 +1281,10 @@ static void __init a1200_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a1200_pin_config));
+
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a1200_i2c_board_info));
@@ -1576,6 +1588,10 @@ static void __init a910_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(a910_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(a910_i2c_board_info));
 
@@ -1699,6 +1715,10 @@ static void __init e6_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e6_pin_config));
 
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
+
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e6_i2c_board_info));
 
@@ -1792,6 +1812,10 @@ static void __init e2_init(void)
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(gen2_pin_config));
 	pxa2xx_mfp_config(ARRAY_AND_SIZE(e2_pin_config));
+
+	pxa_set_ffuart_info(NULL);
+	pxa_set_btuart_info(NULL);
+	pxa_set_stuart_info(NULL);
 
 	pxa_set_i2c_info(NULL);
 	i2c_register_board_info(0, ARRAY_AND_SIZE(e2_i2c_board_info));
