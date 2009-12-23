@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.32
-# Thu Dec  3 10:27:34 2009
+# Tue Dec 22 17:24:33 2009
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -232,7 +232,6 @@ CONFIG_MACH_EZX_A1200=y
 CONFIG_MACH_EZX_A910=y
 CONFIG_MACH_EZX_E6=y
 CONFIG_MACH_EZX_E2=y
-CONFIG_MACH_MOTOQ=y
 # CONFIG_MACH_XCEP is not set
 CONFIG_PXA27x=y
 CONFIG_PXA_SSP=y
