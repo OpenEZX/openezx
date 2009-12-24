@@ -153,7 +153,6 @@ static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
 	snd_soc_dapm_new_controls(codec, pcap2_codec_dapm_widgets,
 				ARRAY_SIZE(pcap2_codec_dapm_widgets));
 	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
-	snd_soc_dapm_new_widgets(codec);
 	return 0;
 }
 
@@ -705,11 +704,6 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 	snd_soc_add_controls(codec, pcap2_codec_snd_controls,
 			ARRAY_SIZE(pcap2_codec_snd_controls));
 	pcap2_codec_add_widgets(codec);
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		snd_soc_free_pcms(socdev);
-		snd_soc_dapm_free(socdev);
-	}
 
 	ret = pcap2_jack_init(socdev);
 
