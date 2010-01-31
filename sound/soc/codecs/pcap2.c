@@ -474,8 +474,29 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	st_dac = pcap2_codec_read(codec, PCAP2_ST_DAC);
 	mono_dac = pcap2_codec_read(codec, PCAP2_CODEC);
 
-	if (st_dac & PCAP2_ST_DAC_EN || mono_dac & PCAP2_CODEC_EN)
-		return -EBUSY;
+	switch (codec_dai->id) {
+	case PCAP2_ID_ST_DAC:
+		if (mono_dac & PCAP2_CODEC_EN)
+			return -EBUSY;
+
+		st_dac |= PCAP2_ST_DAC_EN;
+		if (!(st_dac & PCAP2_ST_DAC_SLAVE))
+			st_dac |= PCAP2_ST_DAC_CLK_EN;
+		pcap2_codec_write(codec, PCAP2_ST_DAC, st_dac);
+		break;
+	case PCAP2_ID_MONO_DAC:
+	case PCAP2_ID_MONO_GSM_DAC:
+		if (st_dac & PCAP2_ST_DAC_EN)
+			return -EBUSY;
+
+		mono_dac |= PCAP2_CODEC_EN;
+		if (!(mono_dac & PCAP2_CODEC_SLAVE))
+			mono_dac |= PCAP2_CODEC_CLK_EN;
+		pcap2_codec_write(codec, PCAP2_CODEC, mono_dac);
+		break;
+	default:
+		return -EINVAL;
+	}
 
 	/*
 	 * powerup amp
@@ -485,24 +506,6 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	/*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
 	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 
-
-	switch (codec_dai->id) {
-	case PCAP2_ID_ST_DAC:
-		st_dac |= PCAP2_ST_DAC_EN;
-		if (!(st_dac & PCAP2_ST_DAC_SLAVE))
-			st_dac |= PCAP2_ST_DAC_CLK_EN;
-		pcap2_codec_write(codec, PCAP2_ST_DAC, st_dac);
-		break;
-	case PCAP2_ID_MONO_DAC:
-	case PCAP2_ID_MONO_GSM_DAC:
-		mono_dac |= PCAP2_CODEC_EN;
-		if (!(mono_dac & PCAP2_CODEC_SLAVE))
-			mono_dac |= PCAP2_CODEC_CLK_EN;
-		pcap2_codec_write(codec, PCAP2_CODEC, mono_dac);
-		break;
-	default:
-		return -EINVAL;
-	}
 	snd_soc_dapm_sync(codec);
 #ifdef PCAP2_DEBUG
 	dump_registers();
