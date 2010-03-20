@@ -25,8 +25,8 @@
 #include <linux/module.h>
 #include <linux/list.h>
 #include <linux/errno.h>
-#include <asm/uaccess.h>
-#include <asm/io.h>
+#include <linux/uaccess.h>
+#include <linux/io.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
@@ -80,10 +80,10 @@ static struct timer_list		ipcusb_timer;
 static struct tty_struct		ipcusb_tty;
 static struct tty_driver		*ipcusb_tty_driver;
 struct tty_driver *usb_for_mux_driver = NULL;
-struct tty_struct *usb_for_mux_tty = NULL;
-void (*usb_mux_sender)(void) = NULL;
 EXPORT_SYMBOL(usb_for_mux_driver);
+struct tty_struct *usb_for_mux_tty = NULL;
 EXPORT_SYMBOL(usb_for_mux_tty);
+void (*usb_mux_sender)(void) = NULL;
 EXPORT_SYMBOL(usb_mux_sender);
 
 static struct usb_ipc_tty *ipc;
@@ -182,10 +182,12 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	if (!tty)
 		return;
 
-	usb_ipc_debughex("usb_ipc_read_bulk: < ", (unsigned char *)urb->transfer_buffer, count);
+	usb_ipc_debughex("usb_ipc_read_bulk: < ",
+			(unsigned char *)urb->transfer_buffer, count);
 
 	if (urb->status)
-		pr_info("read bulk status received: %d, len %d\n", urb->status, count);
+		pr_info("read bulk status received: %d, len %d\n", urb->status,
+				count);
 
 	if (!count)
 		return;
@@ -300,7 +302,8 @@ static int usb_ipc_write(struct tty_struct *tty,
 	return ret;
 }
 
-static int usb_ipc_write_room(struct tty_struct *tty) {
+static int usb_ipc_write_room(struct tty_struct *tty)
+{
 	return IPC_USB_XMIT_SIZE;
 }
 
@@ -314,13 +317,13 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 {
 	int index;
 
-        /* dont try to open nonconnected device */
-        if (!bvd_ipc->ipc_dev)
-          return -ENODEV;
+	/* dont try to open nonconnected device */
+	if (!bvd_ipc->ipc_dev)
+		return -ENODEV;
 
-        /* dont try to open nonconnected device */
-        if (!bvd_ipc->ipc_dev)
-          return -ENODEV;
+	/* dont try to open nonconnected device */
+	if (!bvd_ipc->ipc_dev)
+		return -ENODEV;
 
 	/* initialize the pointer in case something fails */
 	tty->driver_data = NULL;
@@ -345,8 +348,8 @@ static int usb_ipc_open(struct tty_struct *tty, struct file *file)
 	return 0;
 }
 
-static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
-
+static void usb_ipc_close(struct tty_struct *tty, struct file *file)
+{
 	if (!ipc)
 		return;
 
@@ -355,9 +358,8 @@ static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
 
 	ipc->open_count--;
 
-	if (ipc->open_count <= 0) {
+	if (ipc->open_count <= 0)
 		pr_info("%s: closed last time.  tty: %p\n", __func__, tty);
-	}
 }
 
 void usb_send_readurb(void)
@@ -367,6 +369,7 @@ void usb_send_readurb(void)
 
 	tasklet_schedule(&bvd_ipc->bh_bp);
 }
+EXPORT_SYMBOL(usb_send_readurb);
 
 static int usb_ipc_probe(struct usb_interface *intf,
 			 const struct usb_device_id *id)
@@ -404,7 +407,8 @@ static int usb_ipc_probe(struct usb_interface *intf,
 			size_out = endpoint->wMaxPacketSize;
 			break;
 		default:
-			pr_warning("%s: unknown endpoint in ipc driver\n", __func__);
+			pr_warning("%s: unknown endpoint in ipc driver\n",
+					__func__);
 		}
 		ep_cnt++;
 	}
@@ -415,14 +419,18 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	}
 
 	/* Ok, now initialize all the relevant values */
-	if (!(bvd_ipc->obuf = (char *)kmalloc(size_out, GFP_KERNEL))) {
-		pr_err("%s: Not enough memory for the output buffer.", __func__);
+	bvd_ipc->obuf = kmalloc(size_out, GFP_KERNEL);
+	if (bvd_ipc->obuf == NULL) {
+		pr_err("%s: Not enough memory for the output buffer.",
+				__func__);
 		kfree(bvd_ipc);
 		return -1;
 	}
 
-	if (!(bvd_ipc->ibuf = (char *)kmalloc(size_in, GFP_KERNEL))) {
-		pr_err("%s: Not enough memory for the input buffer.", __func__);
+	bvd_ipc->ibuf = kmalloc(size_in, GFP_KERNEL);
+	if (bvd_ipc->ibuf == NULL) {
+		pr_err("%s: Not enough memory for the input buffer.",
+				__func__);
 		kfree(bvd_ipc->obuf);
 		kfree(bvd_ipc);
 		return -1;
@@ -431,7 +439,7 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	bvd_ipc->write_finished_flag = 1;
 	bvd_ipc->ipc_dev = usbdev;
 	INIT_LIST_HEAD(&bvd_ipc->in_buf_list);
-	bvd_ipc->in_buf_lock = SPIN_LOCK_UNLOCKED;
+	spin_lock_init(&bvd_ipc->in_buf_lock);
 
 	bvd_ipc->bh.func = ipcusb_xmit_data;
 	bvd_ipc->bh_bp.func = usbipc_bh_bp_func;
@@ -509,13 +517,15 @@ static int __init usb_ipc_init(void)
 {
 	int result;
 
-	/*init the related mux interface*/
-	if (!(bvd_ipc = kzalloc(sizeof(struct ipc_usb_data), GFP_KERNEL))) {
+	/* init the related mux interface*/
+	bvd_ipc = kzalloc(sizeof(struct ipc_usb_data), GFP_KERNEL);
+	if (bvd_ipc == NULL) {
 		err("usb_ipc_init: Not enough memory for ipc data\n");
 		return -ENOMEM;
 	}
 
-	if (!(bvd_ipc->xmit.buf = kmalloc(IPC_USB_XMIT_SIZE, GFP_KERNEL))) {
+	bvd_ipc->xmit.buf = kmalloc(IPC_USB_XMIT_SIZE, GFP_KERNEL);
+	if (bvd_ipc->xmit.buf == NULL) {
 		err("usb_ipc_init: Not enough memory for the input buffer.");
 		kfree(bvd_ipc);
 		return -ENOMEM;
@@ -545,7 +555,8 @@ static int __init usb_ipc_init(void)
 
 	result = tty_register_driver(ipcusb_tty_driver);
 	if (result) {
-		pr_err("%s: Cant register IPC tty driver %d\n", __func__, result);
+		pr_err("%s: Cant register IPC tty driver %d\n", __func__,
+				result);
 		goto fail;
 	}
 
@@ -555,7 +566,8 @@ static int __init usb_ipc_init(void)
 	/* register driver at the USB subsystem */
 	result = usb_register(&usb_ipc_driver);
 	if (result < 0) {
-		pr_err("%s: Cant register IPC usb driver: %d\n", __func__, result);
+		pr_err("%s: Cant register IPC usb driver: %d\n", __func__,
+				result);
 		goto fail;
 	}
 
@@ -589,7 +601,6 @@ static void __exit usb_ipc_exit(void)
 
 module_init(usb_ipc_init);
 module_exit(usb_ipc_exit);
-EXPORT_SYMBOL(usb_send_readurb);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
