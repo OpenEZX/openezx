@@ -185,7 +185,7 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	usb_ipc_debughex("usb_ipc_read_bulk: < ", (unsigned char *)urb->transfer_buffer, count);
 
 	if (urb->status)
-		printk("read bulk status received: %d, len %d\n", urb->status, count);
+		pr_info("read bulk status received: %d, len %d\n", urb->status, count);
 
 	if (!count)
 		return;
@@ -204,7 +204,8 @@ static void usb_ipc_write_bulk(struct urb *urb)
 	bvd_ipc->write_finished_flag = 1;
 
 	if (urb->status)
-		printk("nonzero write bulk status received: %d\n", urb->status);
+		pr_info("%s: nonzero write bulk status received: %d\n",
+				__func__, urb->status);
 
 	if (usb_mux_sender)
 		usb_mux_sender();
@@ -355,10 +356,8 @@ static void usb_ipc_close(struct tty_struct *tty, struct file *file) {
 	ipc->open_count--;
 
 	if (ipc->open_count <= 0) {
-		printk("closed last time\n");
+		pr_info("%s: closed last time.  tty: %p\n", __func__, tty);
 	}
-
-
 }
 
 void usb_send_readurb(void)
@@ -383,8 +382,8 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	/* Start checking for two bulk endpoints or ... FIXME: This is a future
 	 * enhancement...*/
 	if (interface->bNumEndpoints != 2) {
-		printk("usb_ipc_probe: Only two endpoints supported got %d\n.",
-				interface->bNumEndpoints
+		pr_err("%s: Only two endpoints supported got %d\n.",
+				__func__, interface->bNumEndpoints
 		);
 		return -1;
 	}
@@ -405,25 +404,25 @@ static int usb_ipc_probe(struct usb_interface *intf,
 			size_out = endpoint->wMaxPacketSize;
 			break;
 		default:
-			printk("unknown endpoint in ipc driver\n");
+			pr_warning("%s: unknown endpoint in ipc driver\n", __func__);
 		}
 		ep_cnt++;
 	}
 
 	if (!(ep_in && ep_out)) {
-		printk("usb_ipc_probe: Two bulk endpoints required.");
+		pr_err("%s: Two bulk endpoints required.", __func__);
 		return -1;
 	}
 
 	/* Ok, now initialize all the relevant values */
 	if (!(bvd_ipc->obuf = (char *)kmalloc(size_out, GFP_KERNEL))) {
-		err("usb_ipc_probe: Not enough memory for the output buffer.");
+		pr_err("%s: Not enough memory for the output buffer.", __func__);
 		kfree(bvd_ipc);
 		return -1;
 	}
 
 	if (!(bvd_ipc->ibuf = (char *)kmalloc(size_in, GFP_KERNEL))) {
-		err("usb_ipc_probe: Not enough memory for the input buffer.");
+		pr_err("%s: Not enough memory for the input buffer.", __func__);
 		kfree(bvd_ipc->obuf);
 		kfree(bvd_ipc);
 		return -1;
@@ -457,10 +456,10 @@ static int usb_ipc_probe(struct usb_interface *intf,
 	bvd_ipc->ipc_flag = IPC_USB_PROBE_READY;
 
 	if (usb_submit_urb(&bvd_ipc->readurb_mux, GFP_ATOMIC))
-		printk("usb_ipc_prob: usb_submit_urb(read mux bulk) failed!\n");
+		pr_warning("%s: usb_submit_urb(read mux bulk) failed!\n", __func__);
 
 	if (bvd_ipc->xmit.head != bvd_ipc->xmit.tail) {
-		printk("usb_ipc_probe: mark ipcusb_softint!\n");
+		pr_info("%s: mark ipcusb_softint!\n", __func__);
 		tasklet_schedule(&bvd_ipc->bh);
 	}
 
@@ -481,7 +480,7 @@ static void usb_ipc_disconnect(struct usb_interface *intf)
 
 	usb_set_intfdata(intf, NULL);
 
-	printk("usb_ipc_disconnect completed!\n");
+	pr_info("%s: usb_ipc_disconnect completed!\n", __func__);
 }
 
 static struct usb_device_id usb_ipc_id_table[] = {
@@ -546,7 +545,7 @@ static int __init usb_ipc_init(void)
 
 	result = tty_register_driver(ipcusb_tty_driver);
 	if (result) {
-		printk("Cant register IPC tty driver %d\n",result);
+		pr_err("%s: Cant register IPC tty driver %d\n", __func__, result);
 		goto fail;
 	}
 
@@ -556,7 +555,7 @@ static int __init usb_ipc_init(void)
 	/* register driver at the USB subsystem */
 	result = usb_register(&usb_ipc_driver);
 	if (result < 0) {
-		printk("Cant register IPC usb driver: %d\n", result);
+		pr_err("%s: Cant register IPC usb driver: %d\n", __func__, result);
 		goto fail;
 	}
 
@@ -566,13 +565,13 @@ static int __init usb_ipc_init(void)
 	init_timer(&ipcusb_timer);
 	ipcusb_timer.function = ipcusb_timeout;
 
-	printk("USB Host(Bulverde) IPC driver registered.\n");
-	printk(DRIVER_VERSION ":" DRIVER_DESC "\n");
+	pr_info("USB Host(Bulverde) IPC driver registered.\n");
+	pr_info(DRIVER_VERSION ":" DRIVER_DESC "\n");
 
 	return 0;
 
 fail:
-	printk("Neptune IPC initialization failed with ret %d\n", result);
+	pr_err("Neptune IPC initialization failed with ret %d\n", result);
 	kfree(bvd_ipc);
 	kfree(bvd_ipc->xmit.buf);
 
@@ -585,7 +584,7 @@ static void __exit usb_ipc_exit(void)
 	kfree(bvd_ipc);
 	usb_deregister(&usb_ipc_driver);
 
-	printk("USB Host(Bulverde) IPC driver deregistered.\n");
+	pr_info("USB Host(Bulverde) IPC driver deregistered.\n");
 }
 
 module_init(usb_ipc_init);
