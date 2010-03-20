@@ -97,8 +97,8 @@ obj-$(CONFIG_NSC_GPIO)		+= nsc_gpio.o
 obj-$(CONFIG_CS5535_GPIO)	+= cs5535_gpio.o
 obj-$(CONFIG_GPIO_TB0219)	+= tb0219.o
 obj-$(CONFIG_TELCLOCK)		+= tlclk.o
-obj-$(CONFIG_TS0710_MUX_USB) += ts0710_mux_usb.o
-obj-$(CONFIG_TS0710_MUX_USB) += ezx-bp.o
+obj-$(CONFIG_MOTO_USB_IPC) += moto-usb-ipc.o
+obj-$(CONFIG_MOTO_USB_IPC) += ezx-bp.o
 obj-$(CONFIG_TS0710_MUX) += ts0710_mux.o
 
 
