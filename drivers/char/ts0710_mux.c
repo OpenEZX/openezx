@@ -69,7 +69,7 @@
 #include <asm/bitops.h>
 #include <asm/mach-types.h>
 
-#include "ts0710_mux_usb.h"
+#include "moto-usb-ipc.h"
 
 #include "ts0710.h"
 #include "ts0710_mux.h"
