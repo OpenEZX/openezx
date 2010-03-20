@@ -27,8 +27,6 @@
 #include <linux/errno.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
-#include <mach/pxa27x.h>
-#include <mach/ezx-bp.h>
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
@@ -40,6 +38,11 @@
 #include <linux/tty_flip.h>
 #include <linux/circ_buf.h>
 #include <linux/usb.h>
+
+#if defined(CONFIG_PXA_EZX)
+#include <mach/pxa27x.h>
+#include <mach/ezx-bp.h>
+#endif
 
 #include "moto-usb-ipc.h"
 
@@ -203,7 +206,9 @@ static void ipcusb_xmit_data(unsigned long unused)
 		return;
 
 	bvd_ipc->writeurb_mux.transfer_buffer_length = buf_num;
+#if defined(CONFIG_PXA_EZX)
 	ezx_wake_bp();
+#endif
 
 	bvd_ipc->write_finished_flag = 0;
 
