@@ -145,9 +145,13 @@ static void usb_ipc_read_bulk(struct urb *urb)
 {
 	int count = urb->actual_length;
 	struct tty_struct *tty;
+
 	if (!ipc)
 		return;
 	tty = ipc->tty;
+
+	if (!tty)
+		return;
 
 	if (urb->status)
 		printk("read bulk status received: %d, len %d\n", urb->status, count);
@@ -491,8 +495,11 @@ static int __init usb_ipc_init(void)
 	spin_lock_init(&bvd_ipc->in_buf_lock);
 
 	ipcusb_tty_driver = alloc_tty_driver(1);
+	if (!ipcusb_tty_driver)
+		return -ENOMEM;
+
 	ipcusb_tty_driver->owner = THIS_MODULE;
-	ipcusb_tty_driver->driver_name = "Neptune IPC";
+	ipcusb_tty_driver->driver_name = "moto-usb-ipc";
 	ipcusb_tty_driver->name = "ttyIPC";
 	ipcusb_tty_driver->major = 251;
 	ipcusb_tty_driver->minor_start = 0;
