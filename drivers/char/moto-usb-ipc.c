@@ -41,7 +41,7 @@
 #include <linux/circ_buf.h>
 #include <linux/usb.h>
 
-#include "ts0710_mux_usb.h"
+#include "moto-usb-ipc.h"
 
 /*global values defined*/
 static struct timer_list		ipcusb_timer;
