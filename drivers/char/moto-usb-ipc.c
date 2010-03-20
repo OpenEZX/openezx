@@ -46,6 +46,35 @@
 
 #include "moto-usb-ipc.h"
 
+#ifdef DEBUG
+
+#define USB_IPC_DBG_BUF_SIZE	2048
+static unsigned char dbg_buf[USB_IPC_DBG_BUF_SIZE];
+
+static void usb_ipc_debughex(const char *header,
+			     const u8 *buf, int len)
+{
+	int i;
+	int c;
+
+	if (len <= 0)
+		return;
+
+	c = 0;
+	for (i = 0; (i < len) && (c < (USB_IPC_DBG_BUF_SIZE - 3)); i++) {
+		sprintf(&dbg_buf[c], "%02x ", buf[i]);
+		c += 3;
+	}
+	dbg_buf[c] = 0;
+
+	printk(KERN_DEBUG "%s%s\n", header, dbg_buf);
+}
+#else
+static void usb_ipc_debughex(const char *header,
+			     const u8 *buf, int len) {}
+#endif
+
+
 /*global values defined*/
 static struct timer_list		ipcusb_timer;
 static struct tty_struct		ipcusb_tty;
@@ -153,6 +182,8 @@ static void usb_ipc_read_bulk(struct urb *urb)
 	if (!tty)
 		return;
 
+	usb_ipc_debughex("usb_ipc_read_bulk: < ", (unsigned char *)urb->transfer_buffer, count);
+
 	if (urb->status)
 		printk("read bulk status received: %d, len %d\n", urb->status, count);
 
@@ -234,6 +265,8 @@ static int usb_ipc_write(struct tty_struct *tty,
 			 const unsigned char *buf, int count)
 {
 	int c, ret = 0;
+
+	usb_ipc_debughex("usb_ipc_write: > ", buf, count);
 
 	if (count <= 0)
 		return 0;
