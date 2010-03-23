@@ -94,10 +94,12 @@
 #define CMDTAG 0x55
 #define DATATAG 0xAA
 
-static const u8 tty2dlci[NR_MUXS] =
-    { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-static const u8 iscmdtty[NR_MUXS] =
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+#define ACK 0x4F
+
+static const u8 tty2dlci[NR_MUXS+1] =
+    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+static const u8 iscmdtty[NR_MUXS+1] =
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
 struct dlci_tty {
 	const u8 cmdtty;
@@ -105,7 +107,9 @@ struct dlci_tty {
 };
 
 static const struct dlci_tty dlci2tty[] = {
+#if 0
 	{0, 0},	/* DLCI 0 */
+#endif
 	{0, 0},				/* DLCI 1 */
 	{1, 1},				/* DLCI 2 */
 	{2, 2},				/* DLCI 3 */
@@ -126,6 +130,7 @@ static const struct dlci_tty dlci2tty[] = {
 
 enum recv_state {
 	RECV_STATE_IDLE,
+	RECV_STATE_BP_SLIDE_SEQ,
 	RECV_STATE_ADDR,
 	RECV_STATE_CONTROL,
 	RECV_STATE_LEN,
@@ -247,7 +252,7 @@ static void ts27010_debugstr(const char *buf, int len) { }
 
 static int ts0710_valid_dlci(u8 dlci)
 {
-	if ((dlci < TS0710_MAX_CHN) && (dlci > 0))
+	if ((dlci < TS0710_MAX_CHN)) /* && (dlci >= 0)) */
 		return 1;
 	else
 		return 0;
@@ -349,7 +354,7 @@ static int ts0710_pkt_send(struct ts0710_con *ts0710, u8 *data)
 	u8 *d;
 	int len;
 	int header_len;
-	int res;
+	int res = -1;
 
 	if (pkt->h.length.ea == 1) {
 		len = pkt->h.length.len;
@@ -370,7 +375,9 @@ static int ts0710_pkt_send(struct ts0710_con *ts0710, u8 *data)
 	ts27010_debughex(DBG_VERBOSE, "ts27010: > ",
 			 data, TS0710_FRAME_SIZE(len));
 
-	res = ts27010_ldisc_send(ts27010mux_tty, data, TS0710_FRAME_SIZE(len));
+
+	if (ts27010_mux_active())
+		res = ts27010_ldisc_send(ts27010mux_tty, data, TS0710_FRAME_SIZE(len));
 
 	if (res < 0) {
 		pr_err("ts27010: pkt write error %d\n", res);
@@ -432,7 +439,7 @@ static void ts0710_upon_disconnect(void)
 static int ts27010_send_cmd(struct ts0710_con *ts0710, u8 dlci, u8 cmd)
 {
 	u8 frame[TS0710_FRAME_SIZE(0)];
-	ts0710_pkt_set_header(frame, 0, 1, MCC_RSP, dlci, SET_PF(cmd));
+	ts0710_pkt_set_header(frame, 0, 1, MCC_CMD, dlci, SET_PF(cmd));
 	return ts0710_pkt_send(ts0710, frame);
 }
 
@@ -472,6 +479,18 @@ static int ts27010_send_uih(struct ts0710_con *ts0710, u8 dlci,
 	memcpy(ts0710_pkt_data(frame)+1, data, len);
 	return ts0710_pkt_send(ts0710, frame);
 }
+
+static int ts27010_send_ack(struct ts0710_con *ts0710, u8 seq)
+{
+	u8 frame[TS0710_FRAME_SIZE(1)];
+
+	ts_debug(DBG_CMD,
+		 "ts27010: sending ACK packet to DLCI %d\n", 0);
+	ts0710_pkt_set_header(frame, 1, 1, MCC_CMD, CTRL_CHAN, ACK);
+	*(u8 *)ts0710_pkt_data(frame) = seq;
+	return ts0710_pkt_send(ts0710, frame);
+}
+
 
 static void ts27010_mcc_set_header(u8 *frame, int len, int cr, int cmd)
 {
@@ -1320,6 +1339,7 @@ void ts27010_mux_recv(struct ts27010_ringbuf *rbuf)
 	int state = RECV_STATE_IDLE;
 	int consume_idx = -1;
 	int data_idx = 0;
+	static u8 seq = 0;
 	u8 addr = 0;
 	u8 control = 0;
 	int len = 0;
@@ -1334,10 +1354,22 @@ void ts27010_mux_recv(struct ts27010_ringbuf *rbuf)
 		case RECV_STATE_IDLE:
 			if (c == TS0710_BASIC_FLAG) {
 				fcs = ts0710_crc_start();
-				state = RECV_STATE_ADDR;
+				state = RECV_STATE_BP_SLIDE_SEQ;
 			} else {
 				consume_idx = i;
 			}
+			break;
+
+		case RECV_STATE_BP_SLIDE_SEQ:
+			if (c == seq) {
+				fcs = ts0710_crc_calc(fcs, c);
+				state = RECV_STATE_ADDR;
+			} else {
+				pr_warning(
+					"ts27010: invalid seq %d, expected: %d. Drop msg.\n", c, seq);
+				consume_idx = i;
+			}
+
 			break;
 
 		case RECV_STATE_ADDR:
@@ -1393,6 +1425,15 @@ void ts27010_mux_recv(struct ts27010_ringbuf *rbuf)
 
 		case RECV_STATE_END:
 			if (c == TS0710_BASIC_FLAG && ts0710_crc_check(fcs)) {
+				seq++;
+				if (seq >= 4)
+					seq = 0;
+
+				ts27010_send_ack(&ts0710_connection, seq);
+
+				ts27010_debugrbufhex(DBG_VERBOSE, "ts27010: < ",
+							rbuf, 0, count);
+
 				ts27010_handle_frame(rbuf, addr, control,
 						      data_idx, len);
 			} else {
