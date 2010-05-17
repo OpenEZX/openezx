@@ -1,3 +1,6 @@
+#ifndef __TS27010_RINGBUF_H
+#define __TS27010_RINGBUF_H
+
 /*
  * simple ring buffer
  *
@@ -87,4 +90,4 @@ static inline int ts27010_ringbuf_write(struct ts27010_ringbuf *rbuf,
 	return count;
 }
 
-
+#endif /* __TS27010_RINGBUF_H */
