@@ -1,3 +1,5 @@
+#ifndef __TS0710_H
+#define __TS0710_H
 /*
  * File: ts0710.h
  *
@@ -271,3 +273,4 @@ struct ts0710_con {
 	struct dlci_struct	dlci[TS0710_MAX_CHN];
 	struct chan_struct	chan[NR_MUXS];
 };
+#endif /* __TS0710_H */
