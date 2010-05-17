@@ -3,6 +3,7 @@
  *
  * supports a concurrent reader and writer without locking
  */
+#include <linux/slab.h>
 
 
 struct ts27010_ringbuf {
