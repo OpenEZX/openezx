@@ -15,6 +15,7 @@
 #include <linux/leds-pcap.h>
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
+#include <linux/slab.h>
 #include <linux/mfd/ezx-pcap.h>
 
 /*
