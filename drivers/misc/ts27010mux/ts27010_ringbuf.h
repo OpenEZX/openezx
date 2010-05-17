@@ -1,8 +1,12 @@
+#ifndef __TS27010_RINGBUF_H
+#define __TS27010_RINGBUF_H
+
 /*
  * simple ring buffer
  *
  * supports a concurrent reader and writer without locking
  */
+#include <linux/slab.h>
 
 
 struct ts27010_ringbuf {
@@ -86,4 +90,4 @@ static inline int ts27010_ringbuf_write(struct ts27010_ringbuf *rbuf,
 	return count;
 }
 
-
+#endif /* __TS27010_RINGBUF_H */
