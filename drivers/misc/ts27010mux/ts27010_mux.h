@@ -1,3 +1,5 @@
+#ifndef __TS27010_MUX_H
+#define __TS27010_MUX_H
 /*
  * ts27010_mux.h
  *
@@ -71,4 +73,4 @@ int ts27010_tty_send(int line, u8 *data, int len);
 int ts27010_tty_send_rbuf(int line, struct ts27010_ringbuf *rbuf,
 			  int data_idx, int len);
 
-
+#endif /* __TS27010_MUX_H */
