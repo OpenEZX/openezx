@@ -969,7 +969,7 @@ void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
 /* PM */
 static inline void ezx_check_bp_need_reset(void)
 {
-#ifdef CONFIG_TS0710_MUX_USB
+#ifdef CONFIG_MOTO_USB_IPC
 	if (ezx_bp_is_on() == 0)
 		ezx_reset_bp();
 #endif
