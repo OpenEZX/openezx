@@ -1,0 +1,6 @@
+From: Daniel Ribeiro <drwyrm@gmail.com>
+Subject: [PATCH] Change pcap-regulator voltage tables.
+
+Fix pcap-regulator.c voltage tables.
+
+Signed-off-by: Daniel Ribeiro <drwyrm@gmail.com>
