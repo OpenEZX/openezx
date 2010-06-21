@@ -166,7 +166,7 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 			set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 		}
 	}
-#ifdef CONFIG_TS0710_MUX_USB
+#ifdef CONFIG_MOTO_USB_IPC
 	else usb_send_readurb();
 #endif
 	return IRQ_HANDLED;
