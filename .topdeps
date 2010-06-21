@@ -4,3 +4,4 @@ pxa/sparsemem
 usb/rndis-with-xp2-fix
 ezx/mach/motoq
 ezx/eoc-regulator
+fix/pcap-regulator_tables
