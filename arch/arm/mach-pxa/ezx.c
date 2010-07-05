@@ -780,7 +780,7 @@ static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
 static struct regulator_init_data pcap_regulator_VVIB_data = {
 	.constraints = {
 		.min_uV = 1300000,
-		.max_uV = 3000000,
+		.max_uV = 2000000,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
 					REGULATOR_CHANGE_VOLTAGE,
 	},
