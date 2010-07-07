@@ -548,6 +548,9 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	u32 sscr0, sscr1, sspsp;
 	int width = snd_pcm_format_physical_width(params_format(params));
 	int slot_width, frame_width = 0;
+	struct pxa2xx_pcm_dma_params *dma_data;
+
+	dma_data = snd_soc_dai_get_dma_data(dai, substream);
 
 	/* check if the user explicitly set a slot_width */
 	sscr0 = ssp_read_reg(ssp, SSCR0);
@@ -561,7 +564,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	/* generate correct DMA params */
 	kfree(dma_data);
 
-	cpu_dai->dma_data = ssp_get_dma_params(ssp, slot_width > 16,
+	dma_data = ssp_get_dma_params(ssp, slot_width > 16,
 			substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
 	snd_soc_dai_set_dma_data(dai, substream, dma_data);
