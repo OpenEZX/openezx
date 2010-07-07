@@ -47,6 +47,7 @@
 #define N_SLCAN		17	/* Serial / USB serial CAN Adaptors */
 #define N_PPS		18	/* Pulse per Second */
 #define N_TS0710	19	/* GSM TS 07.10 Multiplexer */
+#define N_TS2710	19	/* 3GPP TS 27.010 MUX */
 
 #define N_V253		19	/* Codec control over voice modem */
 
