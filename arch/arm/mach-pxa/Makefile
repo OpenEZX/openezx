@@ -70,6 +70,7 @@ obj-$(CONFIG_MACH_HIMALAYA)	+= himalaya.o
 obj-$(CONFIG_MACH_MAGICIAN)	+= magician.o
 obj-$(CONFIG_MACH_MIOA701)	+= mioa701.o mioa701_bootresume.o
 obj-$(CONFIG_PXA_EZX)           += ezx.o
+obj-$(CONFIG_MACH_MOTOQ)	+= motoq.o
 obj-$(CONFIG_MACH_MP900C)	+= mp900.o
 obj-$(CONFIG_MACH_PALMTE2)	+= palmte2.o
 obj-$(CONFIG_MACH_PALMTC)	+= palmtc.o
