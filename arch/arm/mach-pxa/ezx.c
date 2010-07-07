@@ -840,7 +840,7 @@ static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
 static struct regulator_init_data pcap_regulator_VVIB_data = {
 	.constraints = {
 		.min_uV = 1300000,
-		.max_uV = 3000000,
+		.max_uV = 2000000,
 		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
 					REGULATOR_CHANGE_VOLTAGE,
 	},
@@ -852,21 +852,29 @@ static struct regulator_init_data pcap_regulator_VVIB_data = {
 static void ezx_udc_command(int cmd)
 {
 	/* FIXME: This cant work anymore, sorry :( */
-//	unsigned int tmp;
-//	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
-//	switch (cmd) {
-//	case PXA2XX_UDC_CMD_DISCONNECT:
-//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
-//			tmp &= ~PCAP_BUSCTRL_USB_PU;
-//		break;
-//	case PXA2XX_UDC_CMD_CONNECT:
-//		/* temp. set UP2OCR here until we have a transceiver driver */
-//		UP2OCR = UP2OCR_SEOS(2);
-//		if (machine_is_ezx_a780() || machine_is_ezx_e680())
-//			tmp |= PCAP_BUSCTRL_USB_PU;
-//		break;
-//	}
-//	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+	/*
+	unsigned int tmp;
+	ezx_pcap_read(PCAP_REG_BUSCTRL, &tmp);
+	*/
+	switch (cmd) {
+	case PXA2XX_UDC_CMD_DISCONNECT:
+		/*
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp &= ~PCAP_BUSCTRL_USB_PU;
+		*/
+		break;
+	case PXA2XX_UDC_CMD_CONNECT:
+		/* temp. set UP2OCR here until we have a transceiver driver */
+		UP2OCR = UP2OCR_SEOS(2);
+		/*
+		if (machine_is_ezx_a780() || machine_is_ezx_e680())
+			tmp |= PCAP_BUSCTRL_USB_PU;
+		*/
+		break;
+	}
+	/*
+	ezx_pcap_write(PCAP_REG_BUSCTRL, tmp);
+	*/
 }
 
 static struct pxa2xx_udc_mach_info ezx_udc_info = {
@@ -960,7 +968,7 @@ void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
 /* PM */
 static inline void ezx_check_bp_need_reset(void)
 {
-#ifdef CONFIG_TS0710_MUX_USB
+#ifdef CONFIG_MOTO_USB_IPC
 	if (ezx_bp_is_on() == 0)
 		ezx_reset_bp();
 #endif
