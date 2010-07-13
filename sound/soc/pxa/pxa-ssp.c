@@ -469,7 +469,7 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 	/* reset port settings */
 	sscr0 = pxa_ssp_read_reg(ssp, SSCR0) &
 		(SSCR0_ECS | SSCR0_NCS | SSCR0_MOD | SSCR0_ACS |
-		SSCR0_DSS | SSCR0_EDSS);
+		 SSCR0_DSS | SSCR0_EDSS);
 	sscr1 = SSCR1_RxTresh(8) | SSCR1_TxTresh(7);
 	sspsp = 0;
 
@@ -553,7 +553,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	dma_data = snd_soc_dai_get_dma_data(dai, substream);
 
 	/* check if the user explicitly set a slot_width */
-	sscr0 = ssp_read_reg(ssp, SSCR0);
+	sscr0 = pxa_ssp_read_reg(ssp, SSCR0);
 
 	if (sscr0 & (SSCR0_EDSS | SSCR0_DSS))
 		slot_width = (sscr0 & SSCR0_DSS) +
