@@ -468,8 +468,8 @@ static int pxa_ssp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 	/* reset port settings */
 	sscr0 = pxa_ssp_read_reg(ssp, SSCR0) &
-		(SSCR0_ECS | SSCR0_NCS | SSCR0_MOD |
-		SSCR0_ACS | SSCR0_DSS | SSCR0_EDSS);
+		(SSCR0_ECS | SSCR0_NCS | SSCR0_MOD | SSCR0_ACS |
+		 SSCR0_DSS | SSCR0_EDSS);
 	sscr1 = SSCR1_RxTresh(8) | SSCR1_TxTresh(7);
 	sspsp = 0;
 
@@ -553,7 +553,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	dma_data = snd_soc_dai_get_dma_data(dai, substream);
 
 	/* check if the user explicitly set a slot_width */
-	sscr0 = ssp_read_reg(ssp, SSCR0);
+	sscr0 = pxa_ssp_read_reg(ssp, SSCR0);
 
 	if (sscr0 & (SSCR0_EDSS | SSCR0_DSS))
 		slot_width = (sscr0 & SSCR0_DSS) +
@@ -564,7 +564,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	/* generate correct DMA params */
 	kfree(dma_data);
 
-	dma_data = ssp_get_dma_params(ssp, slot_width > 16,
+	dma_data = pxa_ssp_get_dma_params(ssp, slot_width > 16,
 			substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
 	snd_soc_dai_set_dma_data(dai, substream, dma_data);
@@ -578,7 +578,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 		sscr0 |= SSCR0_FPCKE;
 #endif
 
-	sspsp = ssp_read_reg(ssp, SSPSP);
+	sspsp = pxa_ssp_read_reg(ssp, SSPSP);
 	switch (priv->dai_fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
 	case SND_SOC_DAIFMT_I2S:
 		/*
@@ -633,7 +633,7 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 	default:
 		break;
 	}
-	ssp_write_reg(ssp, SSPSP, sspsp);
+	pxa_ssp_write_reg(ssp, SSPSP, sspsp);
 
 	if (frame_width > 0) {
 		/* Not using network mode */
@@ -658,19 +658,19 @@ static int pxa_ssp_hw_params(struct snd_pcm_substream *substream,
 			 * Set active slots. Only set an active TX slot
 			 * if we are going to use it.
 			 */
-			ssp_write_reg(ssp, SSRSA, slots - 1);
+			pxa_ssp_write_reg(ssp, SSRSA, slots - 1);
 			if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-				ssp_write_reg(ssp, SSTSA, slots - 1);
+				pxa_ssp_write_reg(ssp, SSTSA, slots - 1);
 		}
 	}
 
 	/* If SSCR0_MOD is set we can't use SSCR1_RWOT */
 	if (sscr0 & SSCR0_MOD) {
-		sscr1 = ssp_read_reg(ssp, SSCR1);
-		ssp_write_reg(ssp, SSCR1, sscr1 & ~SSCR1_RWOT);
+		sscr1 = pxa_ssp_read_reg(ssp, SSCR1);
+		pxa_ssp_write_reg(ssp, SSCR1, sscr1 & ~SSCR1_RWOT);
 	}
 
-	ssp_write_reg(ssp, SSCR0, sscr0);
+	pxa_ssp_write_reg(ssp, SSCR0, sscr0);
 
 	dump_registers(ssp);
 
