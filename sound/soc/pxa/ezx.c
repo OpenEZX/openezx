@@ -23,7 +23,6 @@
 #include <mach/hardware.h>
 #include <mach/pxa27x.h>
 #include <mach/pxa2xx-regs.h>
-#include <mach/regs-ssp.h>
 
 #include <linux/mfd/ezx-pcap.h>
 
