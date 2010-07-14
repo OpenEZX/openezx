@@ -170,7 +170,7 @@ struct platform_device ezx_usb20_device = {
 
 /* MMC */
 static struct pxamci_platform_data ezx_mci_platform_data = {
-	.detect_delay     = 250 / (1000 / HZ),
+	.detect_delay_ms  = 250,
 	.gpio_card_detect = GPIO11_MMC_DETECT,
 	.gpio_card_ro     = -1,
 	.gpio_power       = -1,
@@ -1571,7 +1571,7 @@ static void a910_mci_exit(struct device *dev, void *data)
 static struct mmc_spi_platform_data a910_mci_platform_data = {
 	.init           = a910_mci_init,
 	.exit           = a910_mci_exit,
-	.detect_delay   = 250 / (1000 / HZ),
+	.detect_delay   = 250,
 };
 
 static struct spi_board_info a910_spi_boardinfo[] __initdata = {
