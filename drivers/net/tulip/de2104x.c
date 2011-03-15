@@ -948,8 +948,9 @@ static void de_set_media (struct de_private *de)
 	else
 		macmode &= ~FullDuplex;
 
-	if (netif_msg_link(de)) {
+	if (netif_msg_link(de))
 		dev_info(&de->dev->dev, "set link %s\n", media_name[media]);
+	if (netif_msg_hw(de)) {
 		dev_info(&de->dev->dev, "mode 0x%x, sia 0x%x,0x%x,0x%x,0x%x\n",
 			 dr32(MacMode), dr32(SIAStatus),
 			 dr32(CSR13), dr32(CSR14), dr32(CSR15));
@@ -963,7 +964,7 @@ static void de_set_media (struct de_private *de)
 		dw32(MacMode, macmode);
 }
 
-static void de_next_media (struct de_private *de, u32 *media,
+static void de_next_media (struct de_private *de, const u32 *media,
 			   unsigned int n_media)
 {
 	unsigned int i;
@@ -1007,10 +1008,10 @@ static void de21040_media_timer (unsigned long data)
 		return;
 
 	if (de->media_type == DE_MEDIA_AUI) {
-		u32 next_state = DE_MEDIA_TP;
+		static const u32 next_state = DE_MEDIA_TP;
 		de_next_media(de, &next_state, 1);
 	} else {
-		u32 next_state = DE_MEDIA_AUI;
+		static const u32 next_state = DE_MEDIA_AUI;
 		de_next_media(de, &next_state, 1);
 	}
 
@@ -1135,13 +1136,19 @@ static void de21041_media_timer (unsigned long data)
 	 * simply resets the PHY and reloads the current media settings.
 	 */
 	if (de->media_type == DE_MEDIA_AUI) {
-		u32 next_states[] = { DE_MEDIA_BNC, DE_MEDIA_TP_AUTO };
+		static const u32 next_states[] = {
+			DE_MEDIA_BNC, DE_MEDIA_TP_AUTO
+		};
 		de_next_media(de, next_states, ARRAY_SIZE(next_states));
 	} else if (de->media_type == DE_MEDIA_BNC) {
-		u32 next_states[] = { DE_MEDIA_TP_AUTO, DE_MEDIA_AUI };
+		static const u32 next_states[] = {
+			DE_MEDIA_TP_AUTO, DE_MEDIA_AUI
+		};
 		de_next_media(de, next_states, ARRAY_SIZE(next_states));
 	} else {
-		u32 next_states[] = { DE_MEDIA_AUI, DE_MEDIA_BNC, DE_MEDIA_TP_AUTO };
+		static const u32 next_states[] = {
+			DE_MEDIA_AUI, DE_MEDIA_BNC, DE_MEDIA_TP_AUTO
+		};
 		de_next_media(de, next_states, ARRAY_SIZE(next_states));
 	}
 
@@ -2020,7 +2027,6 @@ static int __devinit de_init_one (struct pci_dev *pdev,
 	de->media_timer.data = (unsigned long) de;
 
 	netif_carrier_off(dev);
-	netif_stop_queue(dev);
 
 	/* wake up device, assign resources */
 	rc = pci_enable_device(pdev);
