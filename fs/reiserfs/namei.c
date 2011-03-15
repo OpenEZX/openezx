@@ -771,7 +771,7 @@ static int reiserfs_mkdir(struct inode *dir, struct dentry *dentry, int mode)
 					EMPTY_DIR_SIZE_V1 : EMPTY_DIR_SIZE,
 					dentry, inode, &security);
 	if (retval) {
-		dir->i_nlink--;
+		DEC_DIR_INODE_NLINK(dir)
 		goto out_failed;
 	}
 
@@ -1156,7 +1156,7 @@ static int reiserfs_link(struct dentry *old_dentry, struct inode *dir,
 	inode->i_ctime = CURRENT_TIME_SEC;
 	reiserfs_update_sd(&th, inode);
 
-	atomic_inc(&inode->i_count);
+	ihold(inode);
 	d_instantiate(dentry, inode);
 	retval = journal_end(&th, dir->i_sb, jbegin_count);
 	reiserfs_write_unlock(dir->i_sb);
