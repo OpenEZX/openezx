@@ -1049,7 +1049,7 @@ static int smsc911x_poll(struct napi_struct *napi, int budget)
 		smsc911x_rx_readfifo(pdata, (unsigned int *)skb->head,
 				     pktwords);
 		skb->protocol = eth_type_trans(skb, dev);
-		skb->ip_summed = CHECKSUM_NONE;
+		skb_checksum_none_assert(skb);
 		netif_receive_skb(skb);
 
 		/* Update counters */
@@ -1177,6 +1177,11 @@ static int smsc911x_open(struct net_device *dev)
 
 	smsc911x_reg_write(pdata, HW_CFG, 0x00050000);
 	smsc911x_reg_write(pdata, AFC_CFG, 0x006E3740);
+
+	/* Increase the legal frame size of VLAN tagged frames to 1522 bytes */
+	spin_lock_irq(&pdata->mac_lock);
+	smsc911x_mac_write(pdata, VLAN1, ETH_P_8021Q);
+	spin_unlock_irq(&pdata->mac_lock);
 
 	/* Make sure EEPROM has finished loading before setting GPIO_CFG */
 	timeout = 50;
@@ -2075,7 +2080,7 @@ static int __devinit smsc911x_drv_probe(struct platform_device *pdev)
 	} else {
 		/* Try reading mac address from device. if EEPROM is present
 		 * it will already have been set */
-		smsc911x_read_mac_address(dev);
+		smsc_get_mac(dev);
 
 		if (is_valid_ether_addr(dev->dev_addr)) {
 			/* eeprom values are valid  so use them */
@@ -2176,6 +2181,7 @@ static struct platform_driver smsc911x_driver = {
 /* Entry point for loading the module */
 static int __init smsc911x_init_module(void)
 {
+	SMSC_INITIALIZE();
 	return platform_driver_register(&smsc911x_driver);
 }
 
