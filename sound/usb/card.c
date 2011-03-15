@@ -300,9 +300,13 @@ static int snd_usb_audio_create(struct usb_device *dev, int idx,
 
 	*rchip = NULL;
 
-	if (snd_usb_get_speed(dev) != USB_SPEED_LOW &&
-	    snd_usb_get_speed(dev) != USB_SPEED_FULL &&
-	    snd_usb_get_speed(dev) != USB_SPEED_HIGH) {
+	switch (snd_usb_get_speed(dev)) {
+	case USB_SPEED_LOW:
+	case USB_SPEED_FULL:
+	case USB_SPEED_HIGH:
+	case USB_SPEED_SUPER:
+		break;
+	default:
 		snd_printk(KERN_ERR "unknown device speed %d\n", snd_usb_get_speed(dev));
 		return -ENXIO;
 	}
@@ -319,6 +323,7 @@ static int snd_usb_audio_create(struct usb_device *dev, int idx,
 		return -ENOMEM;
 	}
 
+	mutex_init(&chip->shutdown_mutex);
 	chip->index = idx;
 	chip->dev = dev;
 	chip->card = card;
@@ -378,11 +383,22 @@ static int snd_usb_audio_create(struct usb_device *dev, int idx,
 	if (len < sizeof(card->longname))
 		usb_make_path(dev, card->longname + len, sizeof(card->longname) - len);
 
-	strlcat(card->longname,
-		snd_usb_get_speed(dev) == USB_SPEED_LOW ? ", low speed" :
-		snd_usb_get_speed(dev) == USB_SPEED_FULL ? ", full speed" :
-		", high speed",
-		sizeof(card->longname));
+	switch (snd_usb_get_speed(dev)) {
+	case USB_SPEED_LOW:
+		strlcat(card->longname, ", low speed", sizeof(card->longname));
+		break;
+	case USB_SPEED_FULL:
+		strlcat(card->longname, ", full speed", sizeof(card->longname));
+		break;
+	case USB_SPEED_HIGH:
+		strlcat(card->longname, ", high speed", sizeof(card->longname));
+		break;
+	case USB_SPEED_SUPER:
+		strlcat(card->longname, ", super speed", sizeof(card->longname));
+		break;
+	default:
+		break;
+	}
 
 	snd_usb_audio_create_proc(chip);
 
@@ -516,6 +532,7 @@ static void snd_usb_audio_disconnect(struct usb_device *dev, void *ptr)
 	chip = ptr;
 	card = chip->card;
 	mutex_lock(&register_mutex);
+	mutex_lock(&chip->shutdown_mutex);
 	chip->shutdown = 1;
 	chip->num_interfaces--;
 	if (chip->num_interfaces <= 0) {
@@ -533,9 +550,11 @@ static void snd_usb_audio_disconnect(struct usb_device *dev, void *ptr)
 			snd_usb_mixer_disconnect(p);
 		}
 		usb_chip[chip->index] = NULL;
+		mutex_unlock(&chip->shutdown_mutex);
 		mutex_unlock(&register_mutex);
 		snd_card_free_when_closed(card);
 	} else {
+		mutex_unlock(&chip->shutdown_mutex);
 		mutex_unlock(&register_mutex);
 	}
 }
