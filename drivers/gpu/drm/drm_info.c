@@ -270,20 +270,6 @@ int drm_gem_name_info(struct seq_file *m, void *data)
 	return 0;
 }
 
-int drm_gem_object_info(struct seq_file *m, void* data)
-{
-	struct drm_info_node *node = (struct drm_info_node *) m->private;
-	struct drm_device *dev = node->minor->dev;
-
-	seq_printf(m, "%d objects\n", atomic_read(&dev->object_count));
-	seq_printf(m, "%d object bytes\n", atomic_read(&dev->object_memory));
-	seq_printf(m, "%d pinned\n", atomic_read(&dev->pin_count));
-	seq_printf(m, "%d pin bytes\n", atomic_read(&dev->pin_memory));
-	seq_printf(m, "%d gtt bytes\n", atomic_read(&dev->gtt_memory));
-	seq_printf(m, "%d gtt total\n", dev->gtt_total);
-	return 0;
-}
-
 #if DRM_DEBUG_CODE
 
 int drm_vma_info(struct seq_file *m, void *data)
@@ -297,17 +283,18 @@ int drm_vma_info(struct seq_file *m, void *data)
 #endif
 
 	mutex_lock(&dev->struct_mutex);
-	seq_printf(m, "vma use count: %d, high_memory = %p, 0x%08llx\n",
+	seq_printf(m, "vma use count: %d, high_memory = %pK, 0x%pK\n",
 		   atomic_read(&dev->vma_count),
-		   high_memory, (u64)virt_to_phys(high_memory));
+		   high_memory, (void *)virt_to_phys(high_memory));
 
 	list_for_each_entry(pt, &dev->vmalist, head) {
 		vma = pt->vma;
 		if (!vma)
 			continue;
 		seq_printf(m,
-			   "\n%5d 0x%08lx-0x%08lx %c%c%c%c%c%c 0x%08lx000",
-			   pt->pid, vma->vm_start, vma->vm_end,
+			   "\n%5d 0x%pK-0x%pK %c%c%c%c%c%c 0x%08lx000",
+			   pt->pid,
+			   (void *)vma->vm_start, (void *)vma->vm_end,
 			   vma->vm_flags & VM_READ ? 'r' : '-',
 			   vma->vm_flags & VM_WRITE ? 'w' : '-',
 			   vma->vm_flags & VM_EXEC ? 'x' : '-',
