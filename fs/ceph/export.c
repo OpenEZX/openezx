@@ -1,10 +1,11 @@
-#include "ceph_debug.h"
+#include <linux/ceph/ceph_debug.h>
 
 #include <linux/exportfs.h>
 #include <linux/slab.h>
 #include <asm/unaligned.h>
 
 #include "super.h"
+#include "mds_client.h"
 
 /*
  * NFS export support
@@ -58,7 +59,7 @@ static int ceph_encode_fh(struct dentry *dentry, u32 *rawfh, int *max_len,
 		dout("encode_fh %p connectable\n", dentry);
 		cfh->ino = ceph_ino(dentry->d_inode);
 		cfh->parent_ino = ceph_ino(parent->d_inode);
-		cfh->parent_name_hash = parent->d_name.hash;
+		cfh->parent_name_hash = ceph_dentry_hash(parent);
 		*max_len = connected_handle_length;
 		type = 2;
 	} else if (*max_len >= handle_length) {
@@ -120,7 +121,7 @@ static struct dentry *__fh_to_dentry(struct super_block *sb,
 static struct dentry *__cfh_to_dentry(struct super_block *sb,
 				      struct ceph_nfs_confh *cfh)
 {
-	struct ceph_mds_client *mdsc = &ceph_sb_to_client(sb)->mdsc;
+	struct ceph_mds_client *mdsc = ceph_sb_to_client(sb)->mdsc;
 	struct inode *inode;
 	struct dentry *dentry;
 	struct ceph_vino vino;
