@@ -1,10 +1,12 @@
-#include "ceph_debug.h"
+#include <linux/ceph/ceph_debug.h>
 
 #include <linux/sort.h>
 #include <linux/slab.h>
 
 #include "super.h"
-#include "decode.h"
+#include "mds_client.h"
+
+#include <linux/ceph/decode.h>
 
 /*
  * Snapshots in ceph are driven in large part by cooperation from the
@@ -526,7 +528,7 @@ int __ceph_finish_cap_snap(struct ceph_inode_info *ci,
 			    struct ceph_cap_snap *capsnap)
 {
 	struct inode *inode = &ci->vfs_inode;
-	struct ceph_mds_client *mdsc = &ceph_sb_to_client(inode->i_sb)->mdsc;
+	struct ceph_mds_client *mdsc = ceph_sb_to_client(inode->i_sb)->mdsc;
 
 	BUG_ON(capsnap->writing);
 	capsnap->size = inode->i_size;
@@ -582,10 +584,14 @@ static void queue_realm_cap_snaps(struct ceph_snap_realm *realm)
 	if (lastinode)
 		iput(lastinode);
 
-	dout("queue_realm_cap_snaps %p %llx children\n", realm, realm->ino);
-	list_for_each_entry(child, &realm->children, child_item)
-		queue_realm_cap_snaps(child);
+	list_for_each_entry(child, &realm->children, child_item) {
+		dout("queue_realm_cap_snaps %p %llx queue child %p %llx\n",
+		     realm, realm->ino, child, child->ino);
+		list_del_init(&child->dirty_item);
+		list_add(&child->dirty_item, &realm->dirty_item);
+	}
 
+	list_del_init(&realm->dirty_item);
 	dout("queue_realm_cap_snaps %p %llx done\n", realm, realm->ino);
 }
 
@@ -681,7 +687,9 @@ more:
 	 * queue cap snaps _after_ we've built the new snap contexts,
 	 * so that i_head_snapc can be set appropriately.
 	 */
-	list_for_each_entry(realm, &dirty_realms, dirty_item) {
+	while (!list_empty(&dirty_realms)) {
+		realm = list_first_entry(&dirty_realms, struct ceph_snap_realm,
+					 dirty_item);
 		queue_realm_cap_snaps(realm);
 	}
 
@@ -747,7 +755,7 @@ void ceph_handle_snap(struct ceph_mds_client *mdsc,
 		      struct ceph_mds_session *session,
 		      struct ceph_msg *msg)
 {
-	struct super_block *sb = mdsc->client->sb;
+	struct super_block *sb = mdsc->fsc->sb;
 	int mds = session->s_mds;
 	u64 split;
 	int op;
