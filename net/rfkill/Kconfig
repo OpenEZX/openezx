@@ -18,10 +18,10 @@ config RFKILL_LEDS
 	default y
 
 config RFKILL_INPUT
-	bool "RF switch input support" if EMBEDDED
+	bool "RF switch input support" if EXPERT
 	depends on RFKILL
 	depends on INPUT = y || RFKILL = INPUT
-	default y if !EMBEDDED
+	default y if !EXPERT
 
 config RFKILL_BLUETOOTH
 	tristate "Generic bluetooth regulator driver"
@@ -29,4 +29,3 @@ config RFKILL_BLUETOOTH
 	help
 	  Say Y here if your bluetooth power is controlled by a
 	  voltage regulator.
-
