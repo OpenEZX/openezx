@@ -82,6 +82,7 @@
 #include <linux/tcp.h>
 
 int sysctl_ip_default_ttl __read_mostly = IPDEFTTL;
+EXPORT_SYMBOL(sysctl_ip_default_ttl);
 
 /* Generate a checksum for an outgoing IP datagram. */
 __inline__ void ip_send_check(struct iphdr *iph)
@@ -130,7 +131,7 @@ static inline int ip_select_ttl(struct inet_sock *inet, struct dst_entry *dst)
 	int ttl = inet->uc_ttl;
 
 	if (ttl < 0)
-		ttl = dst_metric(dst, RTAX_HOPLIMIT);
+		ttl = ip4_dst_hoplimit(dst);
 	return ttl;
 }
 
@@ -341,15 +342,13 @@ int ip_queue_xmit(struct sk_buff *skb)
 		{
 			struct flowi fl = { .oif = sk->sk_bound_dev_if,
 					    .mark = sk->sk_mark,
-					    .nl_u = { .ip4_u =
-						      { .daddr = daddr,
-							.saddr = inet->inet_saddr,
-							.tos = RT_CONN_FLAGS(sk) } },
+					    .fl4_dst = daddr,
+					    .fl4_src = inet->inet_saddr,
+					    .fl4_tos = RT_CONN_FLAGS(sk),
 					    .proto = sk->sk_protocol,
 					    .flags = inet_sk_flowi_flags(sk),
-					    .uli_u = { .ports =
-						       { .sport = inet->inet_sport,
-							 .dport = inet->inet_dport } } };
+					    .fl_ip_sport = inet->inet_sport,
+					    .fl_ip_dport = inet->inet_dport };
 
 			/* If this fails, retransmit mechanism of transport layer will
 			 * keep trying until route appears or the connection times
@@ -487,7 +486,7 @@ int ip_fragment(struct sk_buff *skb, int (*output)(struct sk_buff *))
 	 * LATER: this step can be merged to real generation of fragments,
 	 * we can switch to copy when see the first bad fragment.
 	 */
-	if (skb_has_frags(skb)) {
+	if (skb_has_frag_list(skb)) {
 		struct sk_buff *frag, *frag2;
 		int first_len = skb_pagelen(skb);
 
@@ -844,10 +843,9 @@ int ip_append_data(struct sock *sk,
 		inet->cork.length = 0;
 		sk->sk_sndmsg_page = NULL;
 		sk->sk_sndmsg_off = 0;
-		if ((exthdrlen = rt->dst.header_len) != 0) {
-			length += exthdrlen;
-			transhdrlen += exthdrlen;
-		}
+		exthdrlen = rt->dst.header_len;
+		length += exthdrlen;
+		transhdrlen += exthdrlen;
 	} else {
 		rt = (struct rtable *)inet->cork.dst;
 		if (inet->cork.flags & IPCORK_OPT)
@@ -934,16 +932,19 @@ alloc_new_skb:
 			    !(rt->dst.dev->features&NETIF_F_SG))
 				alloclen = mtu;
 			else
-				alloclen = datalen + fragheaderlen;
+				alloclen = fraglen;
 
 			/* The last fragment gets additional space at tail.
 			 * Note, with MSG_MORE we overallocate on fragments,
 			 * because we have no idea what fragment will be
 			 * the last.
 			 */
-			if (datalen == length + fraggap)
+			if (datalen == length + fraggap) {
 				alloclen += rt->dst.trailer_len;
-
+				/* make sure mtu is not reached */
+				if (datalen > mtu - fragheaderlen - rt->dst.trailer_len)
+					datalen -= ALIGN(rt->dst.trailer_len, 8);
+			}
 			if (transhdrlen) {
 				skb = sock_alloc_send_skb(sk,
 						alloclen + hh_len + 15,
@@ -960,7 +961,7 @@ alloc_new_skb:
 				else
 					/* only the initial fragment is
 					   time stamped */
-					ipc->shtx.flags = 0;
+					ipc->tx_flags = 0;
 			}
 			if (skb == NULL)
 				goto error;
@@ -971,7 +972,7 @@ alloc_new_skb:
 			skb->ip_summed = csummode;
 			skb->csum = 0;
 			skb_reserve(skb, hh_len);
-			*skb_tx(skb) = ipc->shtx;
+			skb_shinfo(skb)->tx_flags = ipc->tx_flags;
 
 			/*
 			 *	Find where to start putting bytes.
@@ -1391,7 +1392,7 @@ void ip_send_reply(struct sock *sk, struct sk_buff *skb, struct ip_reply_arg *ar
 
 	daddr = ipc.addr = rt->rt_src;
 	ipc.opt = NULL;
-	ipc.shtx.flags = 0;
+	ipc.tx_flags = 0;
 
 	if (replyopts.opt.optlen) {
 		ipc.opt = &replyopts.opt;
@@ -1402,14 +1403,11 @@ void ip_send_reply(struct sock *sk, struct sk_buff *skb, struct ip_reply_arg *ar
 
 	{
 		struct flowi fl = { .oif = arg->bound_dev_if,
-				    .nl_u = { .ip4_u =
-					      { .daddr = daddr,
-						.saddr = rt->rt_spec_dst,
-						.tos = RT_TOS(ip_hdr(skb)->tos) } },
-				    /* Not quite clean, but right. */
-				    .uli_u = { .ports =
-					       { .sport = tcp_hdr(skb)->dest,
-						 .dport = tcp_hdr(skb)->source } },
+				    .fl4_dst = daddr,
+				    .fl4_src = rt->rt_spec_dst,
+				    .fl4_tos = RT_TOS(ip_hdr(skb)->tos),
+				    .fl_ip_sport = tcp_hdr(skb)->dest,
+				    .fl_ip_dport = tcp_hdr(skb)->source,
 				    .proto = sk->sk_protocol,
 				    .flags = ip_reply_arg_flowi_flags(arg) };
 		security_skb_classify_flow(skb, &fl);
