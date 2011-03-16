@@ -67,11 +67,12 @@ struct ocfs2_journal {
 	struct buffer_head        *j_bh;      /* Journal disk inode block */
 	atomic_t                  j_num_trans; /* Number of transactions
 					        * currently in the system. */
+	spinlock_t                j_lock;
 	unsigned long             j_trans_id;
 	struct rw_semaphore       j_trans_barrier;
 	wait_queue_head_t         j_checkpointed;
 
-	spinlock_t                j_lock;
+	/* both fields protected by j_lock*/
 	struct list_head          j_la_cleanups;
 	struct work_struct        j_recovery_work;
 };
@@ -404,9 +405,9 @@ static inline int ocfs2_remove_extent_credits(struct super_block *sb)
 	       ocfs2_quota_trans_credits(sb);
 }
 
-/* data block for new dir/symlink, 2 for bitmap updates (bitmap fe +
- * bitmap block for the new bit) dx_root update for free list */
-#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + 2 + 1)
+/* data block for new dir/symlink, allocation of directory block, dx_root
+ * update for free list */
+#define OCFS2_DIR_LINK_ADDITIONAL_CREDITS (1 + OCFS2_SUBALLOC_ALLOC + 1)
 
 static inline int ocfs2_add_dir_index_credits(struct super_block *sb)
 {
