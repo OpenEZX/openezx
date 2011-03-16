@@ -67,7 +67,7 @@ int radeon_gem_object_create(struct radeon_device *rdev, int size,
 	if (alignment < PAGE_SIZE) {
 		alignment = PAGE_SIZE;
 	}
-	r = radeon_bo_create(rdev, gobj, size, kernel, initial_domain, &robj);
+	r = radeon_bo_create(rdev, gobj, size, alignment, kernel, initial_domain, &robj);
 	if (r) {
 		if (r != -ERESTARTSYS)
 			DRM_ERROR("Failed to allocate GEM object (%d, %d, %u, %d)\n",
@@ -156,9 +156,12 @@ int radeon_gem_info_ioctl(struct drm_device *dev, void *data,
 {
 	struct radeon_device *rdev = dev->dev_private;
 	struct drm_radeon_gem_info *args = data;
+	struct ttm_mem_type_manager *man;
+
+	man = &rdev->mman.bdev.man[TTM_PL_VRAM];
 
 	args->vram_size = rdev->mc.real_vram_size;
-	args->vram_visible = rdev->mc.real_vram_size;
+	args->vram_visible = (u64)man->size << PAGE_SHIFT;
 	if (rdev->stollen_vga_memory)
 		args->vram_visible -= radeon_bo_size(rdev->stollen_vga_memory);
 	args->vram_visible -= radeon_fbdev_total_size(rdev);
