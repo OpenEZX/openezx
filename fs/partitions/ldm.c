@@ -5,7 +5,7 @@
  * Copyright (c) 2001-2007 Anton Altaparmakov
  * Copyright (C) 2001,2002 Jakob Kemi <jakob.kemi@telia.com>
  *
- * Documentation is available at http://www.linux-ntfs.org/content/view/19/37/
+ * Documentation is available at http://www.linux-ntfs.org/doku.php?id=downloads 
  *
  * This program is free software; you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
@@ -251,6 +251,11 @@ static bool ldm_parse_vmdb (const u8 *data, struct vmdb *vm)
 	}
 
 	vm->vblk_size     = get_unaligned_be32(data + 0x08);
+	if (vm->vblk_size == 0) {
+		ldm_error ("Illegal VBLK size");
+		return false;
+	}
+
 	vm->vblk_offset   = get_unaligned_be32(data + 0x0C);
 	vm->last_vblk_seq = get_unaligned_be32(data + 0x04);
 
