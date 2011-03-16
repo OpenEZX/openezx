@@ -37,6 +37,7 @@
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/uinput.h>
+#include <linux/input/mt.h>
 #include "../input-compat.h"
 
 static int uinput_dev_event(struct input_dev *dev, unsigned int type, unsigned int code, int value)
@@ -406,8 +407,7 @@ static int uinput_setup_device(struct uinput_device *udev, const char __user *bu
 			goto exit;
 		if (test_bit(ABS_MT_SLOT, dev->absbit)) {
 			int nslot = input_abs_get_max(dev, ABS_MT_SLOT) + 1;
-			input_mt_create_slots(dev, nslot);
-			input_set_events_per_packet(dev, 6 * nslot);
+			input_mt_init_slots(dev, nslot);
 		} else if (test_bit(ABS_MT_POSITION_X, dev->absbit)) {
 			input_set_events_per_packet(dev, 60);
 		}
@@ -680,6 +680,10 @@ static long uinput_ioctl_handler(struct file *file, unsigned int cmd,
 			retval = uinput_set_bit(arg, swbit, SW_MAX);
 			break;
 
+		case UI_SET_PROPBIT:
+			retval = uinput_set_bit(arg, propbit, INPUT_PROP_MAX);
+			break;
+
 		case UI_SET_PHYS:
 			if (udev->state == UIST_CREATED) {
 				retval = -EINVAL;
@@ -811,6 +815,7 @@ static const struct file_operations uinput_fops = {
 #ifdef CONFIG_COMPAT
 	.compat_ioctl	= uinput_compat_ioctl,
 #endif
+	.llseek		= no_llseek,
 };
 
 static struct miscdevice uinput_misc = {
