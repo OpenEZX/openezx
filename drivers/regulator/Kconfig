@@ -191,7 +191,7 @@ config REGULATOR_EOC
 	depends on EZX_EOC
 	help
 	 This driver provides support for current regulators of EOC PMIC
-         
+
 config REGULATOR_MC13XXX_CORE
 	tristate
 
