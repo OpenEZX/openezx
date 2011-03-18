@@ -30,7 +30,7 @@
 static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
-	struct pcap_chip *pcap = codec->dai->private_data;
+	struct pcap_chip *pcap = snd_soc_codec_get_drvdata(codec);
 
 	ezx_pcap_write(pcap, reg, value);
 
@@ -40,7 +40,7 @@ static int pcap2_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 static unsigned int pcap2_codec_read(struct snd_soc_codec *codec,
 							unsigned int reg)
 {
-	struct pcap_chip *pcap = codec->dai->private_data;
+	struct pcap_chip *pcap = snd_soc_codec_get_drvdata(codec);
 	unsigned int tmp;
 
 	ezx_pcap_read(pcap, reg, &tmp);
@@ -151,9 +151,10 @@ static const struct snd_soc_dapm_route audio_map[] = {
 
 static int pcap2_codec_add_widgets(struct snd_soc_codec *codec)
 {
-	snd_soc_dapm_new_controls(codec, pcap2_codec_dapm_widgets,
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
+	snd_soc_dapm_new_controls(dapm, pcap2_codec_dapm_widgets,
 				ARRAY_SIZE(pcap2_codec_dapm_widgets));
-	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
+	snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
 	return 0;
 }
 
@@ -173,7 +174,7 @@ static int pcap2_set_bias_level(struct snd_soc_codec *codec,
 		input |= PCAP2_INPUT_AMP_LOWPWR;
 		break;
 	}
-	codec->bias_level = level;
+	codec->dapm.bias_level = level;
 	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 	return 0;
 }
@@ -183,7 +184,7 @@ static int pcap2_hw_params(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int st_dac, mono_dac;
 
@@ -262,7 +263,7 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct snd_soc_dapm_widget *w;
 	unsigned int tmp;
@@ -274,7 +275,7 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream,
 		pcap2_codec_write(codec, PCAP2_ST_DAC, tmp);
 		break;
 	case PCAP2_ID_MONO_DAC:
-		list_for_each_entry(w, &codec->dapm_widgets, list) {
+		list_for_each_entry(w, &codec->card->widgets, list) {
 			if ((!strcmp(w->name, "CDC_DAC") ||
 				!strcmp(w->name, "CDC_ADC")) && w->connected)
 				goto in_use;
@@ -288,7 +289,7 @@ static int pcap2_hw_free(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 in_use:
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(&codec->dapm);
 
 	return 0;
 }
@@ -468,7 +469,7 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_codec *codec = codec_dai->codec;
 	unsigned int st_dac, mono_dac, input;
 
@@ -507,7 +508,7 @@ static int pcap2_prepare(struct snd_pcm_substream *substream,
 	/*input &= ~PCAP2_INPUT_AMP_LOWPWR;*/
 	pcap2_codec_write(codec, PCAP2_INPUT_AMP, input);
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(&codec->dapm);
 #ifdef PCAP2_DEBUG
 	dump_registers();
 #endif
@@ -527,9 +528,9 @@ static struct snd_soc_dai_ops pcap2_dai_ops = {
 	.set_sysclk = pcap2_set_dai_sysclk,
 };
 
-struct snd_soc_dai pcap2_dai[] = {
+static struct snd_soc_dai_driver pcap2_dai[] = {
 	{
-		.name = "PCAP2 ST_DAC",
+		.name = "pcap2-st_dac",
 		.id = PCAP2_ID_ST_DAC,
 		.playback = {
 			.stream_name = "ST_DAC playback",
@@ -543,7 +544,7 @@ struct snd_soc_dai pcap2_dai[] = {
 		},
 		.ops = &pcap2_dai_ops,
 	}, {
-		.name = "PCAP2 MONO_DAC",
+		.name = "pcap2-mono_dac",
 		.id = PCAP2_ID_MONO_DAC,
 		.playback = {
 			.stream_name = "MONO_DAC playback",
@@ -561,7 +562,7 @@ struct snd_soc_dai pcap2_dai[] = {
 		},
 		.ops = &pcap2_dai_ops,
 	}, {
-		.name = "PCAP2 GSM MONO_DAC",
+		.name = "pcap2-gsm-mono_dac",
 		.id = PCAP2_ID_MONO_GSM_DAC,
 		.playback = {
 			.channels_min = 1,
@@ -577,24 +578,17 @@ struct snd_soc_dai pcap2_dai[] = {
 		.ops = &pcap2_dai_ops,
 	},
 };
-EXPORT_SYMBOL_GPL(pcap2_dai);
 
-static int pcap2_codec_suspend(struct platform_device *pdev, pm_message_t state)
+static int pcap2_codec_suspend(struct snd_soc_codec *codec, pm_message_t state)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
 
-static int pcap2_codec_resume(struct platform_device *pdev)
+static int pcap2_codec_resume(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
-
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
-	pcap2_set_bias_level(codec, codec->suspend_bias_level);
+	pcap2_set_bias_level(codec, codec->dapm.suspend_bias_level);
 	return 0;
 }
 
@@ -635,11 +629,10 @@ static irqreturn_t pcap2_hs_jack_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static int pcap2_jack_init(struct snd_soc_device *socdev)
+static int pcap2_jack_init(struct snd_soc_codec *codec)
 {
 	int err = -ENOMEM;
-	struct snd_soc_card *card = socdev->card;
-	struct pcap_chip *pcap = socdev->card->codec->dai->private_data;
+	struct pcap_chip *pcap = snd_soc_codec_get_drvdata(codec);
 	struct snd_soc_jack *jack;
 	struct pcap_jack *pcap_jack;
 
@@ -655,7 +648,7 @@ static int pcap2_jack_init(struct snd_soc_device *socdev)
 
 	pcap_jack->jack = jack;
 
-	err = snd_soc_jack_new(card, "Headset", SND_JACK_HEADSET, jack);
+	err = snd_soc_jack_new(codec, "Headset", SND_JACK_HEADSET, jack);
 	if (err)
 		goto fail;
 
@@ -684,23 +677,9 @@ out:
  * initialise the PCAP2 driver
  * register the mixer and dsp interfaces with the kernel
  */
-static int pcap2_codec_init(struct snd_soc_device *socdev)
+static int pcap2_codec_init(struct snd_soc_codec *codec)
 {
-	struct snd_soc_codec *codec = socdev->card->codec;
 	int ret = 0;
-
-	codec->name = "PCAP2 Audio";
-	codec->owner = THIS_MODULE;
-	codec->read = pcap2_codec_read;
-	codec->write = pcap2_codec_write;
-	codec->set_bias_level = pcap2_set_bias_level;
-	codec->dai = pcap2_dai;
-	codec->num_dai = ARRAY_SIZE(pcap2_dai);
-
-	/* register pcms */
-	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
-	if (ret < 0)
-		return ret;
 
 	/* power on device */
 	pcap2_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
@@ -709,106 +688,84 @@ static int pcap2_codec_init(struct snd_soc_device *socdev)
 			ARRAY_SIZE(pcap2_codec_snd_controls));
 	pcap2_codec_add_widgets(codec);
 
-	ret = pcap2_jack_init(socdev);
+	ret = pcap2_jack_init(codec);
 
 	/* FIXME, here just to make sure snd_jack_dev_register() gets called
+	snd_device_register_all(codec->card);
 	 */
-	snd_device_register_all(socdev->card->codec->card);
-
 
 	return ret;
 }
 
-static int pcap2_codec_probe(struct platform_device *pdev)
+static int pcap2_codec_probe(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct pcap2_codec_setup_data *setup;
-	struct snd_soc_codec *codec;
 	int ret = 0;
 
-	setup = socdev->codec_data;
-	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
-	if (codec == NULL)
-		return -ENOMEM;
-
-	socdev->card->codec = codec;
-	mutex_init(&codec->mutex);
-	INIT_LIST_HEAD(&codec->dapm_widgets);
-	INIT_LIST_HEAD(&codec->dapm_paths);
-
-	ret = pcap2_codec_init(socdev);
+	ret = pcap2_codec_init(codec);
 	return ret;
 }
 
 /* power down chip and remove */
-static int pcap2_codec_remove(struct platform_device *pdev)
+static int pcap2_codec_remove(struct snd_soc_codec *codec)
 {
-	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
-	struct snd_soc_codec *codec = socdev->card->codec;
 	if (codec->control_data)
 		pcap2_set_bias_level(codec, SND_SOC_BIAS_OFF);
-	snd_soc_free_pcms(socdev);
-	snd_soc_dapm_free(socdev);
-
-	kfree(codec);
 
 	return 0;
 }
 
-static int pcap2_driver_probe(struct platform_device *pdev)
-{
-	int link_num;
-
-	for (link_num = 0; link_num <= 2; link_num++) {
-		pcap2_dai[link_num].private_data =
-			dev_get_drvdata(pdev->dev.parent);
-		snd_soc_register_dai(&pcap2_dai[link_num]);
-	}
-
-	return 0;
-}
-
-static int __devexit pcap2_driver_remove(struct platform_device *pdev)
-{
-	int link_num;
-
-	for (link_num = 0; link_num <= 2; link_num++)
-		snd_soc_unregister_dai(&pcap2_dai[link_num]);
-
-	return 0;
-}
 
 /* codec device ops */
-struct snd_soc_codec_device soc_codec_dev_pcap2 = {
+static struct snd_soc_codec_driver soc_codec_dev_pcap2 = {
 	.probe =	pcap2_codec_probe,
 	.remove =	pcap2_codec_remove,
 	.suspend =	pcap2_codec_suspend,
 	.resume =	pcap2_codec_resume,
-};
-EXPORT_SYMBOL_GPL(soc_codec_dev_pcap2);
-
-static struct platform_driver pcap2_driver = {
-	.probe		= pcap2_driver_probe,
-	.remove		= __devexit_p(pcap2_driver_remove),
-	.driver		= {
-		.name		= "pcap-audio",
-		.owner		= THIS_MODULE,
-	},
+	.read =         pcap2_codec_read,
+	.write =        pcap2_codec_write,
+	.set_bias_level = pcap2_set_bias_level,
 };
 
-static int __devinit pcap2_init(void)
+static int __devinit pcap2_driver_probe(struct platform_device *pdev)
 {
-	return platform_driver_register(&pcap2_driver);
+	struct pcap_chip *pcap = dev_get_drvdata(pdev->dev.parent);
+	platform_set_drvdata(pdev, pcap);
+		
+	return snd_soc_register_codec(&pdev->dev,
+		&soc_codec_dev_pcap2, pcap2_dai, ARRAY_SIZE(pcap2_dai));
+}
+
+static int __devexit pcap2_driver_remove(struct platform_device *pdev)
+{
+	snd_soc_unregister_codec(&pdev->dev);
+	return 0;
+}
+
+
+static struct platform_driver pcap2_codec_driver = {
+	.driver         = {
+		.name   = "pcap-audio",
+		.owner  = THIS_MODULE,
+	},
+	.probe          = pcap2_driver_probe,
+	.remove         = __devexit_p(pcap2_driver_remove),
+};
+
+
+static int __init pcap2_init(void)
+{
+	return platform_driver_register(&pcap2_codec_driver);
 }
 
 static void __exit pcap2_exit(void)
 {
-	platform_driver_unregister(&pcap2_driver);
+	platform_driver_unregister(&pcap2_codec_driver);
 }
 
 module_init(pcap2_init);
 module_exit(pcap2_exit);
 
+MODULE_ALIAS("platform:pcap-audio");
 MODULE_DESCRIPTION("ASoC PCAP2 codec");
 MODULE_AUTHOR("Daniel Ribeiro");
 MODULE_LICENSE("GPL");
