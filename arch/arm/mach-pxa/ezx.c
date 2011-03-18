@@ -20,6 +20,7 @@
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/spi/spi.h>
+#include <linux/spi/pxa2xx_spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/mfd/ezx-eoc.h>
 #include <linux/spi/mmc_spi.h>
@@ -42,18 +43,18 @@
 #include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <plat/pxa27x_keypad.h>
-#include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
 #include <mach/ezx-bp.h>
 #include <mach/camera.h>
 #include <mach/irqs.h>
+#include <mach/smemc.h>
 
 #include "devices.h"
 #include "generic.h"
 
-#define EZX_NR_IRQS			(IRQ_BOARD_START + 24)
+#define EZX_NR_IRQS			(IRQ_BOARD_START + PCAP_NIRQS + EOC_NIRQS)
 
 #define GPIO12_A780_FLIP_LID 		12
 #define GPIO15_A1200_FLIP_LID 		15
@@ -142,14 +143,14 @@ static struct resource ezx_usb20_resources[] = {
 /* ISP1583 UDC */
 static void isp158x_udc_command(int cmd)
 {
-	unsigned int temp;
+	u32 msc1;
 	switch (cmd) {
 	case ISP158X_UDC_CMD_DISCONNECT:
 		gpio_set_value(94, 0);
 		break;
 	case ISP158X_UDC_CMD_CONNECT:
-		temp = MSC1;
-		MSC1 = (temp & 0x0000FFFF) | 0x7FFC0000;
+		msc1 = (__raw_readl(MSC1) & 0x0000FFFF) | 0x7FFC0000;
+		__raw_writel(msc1, MSC1);
 		gpio_set_value(94, 1);
 		break;
 	}
@@ -961,6 +962,8 @@ void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
 		break;
 	case EOC_MODE_UART:
 		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_uart_mode_config));
+		break;
+	case EOC_MODE_NONE:
 		break;
 	}
 }
