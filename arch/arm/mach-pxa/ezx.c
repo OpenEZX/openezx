@@ -49,6 +49,7 @@
 #include <mach/ezx-bp.h>
 #include <mach/camera.h>
 #include <mach/irqs.h>
+#include <mach/smemc.h>
 
 #include "devices.h"
 #include "generic.h"
@@ -142,14 +143,14 @@ static struct resource ezx_usb20_resources[] = {
 /* ISP1583 UDC */
 static void isp158x_udc_command(int cmd)
 {
-	unsigned int temp;
+	u32 msc1;
 	switch (cmd) {
 	case ISP158X_UDC_CMD_DISCONNECT:
 		gpio_set_value(94, 0);
 		break;
 	case ISP158X_UDC_CMD_CONNECT:
-		temp = MSC1;
-		MSC1 = (temp & 0x0000FFFF) | 0x7FFC0000;
+		msc1 = (__raw_readl(MSC1) & 0x0000FFFF) | 0x7FFC0000;
+		__raw_writel(msc1, MSC1);
 		gpio_set_value(94, 1);
 		break;
 	}
