@@ -20,6 +20,7 @@
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/spi/spi.h>
+#include <linux/spi/pxa2xx_spi.h>
 #include <linux/mfd/ezx-pcap.h>
 #include <linux/spi/mmc_spi.h>
 #include <linux/irq.h>
@@ -40,7 +41,6 @@
 #include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <plat/pxa27x_keypad.h>
-#include <mach/pxa2xx_spi.h>
 #include <mach/mmc.h>
 #include <mach/udc.h>
 #include <mach/pxa27x-udc.h>
@@ -51,7 +51,7 @@
 #include "devices.h"
 #include "generic.h"
 
-#define EZX_NR_IRQS			(IRQ_BOARD_START + 24)
+#define EZX_NR_IRQS			(IRQ_BOARD_START + PCAP_NIRQS)
 
 #define GPIO12_A780_FLIP_LID 		12
 #define GPIO15_A1200_FLIP_LID 		15
