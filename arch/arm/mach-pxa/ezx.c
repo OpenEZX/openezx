@@ -52,7 +52,7 @@
 #include "devices.h"
 #include "generic.h"
 
-#define EZX_NR_IRQS			(IRQ_BOARD_START + PCAP_NIRQS)
+#define EZX_NR_IRQS			(IRQ_BOARD_START + PCAP_NIRQS + EOC_NIRQS)
 
 #define GPIO12_A780_FLIP_LID 		12
 #define GPIO15_A1200_FLIP_LID 		15
