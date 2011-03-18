@@ -903,6 +903,8 @@ void ezx_mach_switch_mode(enum eoc_transceiver_mode mode)
 	case EOC_MODE_UART:
 		pxa2xx_mfp_config(ARRAY_AND_SIZE(ezx_gpio_uart_mode_config));
 		break;
+	case EOC_MODE_NONE:
+		break;
 	}
 }
 #endif
