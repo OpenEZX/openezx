@@ -27,7 +27,6 @@
 #include <linux/mfd/ezx-pcap.h>
 
 #include "../codecs/pcap2.h"
-#include "pxa2xx-pcm.h"
 #include "pxa-ssp.h"
 
 static struct snd_soc_codec *control_codec;
@@ -35,7 +34,7 @@ static struct snd_soc_codec *control_codec;
 static int ezx_machine_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
 
 	return 0;
 }
@@ -44,8 +43,8 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
-	struct snd_soc_dai *cpu_dai = rtd->dai->cpu_dai;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret;
 
 	/* set codec DAI configuration */
@@ -93,14 +92,15 @@ static int ezx_machine_hw_params(struct snd_pcm_substream *substream,
 static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-	snd_soc_dapm_disable_pin(codec, "A5");
-	snd_soc_dapm_disable_pin(codec, "A5 Switch");
+	snd_soc_dapm_disable_pin(dapm, "A5");
+	//snd_soc_dapm_disable_pin(dapm, "A5 Switch");
 
-	snd_soc_dapm_disable_pin(codec, "Input Mixer");
+	snd_soc_dapm_disable_pin(dapm, "Input Mixer");
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 
 	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
 
@@ -110,18 +110,19 @@ static int ezx_machine_hw_free(struct snd_pcm_substream *substream)
 static int bp_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-	snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
+	snd_soc_dapm_stream_event(rtd, "MONO_DAC capture",
 		SND_SOC_DAPM_STREAM_STOP);
 
-	snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
+	snd_soc_dapm_stream_event(rtd, "MONO_DAC playback",
 		SND_SOC_DAPM_STREAM_STOP);
 
-	snd_soc_dapm_disable_pin(codec, "Input Mixer");
-	snd_soc_dapm_disable_pin(codec, "Output Mixer");
+	snd_soc_dapm_disable_pin(dapm, "Input Mixer");
+	snd_soc_dapm_disable_pin(dapm, "Output Mixer");
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 
 	OSCC &= ~0x8; /* turn off clock output on CLK_PIO */
 
@@ -138,9 +139,8 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_codec *codec = rtd->socdev->card->codec;
-
-	struct snd_soc_dai *codec_dai = rtd->dai->codec_dai;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int ret = 0;
 
 	/* set codec DAI configuration */
@@ -153,13 +153,13 @@ static int bp_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_sysclk(codec_dai, PCAP2_CLK_BP,
 					13000000, SND_SOC_CLOCK_IN);
 
-	snd_soc_dapm_stream_event(codec, "MONO_DAC capture",
+	snd_soc_dapm_stream_event(rtd, "MONO_DAC capture",
 		SND_SOC_DAPM_STREAM_START);
 
-	snd_soc_dapm_stream_event(codec, "MONO_DAC playback",
+	snd_soc_dapm_stream_event(rtd, "MONO_DAC playback",
 		SND_SOC_DAPM_STREAM_START);
 
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(&codec->dapm);
 
 	OSCC &= ~0x8;
 
@@ -196,14 +196,16 @@ static const struct snd_soc_dapm_route audio_map[] = {
 /*
  * Initialise the machine audio subsystem.
  */
-static int ezx_machine_init(struct snd_soc_codec *codec)
+static int ezx_machine_init(struct snd_soc_pcm_runtime *rtd)
 {
 	int i, err;
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
 	control_codec = codec;
 
 	/* Add ezx specific widgets */
-	snd_soc_dapm_new_controls(codec, ezx_dapm_widgets,
+	snd_soc_dapm_new_controls(dapm, ezx_dapm_widgets,
 						ARRAY_SIZE(ezx_dapm_widgets));
 
 #if 0
@@ -216,7 +218,7 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 #endif
 
 	/* Set up ezx specific audio path interconnects */
-	snd_soc_dapm_add_routes(codec, audio_map, ARRAY_SIZE(audio_map));
+	snd_soc_dapm_add_routes(dapm, audio_map, ARRAY_SIZE(audio_map));
 
 #if 0
 	snd_soc_dapm_new_widgets(codec);
@@ -226,7 +228,7 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 #endif
 
 	/* synchronise subsystem */
-	snd_soc_dapm_sync(codec);
+	snd_soc_dapm_sync(dapm);
 	return 0;
 }
 
@@ -234,8 +236,8 @@ static int ezx_machine_init(struct snd_soc_codec *codec)
 /*
  * GSM Codec DAI
  */
-static struct snd_soc_dai gsm_dai = {
-	.name = "GSM",
+static struct snd_soc_dai_driver gsm_dai = {
+	.name = "gsm-dai",
 	.id = 1,
 	.playback = {
 		.channels_min = 1,
@@ -254,35 +256,40 @@ static struct snd_soc_dai_link ezx_dai[] = {
 {
 	.name = "PCAP2 STEREO",
 	.stream_name = "Stereo playback",
-	.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
-	.codec_dai = &pcap2_dai[0],
+	.codec_name = "pcap-audio",
+	.platform_name = "pxa-pcm-audio",
+	.cpu_dai_name = "pxa-ssp-dai.2",
+	.codec_dai_name = "pcap2-st_dac",
 	.init = ezx_machine_init,
 	.ops = &ezx_ops,
 },
 {
 	.name = "PCAP2 MONO",
 	.stream_name = "Mono playback",
+	.codec_name = "pcap-audio",
+	.platform_name = "pxa-pcm-audio",
 #if 0
-	.cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3],
+	.cpu_dai_name = "pxa-ssp-dai.2",
+#else
+	.cpu_dai_name = "gsm-dai",
 #endif
-	.cpu_dai = &gsm_dai,
-	.codec_dai = &pcap2_dai[1],
+	.codec_dai_name = "pcap2-mono_dac",
 	.ops = &ezx_ops,
 },
 {
 	.name = "PCAP2 MONO GSM",
 	.stream_name = "Mono voice",
-	.cpu_dai = &gsm_dai,
-	.codec_dai = &pcap2_dai[2],
+	.codec_name = "pcap-audio",
+	.platform_name = "pxa-pcm-audio",
+	.cpu_dai_name = "gsm-dai",
+	.codec_dai_name = "pcap2-gsm-mono_dac",
 	.ops = &ezx_ops_gsm,
 }
-
 };
 
 /* template audio machine driver */
 static struct snd_soc_card snd_soc_machine_ezx = {
 	.name = "Motorola EZX",
-	.platform = &pxa2xx_soc_platform,
 #if 0
 	.probe
 	.remove
@@ -293,45 +300,51 @@ static struct snd_soc_card snd_soc_machine_ezx = {
 	.num_links = ARRAY_SIZE(ezx_dai),
 };
 
-/* template audio subsystem */
-static struct snd_soc_device ezx_snd_devdata = {
-	.card = &snd_soc_machine_ezx,
-	.codec_dev = &soc_codec_dev_pcap2,
-};
-
 static struct platform_device *ezx_snd_device;
 
 static int __init ezx_init(void)
 {
 	int ret;
 
-	ret = snd_soc_register_dai(&gsm_dai);
-	if (ret)
-		return ret;
-
 	ezx_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!ezx_snd_device)
 		return -ENOMEM;
 
-	platform_set_drvdata(ezx_snd_device, &ezx_snd_devdata);
-	ezx_snd_devdata.dev = &ezx_snd_device->dev;
-	ret = platform_device_add(ezx_snd_device);
-
+	/* register GSM DAI here */
+#if 0
+	/* FIXME: this call does not work, checkout why. */
+	ret = snd_soc_register_dai(&ezx_snd_device->dev, &gsm_dai);
+#else
+	ret = snd_soc_register_dais(&ezx_snd_device->dev, &gsm_dai, 1);
+#endif
 	if (ret)
-		platform_device_put(ezx_snd_device);
+		goto err_put_device;
 
-	ezx_dai[1].cpu_dai = &pxa_ssp_dai[PXA_DAI_SSP3];
+	platform_set_drvdata(ezx_snd_device, &snd_soc_machine_ezx);
+	ret = platform_device_add(ezx_snd_device);
+	if (ret)
+		goto err_unregister_dai;
+
+	//ezx_dai[1].cpu_dai_name = "pxa-ssp-dai.2";
+
 
 #ifdef CONFIG_PXA_EZX_A780
 	if (machine_is_ezx_a780())
 		gpio_direction_output(96, 1);
 #endif
 
+	return 0;
+
+err_unregister_dai:
+	snd_soc_unregister_dai(&ezx_snd_device->dev);
+err_put_device:
+	platform_device_put(ezx_snd_device);
 	return ret;
 }
 
 static void __exit ezx_exit(void)
 {
+	snd_soc_unregister_dai(&ezx_snd_device->dev);
 	platform_device_unregister(ezx_snd_device);
 }
 
