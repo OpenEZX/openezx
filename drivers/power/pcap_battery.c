@@ -118,7 +118,10 @@ static void pcap_bat_update(struct pcap_bat_struct *bat)
 		bat->status = POWER_SUPPLY_STATUS_DISCHARGING;
 	}
 
-	if (old != bat->status)
+	/* workaround by winice at sina.com
+	 * http://lists.gnumonks.org/pipermail/openezx-devel/2010-October/003544.html
+	 */
+	if (old != bat->status && psy->changed_work.func != NULL)
 		power_supply_changed(psy);
 }
 
