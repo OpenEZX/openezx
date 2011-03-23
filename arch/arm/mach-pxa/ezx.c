@@ -729,6 +729,22 @@ static struct regulator_init_data pcap_regulator_VAUX3_data = {
 	.consumer_supplies = pcap_regulator_VAUX3_consumers,
 };
 
+/* VAUX4: Keypad led on A910  */
+static struct regulator_consumer_supply pcap_regulator_VAUX4_consumers[] = {
+	{ .dev_name = "leds-regulator.1", .supply = "vled", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX4_data = {
+	.constraints = {
+		.min_uV = 1800000,
+		.max_uV = 5000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX4_consumers),
+	.consumer_supplies = pcap_regulator_VAUX4_consumers,
+};
+
 /* SW1: CORE on A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
 	{ .supply = "vcc_core", },
@@ -747,7 +763,7 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 
 /* VVIB: Vibrator on A780, A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
-	{ .dev_name = "leds-regulator", .supply = "vled", },
+	{ .dev_name = "leds-regulator.0", .supply = "vled", },
 };
 
 static struct regulator_init_data pcap_regulator_VVIB_data = {
@@ -768,7 +784,7 @@ static struct led_regulator_platform_data ezx_vibrator_data = {
 
 static struct platform_device ezx_vibrator = {
 	.name = "leds-regulator",
-	.id   = -1,
+	.id   = 0,
 	.dev  = {
 		.platform_data = &ezx_vibrator_data,
 	},
@@ -1202,6 +1218,10 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 		.platform_data	= &pcap_regulator_VAUX3_data,
 	}, {
 		.name		= "pcap-regulator",
+		.id		= VAUX4,
+		.platform_data	= &pcap_regulator_VAUX4_data,
+	}, {
+		.name		= "pcap-regulator",
 		.id		= VVIB,
 		.platform_data	= &pcap_regulator_VVIB_data,
 	},
@@ -1370,6 +1390,20 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 	},
 };
 
+/* keypad led */
+static struct led_regulator_platform_data a910_keypad_led_data = {
+	.name   = "a910::keypad",
+};
+
+static struct platform_device a910_keypad_led = {
+	.name = "leds-regulator",
+	.id   = 1,
+	.dev  = {
+		.platform_data = &a910_keypad_led_data,
+	},
+};
+
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("lp3944", 0x60),
@@ -1380,6 +1414,7 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
 	&ezx_vibrator,
+	&a910_keypad_led,
 };
 
 static void __init a910_init(void)
