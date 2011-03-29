@@ -56,7 +56,7 @@ static int __devinit reg_rfkill_probe(struct platform_device *pdev)
 	}
 
 	ret = rfkill_register(rfkill_info.rf_kill);
-	if (!ret)
+	if (ret)
 		return ret;
 	platform_set_drvdata(pdev, &rfkill_info);
 
