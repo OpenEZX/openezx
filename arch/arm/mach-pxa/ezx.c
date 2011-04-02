@@ -691,6 +691,12 @@ static struct pxa27x_keypad_platform_data e2_keypad_platform_data = {
 };
 #endif /* CONFIG_MACH_EZX_E2 */
 
+static void ezx_pcap_init(void *pcap)
+{
+	/* needed to make vibrator work on gen2 phones */
+	ezx_pcap_write(pcap, PCAP_REG_AUXVREG_MASK, 0x00214D48);
+}
+
 /* SPI */
 static struct pxa2xx_spi_chip ezx_pcap_chip_info = {
 	.tx_threshold   = 1,
@@ -739,6 +745,22 @@ static struct regulator_init_data pcap_regulator_VAUX3_data = {
 	.consumer_supplies = pcap_regulator_VAUX3_consumers,
 };
 
+/* VAUX4: Keypad led on A910  */
+static struct regulator_consumer_supply pcap_regulator_VAUX4_consumers[] = {
+	{ .dev_name = "leds-regulator.1", .supply = "vled", },
+};
+
+static struct regulator_init_data pcap_regulator_VAUX4_data = {
+	.constraints = {
+		.min_uV = 1800000,
+		.max_uV = 5000000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+					REGULATOR_CHANGE_VOLTAGE,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VAUX4_consumers),
+	.consumer_supplies = pcap_regulator_VAUX4_consumers,
+};
+
 /* SW1: CORE on A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_SW1_consumers[] = {
 	{ .supply = "vcc_core", },
@@ -757,7 +779,7 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 
 /* VVIB: Vibrator on A780, A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_VVIB_consumers[] = {
-	{ .dev_name = "leds-regulator", .supply = "vled", },
+	{ .dev_name = "leds-regulator.0", .supply = "vled", },
 };
 
 static struct regulator_init_data pcap_regulator_VVIB_data = {
@@ -770,6 +792,20 @@ static struct regulator_init_data pcap_regulator_VVIB_data = {
 	.num_consumer_supplies = ARRAY_SIZE(pcap_regulator_VVIB_consumers),
 	.consumer_supplies = pcap_regulator_VVIB_consumers,
 };
+
+/* vibrator */
+static struct led_regulator_platform_data ezx_vibrator_data = {
+	.name   = "ezx::vibrator",
+};
+
+static struct platform_device ezx_vibrator = {
+	.name = "leds-regulator",
+	.id   = 0,
+	.dev  = {
+		.platform_data = &ezx_vibrator_data,
+	},
+};
+
 
 #ifdef CONFIG_MACH_EZX_A780
 /* pcap-leds */
@@ -820,6 +856,7 @@ static struct pcap_subdev a780_pcap_subdevs[] = {
 static struct pcap_platform_data a780_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a780_pcap_subdevs),
 	.subdevs	= a780_pcap_subdevs,
 };
@@ -936,23 +973,10 @@ static struct platform_device a780_camera = {
 	},
 };
 
-/* vibrator */
-static struct led_regulator_platform_data a780_vibrator_data = {
-	.name   = "a780::vibrator",
-};
-
-static struct platform_device a780_vibrator = {
-	.name = "leds-regulator",
-	.id   = -1,
-	.dev  = {
-		.platform_data = &a780_vibrator_data,
-	},
-};
-
 
 static struct platform_device *a780_devices[] __initdata = {
 	&a780_gpio_keys,
-	&a780_vibrator,
+	&ezx_vibrator,
 };
 
 static void __init a780_init(void)
@@ -1054,6 +1078,7 @@ static struct pcap_subdev e680_pcap_subdevs[] = {
 static struct pcap_platform_data e680_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_SECOND_PORT,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e680_pcap_subdevs),
 	.subdevs	= e680_pcap_subdevs,
 };
@@ -1168,12 +1193,17 @@ static struct pcap_subdev a1200_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VVIB,
+		.platform_data	= &pcap_regulator_VVIB_data,
 	},
 };
 
 static struct pcap_platform_data a1200_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a1200_pcap_subdevs),
 	.subdevs	= a1200_pcap_subdevs,
 };
@@ -1222,6 +1252,7 @@ static struct i2c_board_info __initdata a1200_i2c_board_info[] = {
 
 static struct platform_device *a1200_devices[] __initdata = {
 	&a1200_gpio_keys,
+	&ezx_vibrator,
 };
 
 static void __init a1200_init(void)
@@ -1285,12 +1316,21 @@ static struct pcap_subdev a910_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX3,
 		.platform_data	= &pcap_regulator_VAUX3_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VAUX4,
+		.platform_data	= &pcap_regulator_VAUX4_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VVIB,
+		.platform_data	= &pcap_regulator_VVIB_data,
 	},
 };
 
 static struct pcap_platform_data a910_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(a910_pcap_subdevs),
 	.subdevs	= a910_pcap_subdevs,
 };
@@ -1513,6 +1553,20 @@ static struct lp3944_platform_data a910_lp3944_leds = {
 	},
 };
 
+/* keypad led */
+static struct led_regulator_platform_data a910_keypad_led_data = {
+	.name   = "a910::keypad",
+};
+
+static struct platform_device a910_keypad_led = {
+	.name = "leds-regulator",
+	.id   = 1,
+	.dev  = {
+		.platform_data = &a910_keypad_led_data,
+	},
+};
+
+
 static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("lp3944", 0x60),
@@ -1522,6 +1576,8 @@ static struct i2c_board_info __initdata a910_i2c_board_info[] = {
 
 static struct platform_device *a910_devices[] __initdata = {
 	&a910_gpio_keys,
+	&ezx_vibrator,
+	&a910_keypad_led,
 };
 
 static void __init a910_init(void)
@@ -1590,12 +1646,17 @@ static struct pcap_subdev e6_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VVIB,
+		.platform_data	= &pcap_regulator_VVIB_data,
 	},
 };
 
 static struct pcap_platform_data e6_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e6_pcap_subdevs),
 	.subdevs	= e6_pcap_subdevs,
 };
@@ -1644,6 +1705,7 @@ static struct i2c_board_info __initdata e6_i2c_board_info[] = {
 
 static struct platform_device *e6_devices[] __initdata = {
 	&e6_gpio_keys,
+	&ezx_vibrator,
 };
 
 static void __init e6_init(void)
@@ -1709,12 +1771,17 @@ static struct pcap_subdev e2_pcap_subdevs[] = {
 		.name		= "pcap-regulator",
 		.id		= VAUX2,
 		.platform_data	= &pcap_regulator_VAUX2_data,
+	}, {
+		.name		= "pcap-regulator",
+		.id		= VVIB,
+		.platform_data	= &pcap_regulator_VVIB_data,
 	},
 };
 
 static struct pcap_platform_data e2_pcap_platform_data = {
 	.irq_base	= IRQ_BOARD_START,
 	.config 	= PCAP_CS_AH,
+	.init		= ezx_pcap_init,
 	.num_subdevs	= ARRAY_SIZE(e2_pcap_subdevs),
 	.subdevs	= e2_pcap_subdevs,
 };
@@ -1737,6 +1804,7 @@ static struct i2c_board_info __initdata e2_i2c_board_info[] = {
 };
 
 static struct platform_device *e2_devices[] __initdata = {
+	&ezx_vibrator,
 };
 
 static void __init e2_init(void)
