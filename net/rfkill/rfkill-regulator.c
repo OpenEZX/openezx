@@ -1,6 +1,6 @@
 /*
  * rfkill-regulator.c - Regulator consumer driver for rfkill
- * 
+ *
  * Copyright (C) 2009  Guiming Zhuo <gmzhuo@gmail.com>
  * Copyright (C) 2011  Antonio Ospite <ospite@studenti.unina.it>
  *
@@ -46,7 +46,7 @@ static int rfkill_regulator_set_block(void *data, bool blocked)
 	}
 
 	pr_debug("%s: regulator_is_enabled after set_block: %d\n", __func__,
-	         regulator_is_enabled(rfkill_data->vcc));
+		regulator_is_enabled(rfkill_data->vcc));
 
 	return 0;
 }
@@ -85,7 +85,7 @@ static int __devinit rfkill_regulator_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto err_data_alloc;
 	}
-	
+
 	rf_kill = rfkill_alloc(pdata->name, &pdev->dev,
 				pdata->type,
 				&rfkill_regulator_ops, rfkill_data);
@@ -103,7 +103,7 @@ static int __devinit rfkill_regulator_probe(struct platform_device *pdev)
 
 	ret = rfkill_register(rf_kill);
 	if (ret) {
-		dev_err(&pdev->dev, "Cannot register rfkill device. ret = %d\n", ret);
+		dev_err(&pdev->dev, "Cannot register rfkill device\n");
 		goto err_rfkill_register;
 	}
 

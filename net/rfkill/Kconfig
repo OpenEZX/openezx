@@ -28,7 +28,7 @@ config RFKILL_REGULATOR
 	depends on RFKILL || !RFKILL
 	depends on REGULATOR
 	help
-          This options enable controlling radio transmitters connected to 
+          This options enable controlling radio transmitters connected to
           voltage regulator using the regulator framework.
 
           To compile this driver as a module, choose M here: the module will
