@@ -23,9 +23,13 @@ config RFKILL_INPUT
 	depends on INPUT = y || RFKILL = INPUT
 	default y if !EXPERT
 
-config RFKILL_BLUETOOTH
-	tristate "Generic bluetooth regulator driver"
-	depends on RFKILL && REGULATOR
+config RFKILL_REGULATOR
+	tristate "Generic rfkill regulator driver"
+	depends on RFKILL || !RFKILL
+	depends on REGULATOR
 	help
-	  Say Y here if your bluetooth power is controlled by a
-	  voltage regulator.
+          This options enable controlling radio transmitters connected to
+          voltage regulator using the regulator framework.
+
+          To compile this driver as a module, choose M here: the module will
+          be called rfkill-regulator.
