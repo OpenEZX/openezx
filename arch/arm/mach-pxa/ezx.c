@@ -32,6 +32,7 @@
 #include <linux/leds-regulator.h>
 #include <linux/regulator/machine.h>
 #include <linux/udc_isp158x.h>
+#include <linux/rfkill-regulator.h>
 
 #include <media/soc_camera.h>
 
@@ -176,9 +177,18 @@ struct platform_device ezx_usb20_device = {
 	},
 };
 
+/* rfkill switch for bluetooth */
+static struct rfkill_regulator_platform_data ezx_rfkill_bluetooth_data = {
+	.name  = "ezx-bluetooth",
+	.type  = RFKILL_TYPE_BLUETOOTH,
+};
+
 struct platform_device ezx_rfkill_bluetooth_device = {
-	.name       = "rfkill_bluetooth",
-	.id     = -1,
+	.name  = "rfkill-regulator",
+	.id    = -1,
+	.dev   = {
+		.platform_data = &ezx_rfkill_bluetooth_data,
+	},
 };
 
 /* MMC */
@@ -864,7 +874,7 @@ static struct regulator_init_data pcap_regulator_SW1_data = {
 
 /* V6: bluetooth on A1200, A910, E6, E2 */
 static struct regulator_consumer_supply pcap_regulator_V6_consumers[] = {
-	{ .dev = &ezx_rfkill_bluetooth_device.dev, .supply = "vbluetooth", },
+	{ .dev_name = "rfkill-regulator", .supply = "vrfkill", },
 };
 
 static struct regulator_init_data pcap_regulator_V6_data = {
