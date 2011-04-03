@@ -1,6 +1,18 @@
-From: guiming zhuo <gmzhuo@gbsoft.localdomain>
-Subject: [PATCH] ezx/rfkill-bluetooth
+From: Antonio Ospite <ospite@studenti.unina.it>
+Subject: [PATCH] rfkill: Regulator consumer driver for rfkill
 
-rfkill for bluetooth depend on regulator
+Add a regulator consumer driver for rfkill to enable controlling radio
+transmitters connected to voltage regulator using the regulator framework.
 
-Signed-off-by: guiming zhuo <gmzhuo@gbsoft.localdomain>
+A new "vrfkill" virtual supply is provided to use in platform code.
+
+Signed-off-by: Guiming Zhuo <gmzhuo@gmail.com>
+Signed-off-by: Antonio Ospite <ospite@studenti.unina.it>
+Cc: LAK <linux-arm-kernel@lists.infradead.org>
+Cc: openezx-devel@lists.openezx.org
+Cc: John W. Linville <linville@tuxdriver.com>
+Cc: Johannes Berg <johannes@sipsolutions.net>
+Cc: linux-wireless@vger.kernel.org
+Cc: Liam Girdwood <lrg@slimlogic.co.uk>
+Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: linux-kernel@vger.kernel.org
