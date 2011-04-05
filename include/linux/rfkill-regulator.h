@@ -1,6 +1,6 @@
 /*
  * rfkill-regulator.c - Regulator consumer driver for rfkill
- * 
+ *
  * Copyright (C) 2009  Guiming Zhuo <gmzhuo@gmail.com>
  * Copyright (C) 2011  Antonio Ospite <ospite@studenti.unina.it>
  *
