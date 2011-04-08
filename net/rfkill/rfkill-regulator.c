@@ -99,15 +99,14 @@ static int __devinit rfkill_regulator_probe(struct platform_device *pdev)
 		dev_dbg(&pdev->dev, "Regulator already enabled\n");
 		rfkill_data->reg_enabled = 1;
 	}
+	rfkill_data->vcc = vcc;
+	rfkill_data->rf_kill = rf_kill;
 
 	ret = rfkill_register(rf_kill);
 	if (ret) {
 		dev_err(&pdev->dev, "Cannot register rfkill device\n");
 		goto err_rfkill_register;
 	}
-
-	rfkill_data->rf_kill = rf_kill;
-	rfkill_data->vcc = vcc;
 
 	platform_set_drvdata(pdev, rfkill_data);
 	dev_info(&pdev->dev, "initialized\n");
