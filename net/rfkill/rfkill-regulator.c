@@ -109,7 +109,7 @@ static int __devinit rfkill_regulator_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, rfkill_data);
-	dev_info(&pdev->dev, "initialized\n");
+	dev_info(&pdev->dev, "%s initialized\n", pdata->name);
 
 	return 0;
 
