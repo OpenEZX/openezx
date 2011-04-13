@@ -17,7 +17,7 @@
  * Use "vrfkill" as supply id when declaring the regulator consumer:
  *
  * static struct regulator_consumer_supply pcap_regulator_V6_consumers [] = {
- * 	{ .dev_name = "rfkill-regulator.0", supply = "vrfkill" },
+ * 	{ .dev_name = "rfkill-regulator.0", .supply = "vrfkill" },
  * };
  *
  * If you have several regulator driven rfkill, you can append a numerical id to
