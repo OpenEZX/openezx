@@ -848,7 +848,6 @@ static void ezx_udc_command(int cmd)
 static struct pxa2xx_udc_mach_info ezx_udc_info = {
 	.udc_command	= ezx_udc_command,
 	.gpio_pullup	= -1,
-	.gpio_vbus	= -1,
 };
 
 #ifdef CONFIG_MACH_EZX_A780
