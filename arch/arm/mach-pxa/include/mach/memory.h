@@ -15,7 +15,7 @@
 /*
  * Physical DRAM offset.
  */
-#define PHYS_OFFSET	UL(0xa0000000)
+#define PLAT_PHYS_OFFSET	UL(0xa0000000)
 
 #define MAX_PHYSMEM_BITS	32 
 #define SECTION_SIZE_BITS	26 
