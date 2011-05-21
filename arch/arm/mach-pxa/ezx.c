@@ -31,6 +31,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/udc_isp158x.h>
 #include <linux/rfkill-regulator.h>
+#include <linux/i2c/pxa-i2c.h>
 
 #include <media/soc_camera.h>
 
@@ -41,7 +42,6 @@
 #include <mach/pxa27x.h>
 #include <mach/pxafb.h>
 #include <mach/ohci.h>
-#include <plat/i2c.h>
 #include <mach/hardware.h>
 #include <plat/pxa27x_keypad.h>
 #include <mach/mmc.h>
@@ -1261,7 +1261,7 @@ static void __init a780_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_1);
+	pxa_set_fb_info(NULL, &ezx_fb_info_1);
 
 	pxa_set_keypad_info(&a780_keypad_platform_data);
 
@@ -1426,6 +1426,7 @@ static void __init e680_init(void)
 	pxa_set_udc_info(&ezx_udc_info);
 
 	set_pxa_fb_info(&ezx_fb_info_1);
+	pxa_set_fb_info(NULL, &ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
 
@@ -1577,7 +1578,7 @@ static void __init a1200_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_2);
+	pxa_set_fb_info(NULL, &ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a1200_keypad_platform_data);
 
@@ -1923,7 +1924,7 @@ static void __init a910_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_2);
+	pxa_set_fb_info(NULL, &ezx_fb_info_2);
 
 	pxa_set_keypad_info(&a910_keypad_platform_data);
 
@@ -2084,7 +2085,7 @@ static void __init e6_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_2);
+	pxa_set_fb_info(NULL, &ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e6_keypad_platform_data);
 
@@ -2209,7 +2210,7 @@ static void __init e2_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_2);
+	pxa_set_fb_info(NULL, &ezx_fb_info_2);
 
 	pxa_set_keypad_info(&e2_keypad_platform_data);
 
