@@ -1202,7 +1202,6 @@ static void __init e680_init(void)
 	pxa_set_udc_parent(&spi_pd->dev);
 	pxa_set_udc_info(&ezx_udc_info);
 
-	set_pxa_fb_info(&ezx_fb_info_1);
 	pxa_set_fb_info(NULL, &ezx_fb_info_1);
 
 	pxa_set_keypad_info(&e680_keypad_platform_data);
