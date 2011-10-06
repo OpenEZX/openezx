@@ -161,9 +161,9 @@ static irqreturn_t bp_rdy_handler(int irq, void *dev_id)
 		if (bp_handshake_passed() && bp->bp_wdi2 >= 0) {
 			disable_irq(gpio_to_irq(bp->bp_wdi2));
 
-			set_irq_type(gpio_to_irq(bp->bp_rdy),
+			irq_set_irq_type(gpio_to_irq(bp->bp_rdy),
 					IRQ_TYPE_EDGE_FALLING);
-			set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
+			irq_set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 		}
 	}
 #ifdef CONFIG_MOTO_USB_IPC
@@ -184,14 +184,14 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 	if (err)
 		goto fail;
 
-	set_irq_wake(gpio_to_irq(bp->bp_wdi), 1);
+	irq_set_irq_wake(gpio_to_irq(bp->bp_wdi), 1);
 
 	err = request_irq(gpio_to_irq(bp->bp_rdy), bp_rdy_handler,
 			IRQF_TRIGGER_RISING, "bp rdy", bp);
 	if (err)
 		goto fail_rdy;
 
-	set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
+	irq_set_irq_wake(gpio_to_irq(bp->bp_rdy), 1);
 
 	if (bp->bp_wdi2 >= 0) {
 		err = request_irq(gpio_to_irq(bp->bp_wdi2), bp_wdi2_handler,
@@ -199,7 +199,7 @@ static int __init ezxbp_probe(struct platform_device *pdev)
 		if (err)
 			goto fail_wdi2;
 
-		set_irq_wake(gpio_to_irq(bp->bp_wdi2), 1);
+		irq_set_irq_wake(gpio_to_irq(bp->bp_wdi2), 1);
 	}
 	gpio_request(bp->bp_reset, "BP reset");
 	gpio_request(bp->ap_rdy, "AP rdy");
