@@ -117,18 +117,7 @@ static void eoc_isr_work(struct work_struct *work)
 		i &= ~(1 << x);
 
 		irq = eoc->irq_base + x;
-
-		struct irq_desc *desc = irq_to_desc(irq);
-
-		if (WARN(!desc, KERN_WARNING
-					"Invalid EOC IRQ %d\n", irq))
-			break;
-
-		if (desc->status & IRQ_DISABLED)
-			note_interrupt(irq, desc, IRQ_NONE);
-		else
-			desc->handle_irq(irq, desc);
-
+		generic_handle_irq(irq);
 	}
 	local_irq_enable();
 
@@ -317,26 +306,27 @@ int eoc_to_irq(struct eoc_chip *eoc, int irq)
 }
 EXPORT_SYMBOL_GPL(eoc_to_irq);
 
-static void eoc_mask_irq(unsigned int irq)
+static void eoc_mask_irq(struct irq_data *d)
 {
-	struct eoc_chip *eoc = get_irq_chip_data(irq);
+	struct eoc_chip *eoc = irq_data_get_irq_chip_data(d);
 
-	eoc->msr |= 1 << irq_to_eoc(eoc, irq);
+	eoc->msr |= 1 << irq_to_eoc(eoc, d->irq);
 	schedule_work(&eoc->msr_work);
 }
 
-static void eoc_unmask_irq(unsigned int irq)
+static void eoc_unmask_irq(struct irq_data *d)
 {
-	struct eoc_chip *eoc = get_irq_chip_data(irq);
+	struct eoc_chip *eoc = irq_data_get_irq_chip_data(d);
 
-	eoc->msr &= ~(1 << irq_to_eoc(eoc, irq));
+	eoc->msr &= ~(1 << irq_to_eoc(eoc, d->irq));
 	schedule_work(&eoc->msr_work);
 }
 
 static struct irq_chip eoc_irq_chip = {
-	.name	= "pcap",
-	.mask	= eoc_mask_irq,
-	.unmask	= eoc_unmask_irq,
+	.name        = "eoc",
+	.irq_disable = eoc_mask_irq,
+	.irq_mask    = eoc_mask_irq,
+	.irq_unmask  = eoc_unmask_irq,
 };
 
 static int __devinit eoc_probe(struct i2c_client *client,
@@ -393,13 +383,13 @@ static int __devinit eoc_probe(struct i2c_client *client,
 
 	/* setup irq chip */
 	for (x = eoc->irq_base; x < (eoc->irq_base + EOC_NIRQS); x++) {
-		set_irq_chip_and_handler(x, &eoc_irq_chip, handle_simple_irq);
+		irq_set_chip_and_handler(x, &eoc_irq_chip, handle_simple_irq);
 
-		set_irq_chip_data(x, eoc);
+		irq_set_chip_data(x, eoc);
 #ifdef CONFIG_ARM
 		set_irq_flags(x, IRQF_VALID);
 #else
-		set_irq_noprobe(x);
+		irq_set_noprobe(x);
 #endif
 	}
 
@@ -418,7 +408,7 @@ static int __devinit eoc_probe(struct i2c_client *client,
 remove_subdevs:
 	device_for_each_child(&client->dev, NULL, eoc_remove_subdev);
 	for (i = eoc->irq_base; i < (eoc->irq_base + EOC_NIRQS); i++)
-		set_irq_chip_and_handler(i, NULL, NULL);
+		irq_set_chip_and_handler(i, NULL, NULL);
 	kfree(eoc);
 ret:
 	return ret;
