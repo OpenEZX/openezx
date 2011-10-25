@@ -1247,6 +1247,7 @@ MACHINE_START(EZX_A780, "Motorola EZX A780")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a780_init,
 MACHINE_END
@@ -1403,6 +1404,7 @@ MACHINE_START(EZX_E680, "Motorola EZX E680")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e680_init,
 MACHINE_END
@@ -1544,6 +1546,7 @@ MACHINE_START(EZX_A1200, "Motorola EZX A1200")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a1200_init,
 MACHINE_END
@@ -1884,6 +1887,7 @@ MACHINE_START(EZX_A910, "Motorola EZX A910")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = a910_init,
 MACHINE_END
@@ -2029,6 +2033,7 @@ MACHINE_START(EZX_E6, "Motorola EZX E6")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e6_init,
 MACHINE_END
@@ -2143,6 +2148,7 @@ MACHINE_START(EZX_E2, "Motorola EZX E2")
 	.map_io         = pxa27x_map_io,
 	.nr_irqs	= EZX_NR_IRQS,
 	.init_irq       = pxa27x_init_irq,
+	.handle_irq       = pxa27x_handle_irq,
 	.timer          = &pxa_timer,
 	.init_machine   = e2_init,
 MACHINE_END
