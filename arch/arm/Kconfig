@@ -631,7 +631,7 @@ config ARCH_PXA
 	select SPARSE_IRQ
 	select AUTO_ZRELADDR
 	select MULTI_IRQ_HANDLER
-	select ARCH_SPARSEMEM_ENABLE
+	select ARCH_SPARSEMEM_ENABLE 
 	help
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 
