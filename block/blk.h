@@ -17,6 +17,8 @@ int blk_rq_append_bio(struct request_queue *q, struct request *rq,
 		      struct bio *bio);
 void blk_dequeue_request(struct request *rq);
 void __blk_queue_free_tags(struct request_queue *q);
+bool __blk_end_bidi_request(struct request *rq, int error,
+			    unsigned int nr_bytes, unsigned int bidi_bytes);
 
 void blk_rq_timed_out_timer(unsigned long data);
 void blk_delete_timer(struct request *);
@@ -62,7 +64,28 @@ static inline struct request *__elv_next_request(struct request_queue *q)
 			return rq;
 		}
 
-		if (!q->elevator->ops->elevator_dispatch_fn(q, 0))
+		/*
+		 * Flush request is running and flush request isn't queueable
+		 * in the drive, we can hold the queue till flush request is
+		 * finished. Even we don't do this, driver can't dispatch next
+		 * requests and will requeue them. And this can improve
+		 * throughput too. For example, we have request flush1, write1,
+		 * flush 2. flush1 is dispatched, then queue is hold, write1
+		 * isn't inserted to queue. After flush1 is finished, flush2
+		 * will be dispatched. Since disk cache is already clean,
+		 * flush2 will be finished very soon, so looks like flush2 is
+		 * folded to flush1.
+		 * Since the queue is hold, a flag is set to indicate the queue
+		 * should be restarted later. Please see flush_end_io() for
+		 * details.
+		 */
+		if (q->flush_pending_idx != q->flush_running_idx &&
+				!queue_flush_queueable(q)) {
+			q->flush_queue_delayed = 1;
+			return NULL;
+		}
+		if (test_bit(QUEUE_FLAG_DEAD, &q->queue_flags) ||
+		    !q->elevator->ops->elevator_dispatch_fn(q, 0))
 			return NULL;
 	}
 }
