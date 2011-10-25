@@ -17,17 +17,7 @@
  */
 #define PLAT_PHYS_OFFSET	UL(0xa0000000)
 
-#define MAX_PHYSMEM_BITS	32 
-#define SECTION_SIZE_BITS	26 
-
-#if !defined(__ASSEMBLY__) && defined(CONFIG_MACH_ARMCORE) && defined(CONFIG_PCI)
-void cmx2xx_pci_adjust_zones(unsigned long *size, unsigned long *holes);
-
-#define arch_adjust_zones(size, holes) \
-	cmx2xx_pci_adjust_zones(size, holes)
-
-#define ISA_DMA_THRESHOLD	(PHYS_OFFSET + SZ_64M - 1)
-#define MAX_DMA_ADDRESS		(PAGE_OFFSET + SZ_64M)
-#endif
+#define MAX_PHYSMEM_BITS	32
+#define SECTION_SIZE_BITS	26
 
 #endif

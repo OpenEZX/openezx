@@ -568,7 +568,7 @@ static void destroy_inodecache(void)
 }
 
 /* we don't mark inodes dirty, we just log them */
-static void reiserfs_dirty_inode(struct inode *inode)
+static void reiserfs_dirty_inode(struct inode *inode, int flags)
 {
 	struct reiserfs_transaction_handle th;
 
@@ -1643,6 +1643,7 @@ static int reiserfs_fill_super(struct super_block *s, void *data, int silent)
 	/* Set default values for options: non-aggressive tails, RO on errors */
 	REISERFS_SB(s)->s_mount_opt |= (1 << REISERFS_SMALLTAIL);
 	REISERFS_SB(s)->s_mount_opt |= (1 << REISERFS_ERROR_RO);
+	REISERFS_SB(s)->s_mount_opt |= (1 << REISERFS_BARRIER_FLUSH);
 	/* no preallocation minimum, be smart in
 	   reiserfs_file_write instead */
 	REISERFS_SB(s)->s_alloc_options.preallocmin = 0;
