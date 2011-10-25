@@ -641,7 +641,7 @@ void nfs4_put_open_state(struct nfs4_state *state)
 /*
  * Close the current file.
  */
-static void __nfs4_close(struct path *path, struct nfs4_state *state,
+static void __nfs4_close(struct nfs4_state *state,
 		fmode_t fmode, gfp_t gfp_mask, int wait)
 {
 	struct nfs4_state_owner *owner = state->owner;
@@ -685,18 +685,18 @@ static void __nfs4_close(struct path *path, struct nfs4_state *state,
 	} else {
 		bool roc = pnfs_roc(state->inode);
 
-		nfs4_do_close(path, state, gfp_mask, wait, roc);
+		nfs4_do_close(state, gfp_mask, wait, roc);
 	}
 }
 
-void nfs4_close_state(struct path *path, struct nfs4_state *state, fmode_t fmode)
+void nfs4_close_state(struct nfs4_state *state, fmode_t fmode)
 {
-	__nfs4_close(path, state, fmode, GFP_NOFS, 0);
+	__nfs4_close(state, fmode, GFP_NOFS, 0);
 }
 
-void nfs4_close_sync(struct path *path, struct nfs4_state *state, fmode_t fmode)
+void nfs4_close_sync(struct nfs4_state *state, fmode_t fmode)
 {
-	__nfs4_close(path, state, fmode, GFP_KERNEL, 1);
+	__nfs4_close(state, fmode, GFP_KERNEL, 1);
 }
 
 /*
@@ -1035,6 +1035,12 @@ void nfs4_schedule_lease_recovery(struct nfs_client *clp)
 		return;
 	if (!test_bit(NFS4CLNT_LEASE_EXPIRED, &clp->cl_state))
 		set_bit(NFS4CLNT_CHECK_LEASE, &clp->cl_state);
+	nfs4_schedule_state_manager(clp);
+}
+
+void nfs4_schedule_path_down_recovery(struct nfs_client *clp)
+{
+	nfs_handle_cb_pathdown(clp);
 	nfs4_schedule_state_manager(clp);
 }
 
@@ -1466,7 +1472,10 @@ static int nfs4_reclaim_lease(struct nfs_client *clp)
 #ifdef CONFIG_NFS_V4_1
 void nfs4_schedule_session_recovery(struct nfs4_session *session)
 {
-	nfs4_schedule_lease_recovery(session->clp);
+	struct nfs_client *clp = session->clp;
+
+	set_bit(NFS4CLNT_SESSION_RESET, &clp->cl_state);
+	nfs4_schedule_lease_recovery(clp);
 }
 EXPORT_SYMBOL_GPL(nfs4_schedule_session_recovery);
 
@@ -1549,6 +1558,7 @@ static int nfs4_reset_session(struct nfs_client *clp)
 		status = nfs4_recovery_handle_error(clp, status);
 		goto out;
 	}
+	clear_bit(NFS4CLNT_SESSION_RESET, &clp->cl_state);
 	/* create_session negotiated new slot table */
 	clear_bit(NFS4CLNT_RECALL_SLOT, &clp->cl_state);
 
@@ -1639,7 +1649,14 @@ static void nfs4_state_manager(struct nfs_client *clp)
 				goto out_error;
 			}
 			clear_bit(NFS4CLNT_CHECK_LEASE, &clp->cl_state);
-			set_bit(NFS4CLNT_RECLAIM_REBOOT, &clp->cl_state);
+
+			if (test_and_clear_bit(NFS4CLNT_SERVER_SCOPE_MISMATCH,
+					       &clp->cl_state))
+				nfs4_state_start_reclaim_nograce(clp);
+			else
+				set_bit(NFS4CLNT_RECLAIM_REBOOT,
+					&clp->cl_state);
+
 			pnfs_destroy_all_layouts(clp);
 		}
 
