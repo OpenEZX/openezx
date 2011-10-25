@@ -30,6 +30,7 @@ struct request_pm_state;
 struct blk_trace;
 struct request;
 struct sg_io_hdr;
+struct bsg_job;
 
 #define BLKDEV_MIN_RQ	4
 #define BLKDEV_MAX_RQ	128	/* Default maximum */
@@ -73,7 +74,7 @@ enum rq_cmd_type_bits {
 
 /*
  * try to put the fields that are referenced together in the same cacheline.
- * if you modify this structure, be sure to check block/blk-core.c:rq_init()
+ * if you modify this structure, be sure to check block/blk-core.c:blk_rq_init()
  * as well!
  */
 struct request {
@@ -117,6 +118,7 @@ struct request {
 		struct {
 			unsigned int		seq;
 			struct list_head	list;
+			rq_end_io_fn		*saved_end_io;
 		} flush;
 	};
 
@@ -209,6 +211,7 @@ typedef int (merge_bvec_fn) (struct request_queue *, struct bvec_merge_data *,
 typedef void (softirq_done_fn)(struct request *);
 typedef int (dma_drain_needed_fn)(struct request *);
 typedef int (lld_busy_fn) (struct request_queue *q);
+typedef int (bsg_job_fn) (struct bsg_job *);
 
 enum blk_eh_timer_return {
 	BLK_EH_NOT_HANDLED,
@@ -257,11 +260,10 @@ struct queue_limits {
 	unsigned char		misaligned;
 	unsigned char		discard_misaligned;
 	unsigned char		cluster;
-	signed char		discard_zeroes_data;
+	unsigned char		discard_zeroes_data;
 };
 
-struct request_queue
-{
+struct request_queue {
 	/*
 	 * Together with queue_head for cacheline sharing
 	 */
@@ -304,14 +306,14 @@ struct request_queue
 	void			*queuedata;
 
 	/*
-	 * queue needs bounce pages for pages above this limit
-	 */
-	gfp_t			bounce_gfp;
-
-	/*
 	 * various queue flags, see QUEUE_* below
 	 */
 	unsigned long		queue_flags;
+
+	/*
+	 * queue needs bounce pages for pages above this limit
+	 */
+	gfp_t			bounce_gfp;
 
 	/*
 	 * protects queue structures from reentrancy. ->__queue_lock should
@@ -334,8 +336,8 @@ struct request_queue
 	unsigned int		nr_congestion_off;
 	unsigned int		nr_batching;
 
-	void			*dma_drain_buffer;
 	unsigned int		dma_drain_size;
+	void			*dma_drain_buffer;
 	unsigned int		dma_pad_mask;
 	unsigned int		dma_alignment;
 
@@ -364,6 +366,8 @@ struct request_queue
 	 * for flush operations
 	 */
 	unsigned int		flush_flags;
+	unsigned int		flush_not_queueable:1;
+	unsigned int		flush_queue_delayed:1;
 	unsigned int		flush_pending_idx:1;
 	unsigned int		flush_running_idx:1;
 	unsigned long		flush_pending_since;
@@ -374,6 +378,8 @@ struct request_queue
 	struct mutex		sysfs_lock;
 
 #if defined(CONFIG_BLK_DEV_BSG)
+	bsg_job_fn		*bsg_job_fn;
+	int			bsg_job_size;
 	struct bsg_class_device bsg_dev;
 #endif
 
@@ -391,7 +397,7 @@ struct request_queue
 #define QUEUE_FLAG_ELVSWITCH	6	/* don't use elevator, just do FIFO */
 #define QUEUE_FLAG_BIDI		7	/* queue supports bidi requests */
 #define QUEUE_FLAG_NOMERGES     8	/* disable merge attempts */
-#define QUEUE_FLAG_SAME_COMP	9	/* force complete on same CPU */
+#define QUEUE_FLAG_SAME_COMP	9	/* complete on same CPU-group */
 #define QUEUE_FLAG_FAIL_IO     10	/* fake timeout */
 #define QUEUE_FLAG_STACKABLE   11	/* supports request stacking */
 #define QUEUE_FLAG_NONROT      12	/* non-rotational device (SSD) */
@@ -401,6 +407,7 @@ struct request_queue
 #define QUEUE_FLAG_NOXMERGES   15	/* No extended merges */
 #define QUEUE_FLAG_ADD_RANDOM  16	/* Contributes to random pool */
 #define QUEUE_FLAG_SECDISCARD  17	/* supports SECDISCARD */
+#define QUEUE_FLAG_SAME_FORCE  18	/* force complete on same CPU */
 
 #define QUEUE_FLAG_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
 				 (1 << QUEUE_FLAG_STACKABLE)	|	\
@@ -843,6 +850,7 @@ extern void blk_queue_softirq_done(struct request_queue *, softirq_done_fn *);
 extern void blk_queue_rq_timed_out(struct request_queue *, rq_timed_out_fn *);
 extern void blk_queue_rq_timeout(struct request_queue *, unsigned int);
 extern void blk_queue_flush(struct request_queue *q, unsigned int flush);
+extern void blk_queue_flush_queueable(struct request_queue *q, bool queueable);
 extern struct backing_dev_info *blk_get_backing_dev_info(struct block_device *bdev);
 
 extern int blk_rq_map_sg(struct request_queue *, struct request *, struct scatterlist *);
@@ -854,12 +862,20 @@ struct request_queue *blk_alloc_queue(gfp_t);
 struct request_queue *blk_alloc_queue_node(gfp_t, int);
 extern void blk_put_queue(struct request_queue *);
 
+/*
+ * Note: Code in between changing the blk_plug list/cb_list or element of such
+ * lists is preemptable, but such code can't do sleep (or be very careful),
+ * otherwise data is corrupted. For details, please check schedule() where
+ * blk_schedule_flush_plug() is called.
+ */
 struct blk_plug {
 	unsigned long magic;
 	struct list_head list;
 	struct list_head cb_list;
 	unsigned int should_sort;
 };
+#define BLK_MAX_REQUEST_COUNT 16
+
 struct blk_plug_cb {
 	struct list_head list;
 	void (*callback)(struct blk_plug_cb *);
@@ -1066,13 +1082,16 @@ static inline int queue_limit_discard_alignment(struct queue_limits *lim, sector
 {
 	unsigned int alignment = (sector << 9) & (lim->discard_granularity - 1);
 
+	if (!lim->max_discard_sectors)
+		return 0;
+
 	return (lim->discard_granularity + lim->discard_alignment - alignment)
 		& (lim->discard_granularity - 1);
 }
 
 static inline unsigned int queue_discard_zeroes_data(struct request_queue *q)
 {
-	if (q->limits.discard_zeroes_data == 1)
+	if (q->limits.max_discard_sectors && q->limits.discard_zeroes_data == 1)
 		return 1;
 
 	return 0;
@@ -1109,6 +1128,11 @@ static inline unsigned int blksize_bits(unsigned int size)
 static inline unsigned int block_size(struct block_device *bdev)
 {
 	return bdev->bd_block_size;
+}
+
+static inline bool queue_flush_queueable(struct request_queue *q)
+{
+	return !q->flush_not_queueable;
 }
 
 typedef struct {struct page *v;} Sector;
@@ -1271,8 +1295,8 @@ queue_max_integrity_segments(struct request_queue *q)
 #define blk_get_integrity(a)			(0)
 #define blk_integrity_compare(a, b)		(0)
 #define blk_integrity_register(a, b)		(0)
-#define blk_integrity_unregister(a)		do { } while (0);
-#define blk_queue_max_integrity_segments(a, b)	do { } while (0);
+#define blk_integrity_unregister(a)		do { } while (0)
+#define blk_queue_max_integrity_segments(a, b)	do { } while (0)
 #define queue_max_integrity_segments(a)		(0)
 #define blk_integrity_merge_rq(a, b, c)		(0)
 #define blk_integrity_merge_bio(a, b, c)	(0)
