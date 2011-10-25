@@ -435,7 +435,7 @@ armpmu_reserve_hardware(void)
 			if (irq >= 0)
 				free_irq(irq, NULL);
 		}
-		release_pmu(pmu_device);
+		release_pmu(ARM_PMU_DEVICE_CPU);
 		pmu_device = NULL;
 	}
 
@@ -454,7 +454,7 @@ armpmu_release_hardware(void)
 	}
 	armpmu->stop();
 
-	release_pmu(pmu_device);
+	release_pmu(ARM_PMU_DEVICE_CPU);
 	pmu_device = NULL;
 }
 
@@ -560,11 +560,6 @@ static int armpmu_event_init(struct perf_event *event)
 	event->destroy = hw_perf_event_destroy;
 
 	if (!atomic_inc_not_zero(&active_events)) {
-		if (atomic_read(&active_events) > armpmu->num_events) {
-			atomic_dec(&active_events);
-			return -ENOSPC;
-		}
-
 		mutex_lock(&pmu_reserve_mutex);
 		if (atomic_read(&active_events) == 0) {
 			err = armpmu_reserve_hardware();
@@ -588,7 +583,7 @@ static int armpmu_event_init(struct perf_event *event)
 static void armpmu_enable(struct pmu *pmu)
 {
 	/* Enable all of the perf events on hardware. */
-	int idx;
+	int idx, enabled = 0;
 	struct cpu_hw_events *cpuc = &__get_cpu_var(cpu_hw_events);
 
 	if (!armpmu)
@@ -601,9 +596,11 @@ static void armpmu_enable(struct pmu *pmu)
 			continue;
 
 		armpmu->enable(&event->hw, idx);
+		enabled = 1;
 	}
 
-	armpmu->start();
+	if (enabled)
+		armpmu->start();
 }
 
 static void armpmu_disable(struct pmu *pmu)
@@ -664,6 +661,12 @@ init_hw_perf_events(void)
 			break;
 		case 0xC090:	/* Cortex-A9 */
 			armpmu = armv7_a9_pmu_init();
+			break;
+		case 0xC050:	/* Cortex-A5 */
+			armpmu = armv7_a5_pmu_init();
+			break;
+		case 0xC0F0:	/* Cortex-A15 */
+			armpmu = armv7_a15_pmu_init();
 			break;
 		}
 	/* Intel CPUs [xscale]. */
