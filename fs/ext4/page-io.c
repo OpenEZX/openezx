@@ -142,7 +142,23 @@ static void ext4_end_io_work(struct work_struct *work)
 	unsigned long		flags;
 	int			ret;
 
-	mutex_lock(&inode->i_mutex);
+	if (!mutex_trylock(&inode->i_mutex)) {
+		/*
+		 * Requeue the work instead of waiting so that the work
+		 * items queued after this can be processed.
+		 */
+		queue_work(EXT4_SB(inode->i_sb)->dio_unwritten_wq, &io->work);
+		/*
+		 * To prevent the ext4-dio-unwritten thread from keeping
+		 * requeueing end_io requests and occupying cpu for too long,
+		 * yield the cpu if it sees an end_io request that has already
+		 * been requeued.
+		 */
+		if (io->flag & EXT4_IO_END_QUEUED)
+			yield();
+		io->flag |= EXT4_IO_END_QUEUED;
+		return;
+	}
 	ret = ext4_end_io_nolock(io);
 	if (ret < 0) {
 		mutex_unlock(&inode->i_mutex);
@@ -203,45 +219,28 @@ static void ext4_end_bio(struct bio *bio, int error)
 	for (i = 0; i < io_end->num_io_pages; i++) {
 		struct page *page = io_end->pages[i]->p_page;
 		struct buffer_head *bh, *head;
-		int partial_write = 0;
+		loff_t offset;
+		loff_t io_end_offset;
 
-		head = page_buffers(page);
-		if (error)
+		if (error) {
 			SetPageError(page);
-		BUG_ON(!head);
-		if (head->b_size != PAGE_CACHE_SIZE) {
-			loff_t offset;
-			loff_t io_end_offset = io_end->offset + io_end->size;
+			set_bit(AS_EIO, &page->mapping->flags);
+			head = page_buffers(page);
+			BUG_ON(!head);
+
+			io_end_offset = io_end->offset + io_end->size;
 
 			offset = (sector_t) page->index << PAGE_CACHE_SHIFT;
 			bh = head;
 			do {
 				if ((offset >= io_end->offset) &&
-				    (offset+bh->b_size <= io_end_offset)) {
-					if (error)
-						buffer_io_error(bh);
+				    (offset+bh->b_size <= io_end_offset))
+					buffer_io_error(bh);
 
-				}
-				if (buffer_delay(bh))
-					partial_write = 1;
-				else if (!buffer_mapped(bh))
-					clear_buffer_dirty(bh);
-				else if (buffer_dirty(bh))
-					partial_write = 1;
 				offset += bh->b_size;
 				bh = bh->b_this_page;
 			} while (bh != head);
 		}
-
-		/*
-		 * If this is a partial write which happened to make
-		 * all buffers uptodate then we can optimize away a
-		 * bogus readpage() for the next read(). Here we
-		 * 'discover' whether the page went uptodate as a
-		 * result of this (potentially partial) write.
-		 */
-		if (!partial_write)
-			SetPageUptodate(page);
 
 		put_io_page(io_end->pages[i]);
 	}
@@ -302,11 +301,7 @@ static int io_submit_init(struct ext4_io_submit *io,
 	io_end = ext4_init_io_end(inode, GFP_NOFS);
 	if (!io_end)
 		return -ENOMEM;
-	do {
-		bio = bio_alloc(GFP_NOIO, nvecs);
-		nvecs >>= 1;
-	} while (bio == NULL);
-
+	bio = bio_alloc(GFP_NOIO, min(nvecs, BIO_MAX_PAGES));
 	bio->bi_sector = bh->b_blocknr * (bh->b_size >> 9);
 	bio->bi_bdev = bh->b_bdev;
 	bio->bi_private = io->io_end = io_end;
@@ -355,8 +350,10 @@ submit_and_retry:
 	if ((io_end->num_io_pages >= MAX_IO_PAGES) &&
 	    (io_end->pages[io_end->num_io_pages-1] != io_page))
 		goto submit_and_retry;
-	if (buffer_uninit(bh))
-		io->io_end->flag |= EXT4_IO_END_UNWRITTEN;
+	if (buffer_uninit(bh) && !(io_end->flag & EXT4_IO_END_UNWRITTEN)) {
+		io_end->flag |= EXT4_IO_END_UNWRITTEN;
+		atomic_inc(&EXT4_I(inode)->i_aiodio_unwritten);
+	}
 	io->io_end->size += bh->b_size;
 	io->io_next_block++;
 	ret = bio_add_page(io->io_bio, bh->b_page, bh->b_size, bh_offset(bh));
