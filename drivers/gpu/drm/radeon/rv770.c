@@ -105,6 +105,9 @@ void rv770_pm_misc(struct radeon_device *rdev)
 	struct radeon_voltage *voltage = &ps->clock_info[req_cm_idx].voltage;
 
 	if ((voltage->type == VOLTAGE_SW) && voltage->voltage) {
+		/* 0xff01 is a flag rather then an actual voltage */
+		if (voltage->voltage == 0xff01)
+			return;
 		if (voltage->voltage != rdev->pm.current_vddc) {
 			radeon_atom_set_voltage(rdev, voltage->voltage, SET_VOLTAGE_TYPE_ASIC_VDDC);
 			rdev->pm.current_vddc = voltage->voltage;
@@ -533,49 +536,6 @@ static u32 r700_get_tile_pipe_to_backend_map(struct radeon_device *rdev,
 	return backend_map;
 }
 
-static void rv770_program_channel_remap(struct radeon_device *rdev)
-{
-	u32 tcp_chan_steer, mc_shared_chremap, tmp;
-	bool force_no_swizzle;
-
-	switch (rdev->family) {
-	case CHIP_RV770:
-	case CHIP_RV730:
-		force_no_swizzle = false;
-		break;
-	case CHIP_RV710:
-	case CHIP_RV740:
-	default:
-		force_no_swizzle = true;
-		break;
-	}
-
-	tmp = RREG32(MC_SHARED_CHMAP);
-	switch ((tmp & NOOFCHAN_MASK) >> NOOFCHAN_SHIFT) {
-	case 0:
-	case 1:
-	default:
-		/* default mapping */
-		mc_shared_chremap = 0x00fac688;
-		break;
-	case 2:
-	case 3:
-		if (force_no_swizzle)
-			mc_shared_chremap = 0x00fac688;
-		else
-			mc_shared_chremap = 0x00bbc298;
-		break;
-	}
-
-	if (rdev->family == CHIP_RV740)
-		tcp_chan_steer = 0x00ef2a60;
-	else
-		tcp_chan_steer = 0x00fac688;
-
-	WREG32(TCP_CHAN_STEER, tcp_chan_steer);
-	WREG32(MC_SHARED_CHREMAP, mc_shared_chremap);
-}
-
 static void rv770_gpu_init(struct radeon_device *rdev)
 {
 	int i, j, num_qd_pipes;
@@ -769,13 +729,12 @@ static void rv770_gpu_init(struct radeon_device *rdev)
 								(cc_rb_backend_disable >> 16));
 
 	rdev->config.rv770.tile_config = gb_tiling_config;
+	rdev->config.rv770.backend_map = backend_map;
 	gb_tiling_config |= BACKEND_MAP(backend_map);
 
 	WREG32(GB_TILING_CONFIG, gb_tiling_config);
 	WREG32(DCP_TILING_CONFIG, (gb_tiling_config & 0xffff));
 	WREG32(HDP_TILING_CONFIG, (gb_tiling_config & 0xffff));
-
-	rv770_program_channel_remap(rdev);
 
 	WREG32(CC_RB_BACKEND_DISABLE,      cc_rb_backend_disable);
 	WREG32(CC_GC_SHADER_PIPE_CONFIG,   cc_gc_shader_pipe_config);
@@ -1359,6 +1318,7 @@ void rv770_fini(struct radeon_device *rdev)
 	r700_cp_fini(rdev);
 	r600_irq_fini(rdev);
 	radeon_wb_fini(rdev);
+	radeon_ib_pool_fini(rdev);
 	radeon_irq_kms_fini(rdev);
 	rv770_pcie_gart_fini(rdev);
 	rv770_vram_scratch_fini(rdev);
