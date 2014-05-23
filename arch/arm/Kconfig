@@ -682,7 +682,6 @@ config ARCH_PXA
 	select MULTI_IRQ_HANDLER
 	select ARM_CPU_SUSPEND if PM
 	select HAVE_IDE
-	select ARCH_SPARSEMEM_ENABLE 
 	help
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 
