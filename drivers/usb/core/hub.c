@@ -3031,7 +3031,8 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 				msleep(200);
 
 				if (old_scheme_first)
-					hub_port_reset(hub, port1, udev, delay);
+					hub_port_reset(hub, port1, udev, delay,
+						       false);
 			}
 			if (retval < 0) {
 				dev_err(&udev->dev,
